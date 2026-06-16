@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpenText, Inbox } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 
@@ -25,7 +26,7 @@ export function BlogListPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
-      const response = await fetch("/api/blog");
+      const response = await fetch(getApiUrl("/api/blog"));
 
       if (!response.ok) {
         throw new Error("Gagal mengambil blog");

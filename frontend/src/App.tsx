@@ -9,6 +9,7 @@ import {
   type TemplateCategory,
   type TemplateItem,
 } from "./content";
+import { getApiUrl } from "./api-client";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { UserLoginPage } from "./pages/UserLoginPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -310,16 +311,16 @@ function App() {
 
 async function fetchAppBootstrap() {
   const [health, templates, categories, projects] = await Promise.all([
-    fetch("/api/health").then(
+    fetch(getApiUrl("/api/health")).then(
       (response) => response.json() as Promise<HealthState>,
     ),
-    fetch("/api/templates").then(
+    fetch(getApiUrl("/api/templates")).then(
       (response) => response.json() as Promise<TemplatesResponse>,
     ),
-    fetch("/api/categories").then(
+    fetch(getApiUrl("/api/categories")).then(
       (response) => response.json() as Promise<CategoriesResponse>,
     ),
-    fetch("/api/projects").then(
+    fetch(getApiUrl("/api/projects")).then(
       (response) => response.json() as Promise<ProjectsResponse>,
     ),
   ]);

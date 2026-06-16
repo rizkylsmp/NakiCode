@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import {
@@ -126,7 +127,7 @@ export function UserProfilePage() {
     setStatus("Memuat profil akun...");
 
     try {
-      const response = await fetch("/api/auth/user/me", {
+      const response = await fetch(getApiUrl("/api/auth/user/me"), {
         headers: authHeaders(token),
       });
 
@@ -165,7 +166,7 @@ export function UserProfilePage() {
     setStatus("Menyimpan nama akun...");
 
     try {
-      const response = await fetch("/api/auth/user/me", {
+      const response = await fetch(getApiUrl("/api/auth/user/me"), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -219,7 +220,7 @@ export function UserProfilePage() {
     setStatus("Menyimpan password baru...");
 
     try {
-      const response = await fetch("/api/auth/user/me", {
+      const response = await fetch(getApiUrl("/api/auth/user/me"), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -302,7 +303,7 @@ export function UserProfilePage() {
     setStatus("Menghapus akun...");
 
     try {
-      const response = await fetch("/api/auth/user/me", {
+      const response = await fetch(getApiUrl("/api/auth/user/me"), {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

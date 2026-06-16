@@ -24,6 +24,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
@@ -296,7 +297,7 @@ export function AdminTemplatesPage({
   useEffect(() => {
     let isActive = true;
 
-    fetch("/api/templates")
+    fetch(getApiUrl("/api/templates"))
       .then((response) => response.json())
       .then((data: TemplatesResponse) => {
         if (isActive && Array.isArray(data.templates)) {
@@ -355,7 +356,7 @@ export function AdminTemplatesPage({
 
     let isActive = true;
 
-    fetch("/api/auth/user/me", {
+    fetch(getApiUrl("/api/auth/user/me"), {
       headers: createAuthHeaders(adminToken),
     })
       .then((response) => {
@@ -2929,7 +2930,7 @@ async function uploadPreviewImages(files: File[], adminToken: string | null) {
     formData.append("images", file);
   });
 
-  const response = await fetch("/api/uploads/images", {
+  const response = await fetch(getApiUrl("/api/uploads/images"), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${adminToken}`,

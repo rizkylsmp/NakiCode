@@ -1,3 +1,4 @@
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { userTokenKey } from './user-session';
 
 /**
@@ -11,61 +12,71 @@ export function setUnauthorizedHandler(handler: () => void) {
 }
 
 /**
- * API client wrapper with automatic 401 handling
- * Use this instead of direct fetch() for authenticated API calls
+ * Axios instance with automatic base URL and auth token injection
+ * All API calls should use this instance for consistent behavior
  */
-export async function apiClient<T = any>(
-  url: string,
-  options: RequestInit = {}
-): Promise<T> {
-  // Automatically add auth token if available
-  const token = localStorage.getItem(userTokenKey);
-  const headers = new Headers(options.headers);
-  
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  
-  // Make the request
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-  
-  // Handle 401 Unauthorized - auto logout
-  if (response.status === 401) {
-    console.warn('[Auth] Session expired or unauthorized - logging out automatically');
-    
-    // Trigger logout handler (will clear localStorage and update context)
-    if (onUnauthorized) {
-      onUnauthorized();
-    }
-    
-    throw new Error('Session expired. Please login again.');
-  }
-  
-  // Handle other error responses
-  if (!response.ok) {
-    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-    
-    try {
-      const errorData = await response.json();
-      if (errorData.message) {
-        errorMessage = errorData.message;
-      }
-    } catch {
-      // If response is not JSON, use default message
-    }
-    
-    throw new Error(errorMessage);
-  }
-  
-  // Return JSON response
-  return response.json();
-}
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '',
+  timeout: 30000, // 30 seconds
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 /**
- * Helper to create auth headers (for non-apiClient usage)
+ * Request interceptor - automatically inject auth token
+ */
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem(userTokenKey);
+    
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Response interceptor - handle 401 Unauthorized globally
+ */
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    // Handle 401 Unauthorized - auto logout
+    if (error.response?.status === 401) {
+      console.warn('[Auth] Session expired or unauthorized - logging out automatically');
+      
+      // Trigger logout handler (will clear localStorage and update context)
+      if (onUnauthorized) {
+        onUnauthorized();
+      }
+      
+      return Promise.reject(new Error('Session expired. Please login again.'));
+    }
+    
+    // Handle other error responses
+    let errorMessage = `HTTP ${error.response?.status || 'Unknown'}: ${error.message}`;
+    
+    if (error.response?.data && typeof error.response.data === 'object') {
+      const data = error.response.data as any;
+      if (data.message) {
+        errorMessage = data.message;
+      }
+    }
+    
+    return Promise.reject(new Error(errorMessage));
+  }
+);
+
+/**
+ * Helper to create auth headers (for non-apiClient usage like FormData uploads)
  */
 export function createAuthHeaders(): HeadersInit {
   const token = localStorage.getItem(userTokenKey);
@@ -78,3 +89,15 @@ export function createAuthHeaders(): HeadersInit {
     Authorization: `Bearer ${token}`,
   };
 }
+
+/**
+ * Helper to construct full API URL from relative path
+ * Use this for direct fetch() calls that can't use axios instance
+ */
+export function getApiUrl(path: string): string {
+  const baseUrl = import.meta.env.VITE_API_URL || '';
+  return `${baseUrl}${path}`;
+}
+
+// Export the configured axios instance as default
+export default apiClient;

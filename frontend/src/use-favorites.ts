@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { getApiUrl } from "./api-client";
 import { useAuth } from "./auth-context";
 
 type FavoritesResponse = {
@@ -13,7 +14,7 @@ export function useFavoriteTemplates() {
     queryKey: ["favorites", token],
     enabled: Boolean(token),
     queryFn: async () => {
-      const response = await fetch("/api/favorites/my", {
+      const response = await fetch(getApiUrl("/api/favorites/my"), {
         headers: createAuthHeaders(token),
       });
 
@@ -36,7 +37,7 @@ export function useFavoriteTemplates() {
       templateId: number;
       isFavorite: boolean;
     }) => {
-      const response = await fetch(`/api/favorites/${templateId}`, {
+      const response = await fetch(getApiUrl(`/api/favorites/${templateId}`), {
         method: isFavorite ? "DELETE" : "POST",
         headers: createAuthHeaders(token),
       });

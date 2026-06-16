@@ -17,6 +17,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { useAuth } from "../auth-context";
 import { LogoMark } from "./LogoMark";
 
@@ -84,7 +85,7 @@ export function Header() {
     enabled: Boolean(userToken),
     refetchInterval: 30_000,
     queryFn: async () => {
-      const response = await fetch("/api/notifications/my", {
+      const response = await fetch(getApiUrl("/api/notifications/my"), {
         headers: userToken
           ? {
               Authorization: `Bearer ${userToken}`,
@@ -101,7 +102,7 @@ export function Header() {
   });
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/notifications/read-all", {
+      const response = await fetch(getApiUrl("/api/notifications/read-all"), {
         method: "PATCH",
         headers: userToken
           ? {

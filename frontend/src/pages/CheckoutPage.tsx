@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import {
@@ -209,7 +210,7 @@ export function CheckoutPage() {
     setCouponStatus("Memvalidasi kupon...");
 
     try {
-      const response = await fetch("/api/business/coupons/validate", {
+      const response = await fetch(getApiUrl("/api/business/coupons/validate"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -23,6 +23,7 @@ import {
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { trackEvent } from "../analytics";
 import {
   initializeCaptcha,
@@ -394,7 +395,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     setConsultationStatus("Mengirim request konsultasi...");
 
     try {
-      const response = await fetch("/api/orders", {
+      const response = await fetch(getApiUrl("/api/orders"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -453,7 +454,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     setCheckoutStatus("Membuat order dan sesi pembayaran...");
 
     try {
-      const orderResponse = await fetch("/api/orders", {
+      const orderResponse = await fetch(getApiUrl("/api/orders"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -982,7 +983,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
             </p>
             <a
               className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
-              href={`https://wa.me/?text=${whatsappMessage}`}
+              href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${whatsappMessage}`}
+              rel="noreferrer"
+              target="_blank"
             >
               Konsultasi via WhatsApp
               <ArrowRight size={16} />

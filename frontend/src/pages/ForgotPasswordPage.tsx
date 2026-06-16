@@ -1,6 +1,7 @@
 import { ArrowLeft, BadgeCheck, KeyRound, MailCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 
@@ -55,7 +56,7 @@ export function ForgotPasswordPage() {
     setStatus("Mengirim OTP reset password...");
 
     try {
-      const response = await fetch("/api/auth/user/forgot-password", {
+      const response = await fetch(getApiUrl("/api/auth/user/forgot-password"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +107,7 @@ export function ForgotPasswordPage() {
     setStatus("Mereset password...");
 
     try {
-      const response = await fetch("/api/auth/user/reset-password", {
+      const response = await fetch(getApiUrl("/api/auth/user/reset-password"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

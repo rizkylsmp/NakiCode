@@ -284,7 +284,9 @@ export function TemplateCatalog({
         </div>
         <a
           className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
-          href="https://wa.me/"
+          href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${encodeURIComponent('Halo Naki Code, saya mau konsultasi template.')}`}
+          rel="noreferrer"
+          target="_blank"
         >
           Konsultasi template
           <ArrowRight size={16} />

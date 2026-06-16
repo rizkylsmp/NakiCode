@@ -1,6 +1,7 @@
 import { ArrowLeft, BadgeCheck, MailCheck, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import {
@@ -59,7 +60,7 @@ export function VerifyEmailPage() {
     setStatus("Memverifikasi OTP...");
 
     try {
-      const response = await fetch("/api/auth/user/verify-email", {
+      const response = await fetch(getApiUrl("/api/auth/user/verify-email"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +110,7 @@ export function VerifyEmailPage() {
     setStatus("Mengirim ulang OTP...");
 
     try {
-      const response = await fetch("/api/auth/user/resend-otp", {
+      const response = await fetch(getApiUrl("/api/auth/user/resend-otp"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
