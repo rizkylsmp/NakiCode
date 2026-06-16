@@ -1,0 +1,47 @@
+{
+  "name": "backend",
+  "version": "0.9.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "start": "node dist/server.js",
+    "backup:db": "tsx src/scripts/backup-database.ts",
+    "backup:list": "tsx src/scripts/backup-database.ts --list",
+    "migrate": "tsx src/scripts/migrate.ts",
+    "migrate:status": "tsx src/scripts/migrate.ts status",
+    "migrate:create": "tsx src/scripts/migrate.ts create"
+  },
+  "dependencies": {
+    "@sentry/node": "^10.58.0",
+    "bullmq": "^5.78.1",
+    "cloudinary": "^2.10.0",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "ioredis": "^5.11.1",
+    "multer": "^2.1.1",
+    "mysql2": "latest",
+    "nodemailer": "^8.0.11",
+    "pdfkit": "^0.19.1",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.4.3",
+    "zxcvbn": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/multer": "^2.1.0",
+    "@types/node": "latest",
+    "@types/nodemailer": "^8.0.1",
+    "@types/supertest": "^7.2.0",
+    "@types/swagger-ui-express": "^4.1.8",
+    "supertest": "^7.2.2",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "^4.1.8"
+  }
+}

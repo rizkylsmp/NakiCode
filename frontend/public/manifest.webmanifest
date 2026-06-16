@@ -1,0 +1,23 @@
+{
+  "name": "Naki Code",
+  "short_name": "Naki Code",
+  "description": "Toko template coding dan jasa custom website.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f4f5",
+  "theme_color": "#172447",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

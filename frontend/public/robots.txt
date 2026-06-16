@@ -1,0 +1,22 @@
+# robots.txt for Naki Code
+# Template marketplace and custom website services
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+
+# Disallow user-specific pages
+Disallow: /checkout/
+Disallow: /akun-saya
+Disallow: /pesanan-saya
+Disallow: /profile
+Disallow: /verify-email
+Disallow: /wishlist
+Disallow: /login
+Disallow: /forgot-password
+
+# Sitemap location
+Sitemap: https://nakicode.com/sitemap.xml

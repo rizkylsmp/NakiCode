@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  --color-naki-primary: #172447;
+  --color-naki-secondary: #31588d;
+  --color-naki-frost: #f0f4f5;
+  --color-naki-steel: #e1e7ed;
+  --color-naki-smoke: #5f6670;
+
+  --shadow-naki-soft: 0 24px 80px rgb(23 36 71 / 0.22);
+  --shadow-naki-card: 0 10px 30px rgb(23 36 71 / 0.12);
+}
+
+:root {
+  font-family:
+    Murecho,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+body {
+  margin: 0;
+  background: var(--color-naki-frost);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[id] {
+  scroll-margin-top: 96px;
+}
+
+.naki-frosted-grid {
+  background-color: var(--color-naki-frost);
+  background-image:
+    radial-gradient(
+      circle at 14% 10%,
+      color-mix(in srgb, var(--color-naki-secondary) 16%, transparent) 0,
+      transparent 34rem
+    ),
+    radial-gradient(
+      circle at 84% 4%,
+      color-mix(in srgb, var(--color-naki-steel) 76%, transparent) 0,
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 68% 44%,
+      color-mix(in srgb, var(--color-naki-primary) 7%, transparent) 0,
+      transparent 26rem
+    ),
+    linear-gradient(
+      color-mix(in srgb, var(--color-naki-secondary) 9%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-naki-secondary) 9%, transparent) 1px,
+      transparent 1px
+    );
+  background-position:
+    center top,
+    right top,
+    center,
+    top left,
+    top left;
+  background-size:
+    auto,
+    auto,
+    auto,
+    42px 42px,
+    42px 42px;
+}
+
+.naki-frosted-grid::before {
+  background-image:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-naki-primary) 13%, transparent) 0 1px,
+      transparent 1.6px
+    );
+  background-size: 18px 18px;
+  content: "";
+  inset: 0;
+  opacity: 0.18;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+.naki-frosted-grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+.naki-frosted-grid > .naki-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 300;
+}
