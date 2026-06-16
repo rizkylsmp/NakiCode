@@ -123,3 +123,6 @@ export async function startServer() {
 if (require.main === module) {
   void startServer();
 }
+
+// Export for Vercel serverless deployment
+export default app;
