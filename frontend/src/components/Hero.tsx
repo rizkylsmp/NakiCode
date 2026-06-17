@@ -11,7 +11,7 @@ export function Hero({ query, onQueryChange, featuredTemplates }: HeroProps) {
   return (
     <section className="relative z-0 grid w-full gap-9 px-5 pb-10 pt-8 md:px-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pb-14 lg:pt-12 xl:px-12 2xl:px-16">
       <div className="min-w-0">
-        <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-normal text-naki-primary md:text-6xl 2xl:text-7xl">
+        <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-normal text-naki-primary md:text-6xl xl:text-7xl">
           Template website siap pakai dari Naki Code.
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-naki-smoke">
@@ -85,7 +85,7 @@ export function Hero({ query, onQueryChange, featuredTemplates }: HeroProps) {
             </span>
           </div>
 
-          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
             <div className="min-w-0 rounded-lg bg-naki-secondary p-4">
               <p className="text-xs font-bold uppercase text-naki-frost">
                 Checkout Preview

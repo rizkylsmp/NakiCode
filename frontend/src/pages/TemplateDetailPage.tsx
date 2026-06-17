@@ -602,7 +602,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
       </Helmet>
       <Header />
 
-      <section className="grid w-full gap-8 px-5 py-10 md:px-8 lg:grid-cols-[1fr_380px] xl:px-12 2xl:px-16">
+      <section className="grid w-full gap-8 px-5 py-10 md:px-8 lg:grid-cols-[1fr_320px] xl:px-12 2xl:px-16">
         <div className="min-w-0">
           <Link
             className="inline-flex items-center gap-2 text-sm font-black text-naki-secondary"
@@ -731,7 +731,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                 ))}
               </div>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="mt-8 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 <Metric
                   icon={Star}
                   label="Rating"
@@ -814,7 +814,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                 {shareStatus}
               </p>
 
-              <section className="mt-6 grid gap-5 xl:grid-cols-2">
+              <section className="mt-6 grid gap-5 lg:grid-cols-2">
                 <DetailBlock title="Fitur utama" items={template.features} />
                 <DetailBlock
                   title="Isi source code"

@@ -61,7 +61,7 @@ export function TemplateCatalog({
   return (
     <section
       id="template"
-      className="grid w-full gap-7 px-5 py-14 md:px-8 lg:grid-cols-[1fr_320px] xl:px-12 2xl:px-16"
+      className="grid w-full gap-7 px-5 py-14 md:px-8 lg:grid-cols-[1fr_280px] xl:px-12 2xl:px-16"
     >
       <div className="min-w-0">
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
@@ -80,7 +80,7 @@ export function TemplateCatalog({
           </span>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
             Array.from({ length: 6 }).map((_, index) => (
               <TemplateCardSkeleton key={index} />
@@ -176,7 +176,7 @@ export function TemplateCatalog({
                 </div>
 
                 <div className="grid gap-4 rounded-2xl border border-naki-steel bg-naki-steel/55 p-4">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                     <div>
                       <p className="text-xs font-bold text-naki-smoke">
                         {template.level} · {template.buyerCount} pembeli
