@@ -269,9 +269,11 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
 
     try {
       const response = await fetch(
-        userAuthMode === "login"
-          ? "/api/auth/user/login"
-          : "/api/auth/user/register",
+        getApiUrl(
+          userAuthMode === "login"
+            ? "/api/auth/user/login"
+            : "/api/auth/user/register"
+        ),
         {
           method: "POST",
           headers: {

@@ -1,6 +1,7 @@
 import { LockKeyhole, LogIn } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { getApiUrl } from "../api-client";
 import {
   initializeCaptcha,
   validateCaptcha,
@@ -86,7 +87,7 @@ export function UserLoginPage() {
 
     try {
       const response = await fetch(
-        mode === "login" ? "/api/auth/user/login" : "/api/auth/user/register",
+        getApiUrl(mode === "login" ? "/api/auth/user/login" : "/api/auth/user/register"),
         {
           method: "POST",
           headers: {
