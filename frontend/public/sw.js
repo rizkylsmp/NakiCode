@@ -148,8 +148,8 @@ async function cacheFirstStrategy(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    // Cache successful responses
-    if (networkResponse.ok) {
+    // Cache successful responses (only HTTP/HTTPS, skip chrome-extension:// etc)
+    if (networkResponse.ok && request.url.startsWith('http')) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
