@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
+import { OrderCardSkeletonGrid } from "../components/ProfileSkeleton";
 import type { TemplateItem } from "../content";
 import {
   canConfirmPaymentManually,
@@ -353,7 +354,11 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
               })}
             </div>
 
-            {orders.length === 0 ? (
+            {isLoading ? (
+              <div className="mt-8">
+                <OrderCardSkeletonGrid count={3} />
+              </div>
+            ) : orders.length === 0 ? (
               <div className="mt-8 rounded-xl border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">
                 <Inbox className="mx-auto text-naki-secondary" size={36} />
                 <h2 className="mt-4 text-2xl font-black">

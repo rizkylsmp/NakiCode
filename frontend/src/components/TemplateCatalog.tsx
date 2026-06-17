@@ -22,12 +22,14 @@ import type {
 import { useAuth } from "../auth-context";
 import { ResponsiveImage } from "./ResponsiveImage";
 import { useFavoriteTemplates } from "../use-favorites";
+import { TemplateCardSkeleton } from "./TemplateCardSkeleton";
 
 type TemplateCatalogProps = {
   templates: TemplateItem[];
   allTemplates: TemplateItem[];
   activeCategory: TemplateCategory;
   health: HealthState | null;
+  isLoading?: boolean;
 };
 
 export function TemplateCatalog({
@@ -35,6 +37,7 @@ export function TemplateCatalog({
   allTemplates,
   activeCategory,
   health,
+  isLoading,
 }: TemplateCatalogProps) {
   const databaseOnline = health?.database.status === "online";
   const { isAuthenticated } = useAuth();
@@ -78,7 +81,12 @@ export function TemplateCatalog({
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {templates.map((template) => (
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, index) => (
+              <TemplateCardSkeleton key={index} />
+            ))
+          ) : (
+            templates.map((template) => (
             <article
               key={template.id}
               className="group overflow-hidden rounded-2xl border border-naki-steel/70 bg-naki-frost shadow-naki-card transition duration-300 hover:-translate-y-1 hover:shadow-naki-soft"
@@ -209,7 +217,7 @@ export function TemplateCatalog({
                 </div>
               </div>
             </article>
-          ))}
+          )))}
         </div>
         {compareTemplates.length > 0 ? (
           <section className="mt-6 rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card">

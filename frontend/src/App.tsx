@@ -89,7 +89,7 @@ function App() {
   const [activeCategory, setActiveCategory] =
     useState<TemplateCategory>("Semua");
   const [query, setQuery] = useState("");
-  const { data: bootstrapData, isError } = useQuery({
+  const { data: bootstrapData, isLoading, isError } = useQuery({
     queryKey: ["app-bootstrap"],
     queryFn: fetchAppBootstrap,
   });
@@ -204,6 +204,7 @@ function App() {
         portfolioItems={portfolioItems}
         activeCategory={activeCategory}
         query={query}
+        isLoading={isLoading}
         onCategoryChange={setActiveCategory}
         onQueryChange={setQuery}
       />

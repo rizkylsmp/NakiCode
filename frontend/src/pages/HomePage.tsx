@@ -29,6 +29,7 @@ type HomePageProps = {
   portfolioItems: PortfolioItem[];
   activeCategory: TemplateCategory;
   query: string;
+  isLoading?: boolean;
   onCategoryChange: (category: TemplateCategory) => void;
   onQueryChange: (value: string) => void;
 };
@@ -41,6 +42,7 @@ export function HomePage({
   portfolioItems,
   activeCategory,
   query,
+  isLoading,
   onCategoryChange,
   onQueryChange,
 }: HomePageProps) {
@@ -64,6 +66,7 @@ export function HomePage({
         allTemplates={templates}
         activeCategory={activeCategory}
         health={health}
+        isLoading={isLoading}
       />
       <ServicesSection services={services} />
       <PortfolioSection

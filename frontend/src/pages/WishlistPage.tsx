@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { ResponsiveImage } from "../components/ResponsiveImage";
+import { TemplateCardSkeletonGrid } from "../components/TemplateCardSkeleton";
 import type { TemplateItem } from "../content";
 import { useFavoriteTemplates } from "../use-favorites";
 
@@ -40,7 +41,11 @@ export function WishlistPage({ templates }: WishlistPageProps) {
           </Link>
         </div>
 
-        {favoriteTemplates.length === 0 ? (
+        {isFavoriteLoading ? (
+          <div className="mt-8">
+            <TemplateCardSkeletonGrid count={3} />
+          </div>
+        ) : favoriteTemplates.length === 0 ? (
           <div className="mt-8 rounded-lg border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">
             <Inbox className="mx-auto text-naki-secondary" size={34} />
             <h2 className="mt-4 text-2xl font-black">Wishlist masih kosong.</h2>

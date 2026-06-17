@@ -28,6 +28,7 @@ import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
+import { OrderCardSkeletonGrid } from "../components/ProfileSkeleton";
 import {
   type TemplateCategory,
   type TemplateItem,
@@ -2090,7 +2091,9 @@ function OrdersPanel({
         />
       </div>
 
-      {orders.length === 0 ? (
+      {isLoadingOrders ? (
+        <OrderCardSkeletonGrid count={3} />
+      ) : orders.length === 0 ? (
         <div className="rounded-lg border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">
           <Inbox className="mx-auto text-naki-secondary" size={34} />
           <h3 className="mt-4 text-2xl font-black">Belum ada order.</h3>

@@ -19,6 +19,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getApiUrl } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
+import { ProfileSkeleton } from "../components/ProfileSkeleton";
 import {
   userRoleKey,
   userSessionEvent,
@@ -431,7 +432,9 @@ export function UserProfilePage() {
           </div>
         </div>
 
-        {profile ? (
+        {isLoading ? (
+          <ProfileSkeleton />
+        ) : profile ? (
           <div className="mt-6 grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
             <aside className="grid gap-5">
               <section className="overflow-hidden rounded-xl border border-naki-steel bg-naki-primary text-naki-frost shadow-naki-soft">

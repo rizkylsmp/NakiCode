@@ -3,6 +3,7 @@ import { ArrowRight, BookOpenText, Inbox } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { getApiUrl } from "../api-client";
+import { BlogCardSkeletonGrid } from "../components/BlogCardSkeleton";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 
@@ -58,9 +59,7 @@ export function BlogListPage() {
         </p>
 
         {isLoading ? (
-          <p className="mt-8 rounded-lg bg-naki-steel p-4 text-sm font-black text-naki-secondary">
-            Memuat artikel...
-          </p>
+          <BlogCardSkeletonGrid count={6} />
         ) : isError || posts.length === 0 ? (
           <div className="mt-8 rounded-lg border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">
             <Inbox className="mx-auto text-naki-secondary" size={34} />
