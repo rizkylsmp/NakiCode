@@ -15,15 +15,18 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
+const fallbackApiBaseUrl = import.meta.env.DEV ? "http://localhost:3001" : "";
+
+const apiBaseUrl = normalizeApiBaseUrl(
+  import.meta.env.VITE_API_URL || fallbackApiBaseUrl,
+);
+
 /**
  * Axios instance with automatic base URL and auth token injection
  * All API calls should use this instance for consistent behavior
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 
-           (import.meta.env.MODE === 'production' 
-             ? 'https://naki-api.vercel.app' 
-             : 'http://localhost:3001'),
+  baseURL: apiBaseUrl,
   timeout: 30000, // 30 seconds
   headers: {
     Accept: "application/json",
@@ -87,30 +90,6 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   },
 );
-
-/**
- * Get the API base URL from environment variables
- * Used for fetch calls that don't use the axios api-client
- * Falls back to hardcoded production URL if env var is not set
- */
-export function getApiUrl(path: string = "") {
-  const baseURL = import.meta.env.VITE_API_URL || 
-                  (import.meta.env.MODE === 'production' 
-                    ? 'https://naki-api.vercel.app' 
-                    : 'http://localhost:3001');
-  
-  if (!path) {
-    return baseURL;
-  }
-  
-  // Remove leading slash if present to avoid double slashes
-  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-  
-  // Remove trailing slash from baseURL if present
-  const cleanBaseURL = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
-  
-  return `${cleanBaseURL}/${cleanPath}`;
-}
 
 export function getApiErrorMessage(
   error: unknown,
@@ -209,3 +188,13 @@ export async function apiUpload<ResponseData>(
 
 // Export the configured axios instance as default
 export default apiClient;
+
+function normalizeApiBaseUrl(value: string) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  return trimmedValue.replace(/\/+$/, "").replace(/\/api(?:\/v1)?$/i, "");
+}

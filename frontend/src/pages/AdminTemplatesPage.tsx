@@ -135,7 +135,7 @@ const defaultFormState: TemplateFormState = {
   category: "Portfolio",
   description: "",
   price: "Rp149K",
-  stack: "React\nTailwind",
+  stack: "React, Tailwind",
   level: "Pemula",
   accentClass: "bg-naki-secondary",
   preview: [
@@ -2391,7 +2391,7 @@ function TagSelector({ label, options, value, onChange }: TagSelectorProps) {
       ? selectedItems.filter((selectedItem) => selectedItem !== item)
       : [...selectedItems, item];
 
-    onChange(nextItems.join("\n"));
+    onChange(nextItems.join(", "));
   }
 
   return (
@@ -2417,7 +2417,11 @@ function TagSelector({ label, options, value, onChange }: TagSelectorProps) {
           );
         })}
       </div>
-      <Field label="Stack custom" value={value} onChange={onChange} />
+      <Field
+        label="Stack custom"
+        value={value}
+        onChange={(nextValue) => onChange(splitLines(nextValue).join(", "))}
+      />
     </section>
   );
 }
@@ -2882,7 +2886,7 @@ function templateToForm(template: TemplateItem): TemplateFormState {
     category: template.category,
     description: template.description,
     price: template.price,
-    stack: template.stack.join("\n"),
+    stack: template.stack.join(", "),
     level: template.level,
     accentClass: template.accentClass,
     preview: template.preview,
