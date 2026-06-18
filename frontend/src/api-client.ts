@@ -20,7 +20,10 @@ export function setUnauthorizedHandler(handler: () => void) {
  * All API calls should use this instance for consistent behavior
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: import.meta.env.VITE_API_URL || 
+           (import.meta.env.MODE === 'production' 
+             ? 'https://naki-api.vercel.app' 
+             : 'http://localhost:3001'),
   timeout: 30000, // 30 seconds
   headers: {
     Accept: "application/json",
@@ -88,9 +91,13 @@ apiClient.interceptors.response.use(
 /**
  * Get the API base URL from environment variables
  * Used for fetch calls that don't use the axios api-client
+ * Falls back to hardcoded production URL if env var is not set
  */
 export function getApiUrl(path: string = "") {
-  const baseURL = import.meta.env.VITE_API_URL || "";
+  const baseURL = import.meta.env.VITE_API_URL || 
+                  (import.meta.env.MODE === 'production' 
+                    ? 'https://naki-api.vercel.app' 
+                    : 'http://localhost:3001');
   
   if (!path) {
     return baseURL;
