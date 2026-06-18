@@ -82,7 +82,7 @@ export function CheckoutPage() {
     setStatus("Memuat detail order...");
 
     try {
-      const response = await fetch(`/api/orders/my/${parsedOrderId}`, {
+      const response = await fetch(getApiUrl(`/api/orders/my/${parsedOrderId}`), {
         headers: createAuthHeaders(userToken),
       });
 
@@ -136,7 +136,7 @@ export function CheckoutPage() {
     setStatus("Membuat sesi pembayaran...");
 
     try {
-      const response = await fetch(`/api/orders/${order.id}/payment`, {
+      const response = await fetch(getApiUrl(`/api/orders/${order.id}/payment`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -182,7 +182,7 @@ export function CheckoutPage() {
     setStatus("Mengonfirmasi pembayaran...");
 
     try {
-      const response = await fetch(`/api/orders/${order.id}/payment/confirm`, {
+      const response = await fetch(getApiUrl(`/api/orders/${order.id}/payment/confirm`), {
         method: "POST",
         headers: createAuthHeaders(userToken),
       });
