@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpenText, Inbox } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import { apiGet } from "../api-client";
 import { BlogCardSkeletonGrid } from "../components/BlogCardSkeleton";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
@@ -26,15 +26,7 @@ type BlogPostsResponse = {
 export function BlogListPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["blog-posts"],
-    queryFn: async () => {
-      const response = await fetch(getApiUrl("/api/blog"));
-
-      if (!response.ok) {
-        throw new Error("Gagal mengambil blog");
-      }
-
-      return (await response.json()) as BlogPostsResponse;
-    },
+    queryFn: () => apiGet<BlogPostsResponse>("/api/blog"),
   });
   const posts = data?.posts ?? [];
 
@@ -49,9 +41,7 @@ export function BlogListPage() {
       </Helmet>
       <Header />
       <section className="w-full px-5 py-10 md:px-8 xl:px-12 2xl:px-16">
-        <p className="text-sm font-black uppercase text-naki-secondary">
-          Blog
-        </p>
+        <p className="text-sm font-black uppercase text-naki-secondary">Blog</p>
         <h1 className="mt-2 text-4xl font-black">Tutorial Naki Code</h1>
         <p className="mt-3 max-w-2xl leading-7 text-naki-smoke">
           Artikel dari database untuk membantu setup, custom, checkout, dan

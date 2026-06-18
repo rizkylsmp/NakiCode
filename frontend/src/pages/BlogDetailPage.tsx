@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
+import { apiGet } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import type { BlogPostItem } from "./BlogListPage";
@@ -15,41 +16,37 @@ export function BlogDetailPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["blog-post", slug],
     enabled: Boolean(slug),
-    queryFn: async () => {
-      const response = await fetch(`/api/blog/${slug}`);
-
-      if (!response.ok) {
-        throw new Error("Artikel tidak ditemukan");
-      }
-
-      return (await response.json()) as BlogPostResponse;
-    },
+    queryFn: () => apiGet<BlogPostResponse>(`/api/blog/${slug}`),
   });
   const post = data?.post;
 
   // Generate Article schema for SEO
-  const articleSchema = post ? {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": post.title,
-    "description": post.excerpt,
-    "author": {
-      "@type": "Person",
-      "name": post.author
-    },
-    "datePublished": post.createdAt,
-    "dateModified": post.publishedAt || post.createdAt,
-    "publisher": {
-      "@type": "Organization",
-      "name": "Naki Code",
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${window.location.origin}/logo.png`
+  const articleSchema = post
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: post.excerpt,
+        author: {
+          "@type": "Person",
+          name: post.author,
+        },
+        datePublished: post.createdAt,
+        dateModified: post.publishedAt || post.createdAt,
+        publisher: {
+          "@type": "Organization",
+          name: "Naki Code",
+          logo: {
+            "@type": "ImageObject",
+            url: `${window.location.origin}/logo.png`,
+          },
+        },
       }
-    }
-  } : null;
+    : null;
 
-  const canonicalUrl = post ? `${window.location.origin}/blog/${post.slug}` : `${window.location.origin}/blog`;
+  const canonicalUrl = post
+    ? `${window.location.origin}/blog/${post.slug}`
+    : `${window.location.origin}/blog`;
 
   return (
     <main className="naki-frosted-grid min-h-screen text-naki-primary">
@@ -85,7 +82,7 @@ export function BlogDetailPage() {
           <ArrowLeft size={16} />
           Kembali ke blog
         </Link>
-        
+
         <nav
           className="mt-4 flex flex-wrap items-center gap-2 text-sm font-black text-naki-smoke"
           aria-label="Breadcrumb"

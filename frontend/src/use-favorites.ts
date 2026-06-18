@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { getApiUrl } from "./api-client";
+import { apiDelete, apiGet, apiPost } from "./api-client";
 import { useAuth } from "./auth-context";
 
 type FavoritesResponse = {
@@ -13,17 +13,7 @@ export function useFavoriteTemplates() {
   const query = useQuery({
     queryKey: ["favorites", token],
     enabled: Boolean(token),
-    queryFn: async () => {
-      const response = await fetch(getApiUrl("/api/favorites/my"), {
-        headers: createAuthHeaders(token),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal mengambil wishlist");
-      }
-
-      return (await response.json()) as FavoritesResponse;
-    },
+    queryFn: () => apiGet<FavoritesResponse>("/api/favorites/my"),
   });
   const favoriteIds = useMemo(
     () => new Set(query.data?.templateIds ?? []),
@@ -37,16 +27,9 @@ export function useFavoriteTemplates() {
       templateId: number;
       isFavorite: boolean;
     }) => {
-      const response = await fetch(getApiUrl(`/api/favorites/${templateId}`), {
-        method: isFavorite ? "DELETE" : "POST",
-        headers: createAuthHeaders(token),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal mengubah wishlist");
-      }
-
-      return (await response.json()) as FavoritesResponse;
+      return isFavorite
+        ? apiDelete<FavoritesResponse>(`/api/favorites/${templateId}`)
+        : apiPost<FavoritesResponse>(`/api/favorites/${templateId}`);
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["favorites", token], data);
@@ -62,8 +45,4 @@ export function useFavoriteTemplates() {
         isFavorite: favoriteIds.has(templateId),
       }),
   };
-}
-
-function createAuthHeaders(token: string | null) {
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
 }

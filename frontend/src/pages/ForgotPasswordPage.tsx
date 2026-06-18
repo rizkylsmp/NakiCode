@@ -1,7 +1,7 @@
 import { ArrowLeft, BadgeCheck, KeyRound, MailCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import { apiPost, getApiErrorMessage } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 
@@ -30,7 +30,9 @@ export function ForgotPasswordPage() {
   const [hasRequestedOtp, setHasRequestedOtp] = useState(false);
   const nextTarget = getSafeNextTarget(searchParams.get("next"));
   const loginUrl =
-    nextTarget === "/" ? "/login" : `/login?next=${encodeURIComponent(nextTarget)}`;
+    nextTarget === "/"
+      ? "/login"
+      : `/login?next=${encodeURIComponent(nextTarget)}`;
 
   useEffect(() => {
     const email = searchParams.get("email") ?? "";
@@ -56,29 +58,18 @@ export function ForgotPasswordPage() {
     setStatus("Mengirim OTP reset password...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/forgot-password"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const data = await apiPost<ForgotPasswordResponse>(
+        "/api/auth/user/forgot-password",
+        {
           email: form.email.trim(),
-        }),
-      });
-
-      const data = (await response.json()) as ForgotPasswordResponse;
-
-      if (!response.ok) {
-        throw new Error(data.message ?? "Gagal mengirim OTP reset password.");
-      }
+        },
+      );
 
       setHasRequestedOtp(true);
       setStatus(data.message || "Jika email terdaftar, OTP akan dikirim.");
     } catch (error) {
       setStatus(
-        error instanceof Error
-          ? error.message
-          : "Gagal mengirim OTP reset password.",
+        getApiErrorMessage(error, "Gagal mengirim OTP reset password."),
       );
     } finally {
       setIsRequestingOtp(false);
@@ -107,32 +98,21 @@ export function ForgotPasswordPage() {
     setStatus("Mereset password...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/reset-password"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const data = await apiPost<ForgotPasswordResponse>(
+        "/api/auth/user/reset-password",
+        {
           email: form.email.trim(),
           otp: form.otp.trim(),
           password: form.password,
           confirmPassword: form.confirmPassword,
-        }),
-      });
-
-      const data = (await response.json()) as ForgotPasswordResponse;
-
-      if (!response.ok) {
-        throw new Error(data.message ?? "Gagal reset password.");
-      }
+        },
+      );
 
       setStatus(data.message || "Password berhasil direset.");
       setForm(defaultForm);
       navigate(loginUrl, { replace: true });
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Gagal reset password.",
-      );
+      setStatus(getApiErrorMessage(error, "Gagal reset password."));
     } finally {
       setIsResettingPassword(false);
     }

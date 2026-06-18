@@ -12,6 +12,12 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  apiGet,
+  apiPost,
+  getApiErrorMessage,
+  getApiErrorStatus,
+} from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
@@ -121,15 +127,9 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
           pageSize: String(ordersPageSize),
           paymentStatus: activePaymentMenu,
         });
-        const response = await fetch(`/api/orders/my?${params.toString()}`, {
-          headers: createAuthHeaders(userToken),
-        });
-
-        if (!response.ok) {
-          throw new Error("Gagal memuat pesanan.");
-        }
-
-        const data = (await response.json()) as OrdersResponse;
+        const data = await apiGet<OrdersResponse>(
+          `/api/orders/my?${params.toString()}`,
+        );
         setOrders(data.orders ?? []);
         setOrdersPage(data.page ?? page);
         setOrdersMeta({
@@ -200,16 +200,9 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
     setStatus("Mengonfirmasi pembayaran...");
 
     try {
-      const response = await fetch(`/api/orders/${orderId}/payment/confirm`, {
-        method: "POST",
-        headers: createAuthHeaders(userToken),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal konfirmasi pembayaran.");
-      }
-
-      const data = (await response.json()) as { order: OrderItem };
+      const data = await apiPost<{ order: OrderItem }>(
+        `/api/orders/${orderId}/payment/confirm`,
+      );
       updateOrder(data.order);
       setStatus(`Pembayaran order #${orderId} berhasil. Rating sudah terbuka.`);
     } catch {
@@ -230,29 +223,10 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
     setStatus("Menyimpan rating...");
 
     try {
-      const response = await fetch(
+      const data = await apiPost<RatingResponse>(
         `/api/templates/${order.templateId}/rating`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...createAuthHeaders(userToken),
-          },
-          body: JSON.stringify(form),
-        },
+        form,
       );
-
-      if (response.status === 409) {
-        setRatedOrderIds((currentIds) => [...currentIds, order.id]);
-        setStatus("Rating untuk template ini sudah pernah dikirim.");
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal menyimpan rating.");
-      }
-
-      const data = (await response.json()) as RatingResponse;
 
       if (data.template) {
         onTemplateUpdate(data.template);
@@ -260,8 +234,19 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
 
       setRatedOrderIds((currentIds) => [...currentIds, order.id]);
       setStatus(`Rating untuk ${order.templateTitle} tersimpan.`);
-    } catch {
-      setStatus("Gagal menyimpan rating. Pastikan order sudah paid.");
+    } catch (error) {
+      if (getApiErrorStatus(error) === 409) {
+        setRatedOrderIds((currentIds) => [...currentIds, order.id]);
+        setStatus("Rating untuk template ini sudah pernah dikirim.");
+        return;
+      }
+
+      setStatus(
+        getApiErrorMessage(
+          error,
+          "Gagal menyimpan rating. Pastikan order sudah paid.",
+        ),
+      );
     } finally {
       setProcessingOrderId(null);
     }
@@ -644,12 +629,6 @@ function OrderInfo({ label, value }: OrderInfoProps) {
       <p className="mt-1 text-sm font-black text-naki-primary">{value}</p>
     </div>
   );
-}
-
-function createAuthHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 function formatOrderDate(value: string) {

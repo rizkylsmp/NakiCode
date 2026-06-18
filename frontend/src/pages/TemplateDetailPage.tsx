@@ -23,7 +23,12 @@ import {
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import {
+  apiPost,
+  getApiErrorData,
+  getApiErrorMessage,
+  getApiErrorStatus,
+} from "../api-client";
 import { trackEvent } from "../analytics";
 import {
   initializeCaptcha,
@@ -158,7 +163,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     if (template) {
       saveRecentlyViewedTemplate(template);
       // Track template view for analytics
-      trackEvent('template_viewed', {
+      trackEvent("template_viewed", {
         template_id: template.id,
         template_slug: template.slug,
         template_title: template.title,
@@ -257,7 +262,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
       // Validate captcha (checkbox + honeypot + timing)
       const captchaValidation = validateCaptcha(captcha);
       if (!captchaValidation.valid) {
-        setUserAuthStatus(captchaValidation.error || "Validasi keamanan gagal.");
+        setUserAuthStatus(
+          captchaValidation.error || "Validasi keamanan gagal.",
+        );
         return;
       }
     }
@@ -268,52 +275,21 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     );
 
     try {
-      const response = await fetch(
-        getApiUrl(
-          userAuthMode === "login"
-            ? "/api/auth/user/login"
-            : "/api/auth/user/register"
-        ),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(
-            userAuthMode === "login"
-              ? {
-                  identifier: userAuthForm.username,
-                  password: userAuthForm.password,
-                }
-              : {
-                  username: userAuthForm.username,
-                  email: userAuthForm.email,
-                  password: userAuthForm.password,
-                },
-          ),
-        },
+      const data = await apiPost<UserAuthResponse>(
+        userAuthMode === "login"
+          ? "/api/auth/user/login"
+          : "/api/auth/user/register",
+        userAuthMode === "login"
+          ? {
+              identifier: userAuthForm.username,
+              password: userAuthForm.password,
+            }
+          : {
+              username: userAuthForm.username,
+              email: userAuthForm.email,
+              password: userAuthForm.password,
+            },
       );
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as UserAuthResponse;
-
-        if (response.status === 403 && errorData.verificationUrl) {
-          const nextVerificationUrl = appendNextParam(
-            errorData.verificationUrl,
-            nextTarget,
-          );
-          setVerificationUrl(nextVerificationUrl);
-          setUserAuthStatus(
-            "Email belum diverifikasi. Cek inbox atau buka verifikasi di bawah.",
-          );
-          navigate(nextVerificationUrl, { replace: true });
-          return;
-        }
-
-        throw new Error("Autentikasi user gagal.");
-      }
-
-      const data = (await response.json()) as UserAuthResponse;
       setUserAuthForm(defaultUserAuthForm);
       setCaptcha(initializeCaptcha());
       if (data.token && data.user) {
@@ -371,11 +347,29 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
       setUserAuthStatus(
         "Akun berhasil diproses. OTP verifikasi sudah dikirim ke email.",
       );
-    } catch {
+    } catch (error) {
+      const errorData = getApiErrorData<UserAuthResponse>(error);
+
+      if (getApiErrorStatus(error) === 403 && errorData?.verificationUrl) {
+        const nextVerificationUrl = appendNextParam(
+          errorData.verificationUrl,
+          nextTarget,
+        );
+        setVerificationUrl(nextVerificationUrl);
+        setUserAuthStatus(
+          "Email belum diverifikasi. Cek inbox atau buka verifikasi di bawah.",
+        );
+        navigate(nextVerificationUrl, { replace: true });
+        return;
+      }
+
       setUserAuthStatus(
-        userAuthMode === "login"
-          ? "Login gagal. Cek username/email dan password."
-          : "Daftar gagal. Username/email mungkin sudah dipakai.",
+        getApiErrorMessage(
+          error,
+          userAuthMode === "login"
+            ? "Login gagal. Cek username/email dan password."
+            : "Daftar gagal. Username/email mungkin sudah dipakai.",
+        ),
       );
       if (userAuthMode === "register") {
         setCaptcha(initializeCaptcha());
@@ -397,35 +391,22 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     setConsultationStatus("Mengirim request konsultasi...");
 
     try {
-      const response = await fetch(getApiUrl("/api/orders"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          templateSlug: selectedTemplate.slug,
-          templateTitle: selectedTemplate.title,
-          ...consultationForm,
-        }),
+      await apiPost<OrderMutationResponse>("/api/orders", {
+        templateId: selectedTemplate.id,
+        templateSlug: selectedTemplate.slug,
+        templateTitle: selectedTemplate.title,
+        ...consultationForm,
       });
 
-      if (!response.ok) {
-        throw new Error("Gagal mengirim request.");
-      }
-
-      const orderData = await response.json();
-      
       // Track order creation for analytics
-      trackEvent('order_created', {
+      trackEvent("order_created", {
         template_id: selectedTemplate.id,
         template_slug: selectedTemplate.slug,
         template_title: selectedTemplate.title,
         project_type: consultationForm.projectType,
         budget_range: consultationForm.budgetRange,
       });
-      
+
       setConsultationForm({
         ...defaultConsultationForm,
         projectType: consultationForm.projectType,
@@ -456,40 +437,27 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     setCheckoutStatus("Membuat order dan sesi pembayaran...");
 
     try {
-      const orderResponse = await fetch(getApiUrl("/api/orders"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          templateSlug: selectedTemplate.slug,
-          templateTitle: selectedTemplate.title,
-          customerName:
-            consultationForm.customerName.trim() || userUsername || "Buyer",
-          customerContact,
-          projectType: "Checkout template",
-          budgetRange: selectedTemplate.price,
-          message: `Pembelian langsung template ${selectedTemplate.title}. Kirim source code dan panduan setelah pembayaran berhasil.`,
-        }),
+      const orderData = await apiPost<OrderMutationResponse>("/api/orders", {
+        templateId: selectedTemplate.id,
+        templateSlug: selectedTemplate.slug,
+        templateTitle: selectedTemplate.title,
+        customerName:
+          consultationForm.customerName.trim() || userUsername || "Buyer",
+        customerContact,
+        projectType: "Checkout template",
+        budgetRange: selectedTemplate.price,
+        message: `Pembelian langsung template ${selectedTemplate.title}. Kirim source code dan panduan setelah pembayaran berhasil.`,
       });
 
-      if (!orderResponse.ok) {
-        throw new Error("Gagal membuat order.");
-      }
-
-      const orderData = (await orderResponse.json()) as OrderMutationResponse;
-      
       // Track order creation for analytics
-      trackEvent('order_created', {
+      trackEvent("order_created", {
         template_id: selectedTemplate.id,
         template_slug: selectedTemplate.slug,
         template_title: selectedTemplate.title,
         order_id: orderData.order.id,
-        checkout_flow: 'direct',
+        checkout_flow: "direct",
       });
-      
+
       setCheckoutStatus("Order dibuat. Mengarahkan ke checkout...");
       navigate(`/checkout/${orderData.order.id}`);
     } catch {
@@ -504,60 +472,64 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   // Generate structured data for SEO
   const extractPrice = (priceString: string): string => {
     const match = priceString.match(/[\d.]+/g);
-    return match ? match.join('').replace(/\./g, '') : '0';
+    return match ? match.join("").replace(/\./g, "") : "0";
   };
 
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": selectedTemplate.title,
-    "description": selectedTemplate.description,
-    "image": selectedTemplate.preview[0]?.image || `${window.location.origin}/og-image.png`,
-    "brand": {
+    name: selectedTemplate.title,
+    description: selectedTemplate.description,
+    image:
+      selectedTemplate.preview[0]?.image ||
+      `${window.location.origin}/og-image.png`,
+    brand: {
       "@type": "Organization",
-      "name": "Naki Code"
+      name: "Naki Code",
     },
-    "offers": {
+    offers: {
       "@type": "Offer",
-      "price": extractPrice(selectedTemplate.price),
-      "priceCurrency": "IDR",
-      "availability": "https://schema.org/InStock",
-      "url": shareUrl
+      price: extractPrice(selectedTemplate.price),
+      priceCurrency: "IDR",
+      availability: "https://schema.org/InStock",
+      url: shareUrl,
     },
-    ...(selectedTemplate.rating > 0 && selectedTemplate.buyerCount > 0 ? {
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": selectedTemplate.rating.toFixed(1),
-        "reviewCount": selectedTemplate.buyerCount,
-        "bestRating": "5",
-        "worstRating": "1"
-      }
-    } : {})
+    ...(selectedTemplate.rating > 0 && selectedTemplate.buyerCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: selectedTemplate.rating.toFixed(1),
+            reviewCount: selectedTemplate.buyerCount,
+            bestRating: "5",
+            worstRating: "1",
+          },
+        }
+      : {}),
   };
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": [
+    itemListElement: [
       {
         "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": `${window.location.origin}/`
+        position: 1,
+        name: "Home",
+        item: `${window.location.origin}/`,
       },
       {
         "@type": "ListItem",
-        "position": 2,
-        "name": selectedTemplate.category,
-        "item": `${window.location.origin}/#template`
+        position: 2,
+        name: selectedTemplate.category,
+        item: `${window.location.origin}/#template`,
       },
       {
         "@type": "ListItem",
-        "position": 3,
-        "name": selectedTemplate.title,
-        "item": shareUrl
-      }
-    ]
+        position: 3,
+        name: selectedTemplate.title,
+        item: shareUrl,
+      },
+    ],
   };
 
   return (
@@ -583,15 +555,21 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
           />
         ) : null}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${selectedTemplate.title} - Naki Code`} />
-        <meta name="twitter:description" content={selectedTemplate.description} />
+        <meta
+          name="twitter:title"
+          content={`${selectedTemplate.title} - Naki Code`}
+        />
+        <meta
+          name="twitter:description"
+          content={selectedTemplate.description}
+        />
         {selectedTemplate.preview[0]?.image ? (
           <meta
             name="twitter:image"
             content={selectedTemplate.preview[0].image}
           />
         ) : null}
-        
+
         {/* JSON-LD Structured Data for SEO */}
         <script type="application/ld+json">
           {JSON.stringify(productSchema)}
@@ -720,15 +698,8 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                 {template.description}
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-2">
-                {template.stack.map((stack) => (
-                  <span
-                    key={stack}
-                    className="rounded-md bg-naki-steel px-3 py-1.5 text-xs font-black"
-                  >
-                    {stack}
-                  </span>
-                ))}
+              <div className="mt-6 rounded-md bg-naki-steel px-3 py-2 text-xs font-black leading-6">
+                {template.stack.join(", ")}
               </div>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -1290,25 +1261,40 @@ function UserAuthPanel({
                 type="password"
               />
             </label>
-            
+
             {/* Honeypot field - hidden from humans, catches bots */}
             <input
               type="text"
               name="website"
               value={captcha.honeypot}
-              onChange={(e) => onUpdateCaptcha(prev => ({ ...prev, honeypot: e.target.value }))}
-              style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0 }}
+              onChange={(e) =>
+                onUpdateCaptcha((prev) => ({
+                  ...prev,
+                  honeypot: e.target.value,
+                }))
+              }
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                opacity: 0,
+                height: 0,
+              }}
               tabIndex={-1}
               autoComplete="off"
               aria-hidden="true"
             />
-            
+
             {/* Checkbox captcha */}
             <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
               <input
                 type="checkbox"
                 checked={captcha.isChecked}
-                onChange={(e) => onUpdateCaptcha(prev => ({ ...prev, isChecked: e.target.checked }))}
+                onChange={(e) =>
+                  onUpdateCaptcha((prev) => ({
+                    ...prev,
+                    isChecked: e.target.checked,
+                  }))
+                }
                 className="h-4 w-4 rounded border-naki-steel cursor-pointer"
                 required
               />

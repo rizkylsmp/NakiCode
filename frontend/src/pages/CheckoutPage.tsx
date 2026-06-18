@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import { apiGet, apiPost } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import {
@@ -82,15 +82,9 @@ export function CheckoutPage() {
     setStatus("Memuat detail order...");
 
     try {
-      const response = await fetch(getApiUrl(`/api/orders/my/${parsedOrderId}`), {
-        headers: createAuthHeaders(userToken),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat order.");
-      }
-
-      const data = (await response.json()) as { order: OrderItem };
+      const data = await apiGet<{ order: OrderItem }>(
+        `/api/orders/my/${parsedOrderId}`,
+      );
       const selectedOrder = data.order ?? null;
 
       setOrder(selectedOrder);
@@ -136,24 +130,14 @@ export function CheckoutPage() {
     setStatus("Membuat sesi pembayaran...");
 
     try {
-      const response = await fetch(getApiUrl(`/api/orders/${order.id}/payment`), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...createAuthHeaders(userToken),
-        },
-        body: JSON.stringify({
+      const data = await apiPost<{ order: OrderItem }>(
+        `/api/orders/${order.id}/payment`,
+        {
           method: paymentMethod,
           couponCode: couponCode.trim() || undefined,
           referralCode: referralCode.trim() || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal membuat pembayaran.");
-      }
-
-      const data = (await response.json()) as { order: OrderItem };
+        },
+      );
       setOrder(data.order);
       if (data.order.paymentUrl) {
         openPaymentPage(data.order.paymentUrl, paymentWindow);
@@ -182,16 +166,9 @@ export function CheckoutPage() {
     setStatus("Mengonfirmasi pembayaran...");
 
     try {
-      const response = await fetch(getApiUrl(`/api/orders/${order.id}/payment/confirm`), {
-        method: "POST",
-        headers: createAuthHeaders(userToken),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal konfirmasi pembayaran.");
-      }
-
-      const data = (await response.json()) as { order: OrderItem };
+      const data = await apiPost<{ order: OrderItem }>(
+        `/api/orders/${order.id}/payment/confirm`,
+      );
       setOrder(data.order);
       setStatus("Pembayaran berhasil. Source code sudah terbuka.");
     } catch {
@@ -210,28 +187,16 @@ export function CheckoutPage() {
     setCouponStatus("Memvalidasi kupon...");
 
     try {
-      const response = await fetch(getApiUrl("/api/business/coupons/validate"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: couponCode,
-          amount: parseCurrencyAmount(order.templatePrice ?? order.budgetRange),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Kupon tidak valid");
-      }
-
-      const data = (await response.json()) as {
+      const data = await apiPost<{
         coupon: {
           discountAmount: number;
           finalAmount: number;
           description: string;
         };
-      };
+      }>("/api/business/coupons/validate", {
+        code: couponCode,
+        amount: parseCurrencyAmount(order.templatePrice ?? order.budgetRange),
+      });
 
       setCouponStatus(
         `${data.coupon.description}. Diskon Rp${data.coupon.discountAmount.toLocaleString("id-ID")}, total Rp${data.coupon.finalAmount.toLocaleString("id-ID")}.`,
@@ -348,7 +313,9 @@ export function CheckoutPage() {
                       <input
                         className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold uppercase outline-none focus:border-naki-secondary"
                         value={referralCode}
-                        onChange={(event) => setReferralCode(event.target.value)}
+                        onChange={(event) =>
+                          setReferralCode(event.target.value)
+                        }
                         placeholder="AFFILIATE"
                         type="text"
                       />
@@ -456,7 +423,9 @@ export function CheckoutPage() {
           </div>
 
           <aside className="h-fit rounded-xl border border-naki-steel bg-naki-frost p-5 shadow-naki-card lg:sticky lg:top-24">
-            <p className="text-sm font-black text-naki-smoke">Ringkasan order</p>
+            <p className="text-sm font-black text-naki-smoke">
+              Ringkasan order
+            </p>
             {order ? (
               <>
                 <h2 className="mt-2 text-2xl font-black">
@@ -506,12 +475,6 @@ function CheckoutInfo({ label, value }: CheckoutInfoProps) {
   );
 }
 
-function createAuthHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
-}
-
 function openPaymentPage(url: string, paymentWindow: Window | null) {
   if (paymentWindow && !paymentWindow.closed) {
     paymentWindow.opener = null;
@@ -523,7 +486,9 @@ function openPaymentPage(url: string, paymentWindow: Window | null) {
 }
 
 function parseCurrencyAmount(value: string | null | undefined) {
-  const text = String(value ?? "").toLowerCase().replace(/\s+/g, "");
+  const text = String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
   const numericValue = Number(
     text
       .replace(/rp/g, "")

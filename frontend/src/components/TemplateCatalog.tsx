@@ -164,15 +164,8 @@ export function TemplateCatalog({
                   </div>
                 ) : null}
 
-                <div className="flex flex-wrap gap-2">
-                  {template.stack.map((stack) => (
-                    <span
-                      key={stack}
-                      className="rounded-full border border-naki-steel bg-naki-frost px-3 py-1 text-xs font-black text-naki-primary"
-                    >
-                      {stack}
-                    </span>
-                  ))}
+                <div className="rounded-full border border-naki-steel bg-naki-frost px-3 py-2 text-xs font-black leading-5 text-naki-primary">
+                  {template.stack.join(", ")}
                 </div>
 
                 <div className="grid gap-4 rounded-2xl border border-naki-steel bg-naki-steel/55 p-4">

@@ -3,13 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { trackPageView } from "./analytics";
+import { apiGet } from "./api-client";
 import {
   type HealthState,
   type PortfolioItem,
   type TemplateCategory,
   type TemplateItem,
 } from "./content";
-import { getApiUrl } from "./api-client";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { UserLoginPage } from "./pages/UserLoginPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -89,7 +89,11 @@ function App() {
   const [activeCategory, setActiveCategory] =
     useState<TemplateCategory>("Semua");
   const [query, setQuery] = useState("");
-  const { data: bootstrapData, isLoading, isError } = useQuery({
+  const {
+    data: bootstrapData,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["app-bootstrap"],
     queryFn: fetchAppBootstrap,
   });
@@ -300,6 +304,7 @@ function App() {
                 categories={categories}
                 projects={portfolioItems}
                 onTemplatesChange={setTemplates}
+                onCategoriesChange={setCategories}
                 onProjectsChange={setPortfolioItems}
               />
             </RequireAdmin>
@@ -312,18 +317,10 @@ function App() {
 
 async function fetchAppBootstrap() {
   const [health, templates, categories, projects] = await Promise.all([
-    fetch(getApiUrl("/api/health")).then(
-      (response) => response.json() as Promise<HealthState>,
-    ),
-    fetch(getApiUrl("/api/templates")).then(
-      (response) => response.json() as Promise<TemplatesResponse>,
-    ),
-    fetch(getApiUrl("/api/categories")).then(
-      (response) => response.json() as Promise<CategoriesResponse>,
-    ),
-    fetch(getApiUrl("/api/projects")).then(
-      (response) => response.json() as Promise<ProjectsResponse>,
-    ),
+    apiGet<HealthState>("/api/health"),
+    apiGet<TemplatesResponse>("/api/templates"),
+    apiGet<CategoriesResponse>("/api/categories"),
+    apiGet<ProjectsResponse>("/api/projects"),
   ]);
 
   return { health, templates, categories, projects };

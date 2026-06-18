@@ -1,7 +1,12 @@
 import { LockKeyhole, LogIn } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import {
+  apiPost,
+  getApiErrorData,
+  getApiErrorMessage,
+  getApiErrorStatus,
+} from "../api-client";
 import {
   initializeCaptcha,
   validateCaptcha,
@@ -9,7 +14,7 @@ import {
 } from "../auth-captcha";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
-import { 
+import {
   PasswordStrengthIndicator,
   isPasswordStrong,
 } from "../components/PasswordStrengthIndicator";
@@ -51,7 +56,9 @@ export function UserLoginPage() {
     "Login user dipakai untuk membuat order template.",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [captcha, setCaptcha] = useState<CaptchaState>(() => initializeCaptcha());
+  const [captcha, setCaptcha] = useState<CaptchaState>(() =>
+    initializeCaptcha(),
+  );
   const [verificationUrl, setVerificationUrl] = useState("");
   const nextTarget = getSafeNextTarget(searchParams.get("next"));
   const forgotPasswordUrl =
@@ -67,10 +74,12 @@ export function UserLoginPage() {
         setStatus("Konfirmasi password belum sama.");
         return;
       }
-      
+
       // Validate password strength
       if (!isPasswordStrong(form.password)) {
-        setStatus("Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan lebih baik.");
+        setStatus(
+          "Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan lebih baik.",
+        );
         return;
       }
 
@@ -86,45 +95,16 @@ export function UserLoginPage() {
     setStatus(mode === "login" ? "Memeriksa akun..." : "Membuat akun...");
 
     try {
-      const response = await fetch(
-        getApiUrl(mode === "login" ? "/api/auth/user/login" : "/api/auth/user/register"),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(
-            mode === "login"
-              ? { identifier: form.username, password: form.password }
-              : {
-                  username: form.username,
-                  email: form.email,
-                  password: form.password,
-                },
-          ),
-        },
+      const data = await apiPost<UserAuthResponse>(
+        mode === "login" ? "/api/auth/user/login" : "/api/auth/user/register",
+        mode === "login"
+          ? { identifier: form.username, password: form.password }
+          : {
+              username: form.username,
+              email: form.email,
+              password: form.password,
+            },
       );
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as UserAuthResponse;
-
-        if (response.status === 403 && errorData.verificationUrl) {
-          const nextVerificationUrl = appendNextParam(
-            errorData.verificationUrl,
-            nextTarget,
-          );
-          setVerificationUrl(nextVerificationUrl);
-          setStatus(
-            "Email belum diverifikasi. Cek inbox atau buka verifikasi di bawah.",
-          );
-          navigate(nextVerificationUrl, { replace: true });
-          return;
-        }
-
-        throw new Error("Auth gagal.");
-      }
-
-      const data = (await response.json()) as UserAuthResponse;
       setForm(defaultForm);
       setCaptcha(initializeCaptcha());
 
@@ -160,11 +140,29 @@ export function UserLoginPage() {
       setStatus(
         "Akun berhasil diproses. OTP verifikasi sudah dikirim ke email.",
       );
-    } catch {
+    } catch (error) {
+      const errorData = getApiErrorData<UserAuthResponse>(error);
+
+      if (getApiErrorStatus(error) === 403 && errorData?.verificationUrl) {
+        const nextVerificationUrl = appendNextParam(
+          errorData.verificationUrl,
+          nextTarget,
+        );
+        setVerificationUrl(nextVerificationUrl);
+        setStatus(
+          "Email belum diverifikasi. Cek inbox atau buka verifikasi di bawah.",
+        );
+        navigate(nextVerificationUrl, { replace: true });
+        return;
+      }
+
       setStatus(
-        mode === "login"
-          ? "Login gagal. Cek username/email dan password."
-          : "Daftar gagal. Username/email mungkin sudah dipakai.",
+        getApiErrorMessage(
+          error,
+          mode === "login"
+            ? "Login gagal. Cek username/email dan password."
+            : "Daftar gagal. Username/email mungkin sudah dipakai.",
+        ),
       );
       if (mode === "register") {
         setCaptcha(initializeCaptcha());
@@ -249,7 +247,7 @@ export function UserLoginPage() {
                 type="password"
               />
             </label>
-            
+
             {/* Show password strength indicator in register mode */}
             {mode === "register" && (
               <PasswordStrengthIndicator password={form.password} />
@@ -280,25 +278,40 @@ export function UserLoginPage() {
                     type="password"
                   />
                 </label>
-                
+
                 {/* Honeypot field - hidden from humans, catches bots */}
                 <input
                   type="text"
                   name="website"
                   value={captcha.honeypot}
-                  onChange={(e) => setCaptcha(prev => ({ ...prev, honeypot: e.target.value }))}
-                  style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0 }}
+                  onChange={(e) =>
+                    setCaptcha((prev) => ({
+                      ...prev,
+                      honeypot: e.target.value,
+                    }))
+                  }
+                  style={{
+                    position: "absolute",
+                    left: "-9999px",
+                    opacity: 0,
+                    height: 0,
+                  }}
                   tabIndex={-1}
                   autoComplete="off"
                   aria-hidden="true"
                 />
-                
+
                 {/* Checkbox captcha */}
                 <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
                   <input
                     type="checkbox"
                     checked={captcha.isChecked}
-                    onChange={(e) => setCaptcha(prev => ({ ...prev, isChecked: e.target.checked }))}
+                    onChange={(e) =>
+                      setCaptcha((prev) => ({
+                        ...prev,
+                        isChecked: e.target.checked,
+                      }))
+                    }
                     className="h-4 w-4 rounded border-naki-steel cursor-pointer"
                     required
                   />

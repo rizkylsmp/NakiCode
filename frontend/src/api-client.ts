@@ -1,5 +1,9 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { userTokenKey } from './user-session';
+import axios, {
+  AxiosError,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from "axios";
+import { userTokenKey } from "./user-session";
 
 /**
  * Global 401 handler - triggers logout when session expires
@@ -16,10 +20,10 @@ export function setUnauthorizedHandler(handler: () => void) {
  * All API calls should use this instance for consistent behavior
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || "",
   timeout: 30000, // 30 seconds
   headers: {
-    'Content-Type': 'application/json',
+    Accept: "application/json",
   },
 });
 
@@ -29,16 +33,16 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem(userTokenKey);
-    
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -51,52 +55,129 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     // Handle 401 Unauthorized - auto logout
     if (error.response?.status === 401) {
-      console.warn('[Auth] Session expired or unauthorized - logging out automatically');
-      
+      console.warn(
+        "[Auth] Session expired or unauthorized - logging out automatically",
+      );
+
       // Trigger logout handler (will clear localStorage and update context)
       if (onUnauthorized) {
         onUnauthorized();
       }
-      
-      return Promise.reject(new Error('Session expired. Please login again.'));
+
+      return Promise.reject(error);
     }
-    
+
     // Handle other error responses
-    let errorMessage = `HTTP ${error.response?.status || 'Unknown'}: ${error.message}`;
-    
-    if (error.response?.data && typeof error.response.data === 'object') {
-      const data = error.response.data as any;
-      if (data.message) {
+    let errorMessage = `HTTP ${error.response?.status || "Unknown"}: ${
+      error.message
+    }`;
+
+    if (error.response?.data && typeof error.response.data === "object") {
+      const data = error.response.data as { message?: unknown };
+      if (typeof data.message === "string") {
         errorMessage = data.message;
       }
     }
-    
-    return Promise.reject(new Error(errorMessage));
-  }
+
+    error.message = errorMessage;
+
+    return Promise.reject(error);
+  },
 );
 
-/**
- * Helper to create auth headers (for non-apiClient usage like FormData uploads)
- */
-export function createAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(userTokenKey);
-  
-  if (!token) {
-    return {};
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = "Terjadi kesalahan koneksi API.",
+) {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+
+    if (data && typeof data === "object") {
+      const message = (data as { message?: unknown }).message;
+
+      if (typeof message === "string") {
+        return message;
+      }
+    }
+
+    return error.message || fallback;
   }
-  
-  return {
-    Authorization: `Bearer ${token}`,
-  };
+
+  return error instanceof Error ? error.message : fallback;
 }
 
-/**
- * Helper to construct full API URL from relative path
- * Use this for direct fetch() calls that can't use axios instance
- */
-export function getApiUrl(path: string): string {
-  const baseUrl = import.meta.env.VITE_API_URL || '';
-  return `${baseUrl}${path}`;
+export function getApiErrorStatus(error: unknown) {
+  return axios.isAxiosError(error) ? error.response?.status : undefined;
+}
+
+export function getApiErrorData<ResponseData>(error: unknown) {
+  return axios.isAxiosError(error)
+    ? (error.response?.data as ResponseData | undefined)
+    : undefined;
+}
+
+export async function apiGet<ResponseData>(
+  url: string,
+  config?: AxiosRequestConfig,
+) {
+  const response = await apiClient.get<ResponseData>(url, config);
+
+  return response.data;
+}
+
+export async function apiPost<ResponseData, RequestData = unknown>(
+  url: string,
+  data?: RequestData,
+  config?: AxiosRequestConfig<RequestData>,
+) {
+  const response = await apiClient.post<ResponseData>(url, data, config);
+
+  return response.data;
+}
+
+export async function apiPut<ResponseData, RequestData = unknown>(
+  url: string,
+  data?: RequestData,
+  config?: AxiosRequestConfig<RequestData>,
+) {
+  const response = await apiClient.put<ResponseData>(url, data, config);
+
+  return response.data;
+}
+
+export async function apiPatch<ResponseData, RequestData = unknown>(
+  url: string,
+  data?: RequestData,
+  config?: AxiosRequestConfig<RequestData>,
+) {
+  const response = await apiClient.patch<ResponseData>(url, data, config);
+
+  return response.data;
+}
+
+export async function apiDelete<ResponseData = void>(
+  url: string,
+  config?: AxiosRequestConfig,
+) {
+  const response = await apiClient.delete<ResponseData>(url, config);
+
+  return response.data;
+}
+
+export async function apiUpload<ResponseData>(
+  url: string,
+  formData: FormData,
+  config?: AxiosRequestConfig<FormData>,
+) {
+  const response = await apiClient.post<ResponseData>(url, formData, {
+    ...config,
+    headers: {
+      ...config?.headers,
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
 }
 
 // Export the configured axios instance as default

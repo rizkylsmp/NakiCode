@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { setUnauthorizedHandler } from "./api-client";
 import {
   userRoleKey,
   userSessionEvent,
@@ -59,12 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     window.addEventListener(userSessionEvent, refresh);
     window.addEventListener("storage", refresh);
+    setUnauthorizedHandler(logout);
 
     return () => {
       window.removeEventListener(userSessionEvent, refresh);
       window.removeEventListener("storage", refresh);
     };
-  }, [refresh]);
+  }, [logout, refresh]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

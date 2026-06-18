@@ -1,7 +1,7 @@
 import { ArrowLeft, BadgeCheck, MailCheck, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import { apiPost, getApiErrorMessage } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import {
@@ -60,41 +60,28 @@ export function VerifyEmailPage() {
     setStatus("Memverifikasi OTP...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/verify-email"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const data = await apiPost<VerifyEmailResponse>(
+        "/api/auth/user/verify-email",
+        {
           email: form.email.trim(),
           otp: form.otp.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as Partial<VerifyEmailResponse>;
-        throw new Error(errorData.message ?? "Gagal verifikasi OTP.");
-      }
-
-      const data = (await response.json()) as VerifyEmailResponse;
+        },
+      );
 
       if (data.token && data.user) {
         window.localStorage.setItem(userTokenKey, data.token);
         window.localStorage.setItem(userUsernameKey, data.user.username);
         window.localStorage.setItem(userRoleKey, data.user.role ?? "user");
         window.dispatchEvent(new Event(userSessionEvent));
-        navigate(
-          data.user.role === "admin" ? "/admin/templates" : nextTarget,
-          { replace: true },
-        );
+        navigate(data.user.role === "admin" ? "/admin/templates" : nextTarget, {
+          replace: true,
+        });
         return;
       }
 
       setStatus(data.message || "Email berhasil diverifikasi.");
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Gagal verifikasi OTP.",
-      );
+      setStatus(getApiErrorMessage(error, "Gagal verifikasi OTP."));
     } finally {
       setIsSubmitting(false);
     }
@@ -110,27 +97,15 @@ export function VerifyEmailPage() {
     setStatus("Mengirim ulang OTP...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/resend-otp"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const data = await apiPost<VerifyEmailResponse>(
+        "/api/auth/user/resend-otp",
+        {
           email: form.email.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as Partial<VerifyEmailResponse>;
-        throw new Error(errorData.message ?? "Gagal kirim ulang OTP.");
-      }
-
-      const data = (await response.json()) as VerifyEmailResponse;
+        },
+      );
       setStatus(data.message || "OTP berhasil dikirim ulang.");
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Gagal kirim ulang OTP.",
-      );
+      setStatus(getApiErrorMessage(error, "Gagal kirim ulang OTP."));
     } finally {
       setIsResending(false);
     }

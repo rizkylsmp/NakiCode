@@ -17,7 +17,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import { apiGet, apiPatch } from "../api-client";
 import { useAuth } from "../auth-context";
 import { LogoMark } from "./LogoMark";
 
@@ -84,39 +84,11 @@ export function Header() {
     queryKey: ["notifications", userToken],
     enabled: Boolean(userToken),
     refetchInterval: 30_000,
-    queryFn: async () => {
-      const response = await fetch(getApiUrl("/api/notifications/my"), {
-        headers: userToken
-          ? {
-              Authorization: `Bearer ${userToken}`,
-            }
-          : undefined,
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal mengambil notifikasi");
-      }
-
-      return (await response.json()) as NotificationsResponse;
-    },
+    queryFn: () => apiGet<NotificationsResponse>("/api/notifications/my"),
   });
   const markAllReadMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(getApiUrl("/api/notifications/read-all"), {
-        method: "PATCH",
-        headers: userToken
-          ? {
-              Authorization: `Bearer ${userToken}`,
-            }
-          : undefined,
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal membaca notifikasi");
-      }
-
-      return (await response.json()) as NotificationsResponse;
-    },
+    mutationFn: () =>
+      apiPatch<NotificationsResponse>("/api/notifications/read-all"),
     onSuccess: (data) => {
       queryClient.setQueryData(["notifications", userToken], data);
     },

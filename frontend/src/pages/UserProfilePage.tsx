@@ -16,7 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import { apiDelete, apiGet, apiPatch, getApiErrorMessage } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { ProfileSkeleton } from "../components/ProfileSkeleton";
@@ -83,8 +83,7 @@ export function UserProfilePage() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [deleteDialogConfirmation, setDeleteDialogConfirmation] =
-    useState("");
+  const [deleteDialogConfirmation, setDeleteDialogConfirmation] = useState("");
 
   useEffect(() => {
     function syncUserSession() {
@@ -107,7 +106,7 @@ export function UserProfilePage() {
       return;
     }
 
-    void loadProfile(userToken);
+    void loadProfile();
   }, [userToken]);
 
   useEffect(() => {
@@ -123,20 +122,12 @@ export function UserProfilePage() {
     };
   }, [isDeleteDialogOpen]);
 
-  async function loadProfile(token: string) {
+  async function loadProfile() {
     setIsLoading(true);
     setStatus("Memuat profil akun...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/me"), {
-        headers: authHeaders(token),
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat profil.");
-      }
-
-      const data = (await response.json()) as UserProfileResponse;
+      const data = await apiGet<UserProfileResponse>("/api/auth/user/me");
       setProfile(data.user);
       setProfileForm({ username: data.user.username });
       window.localStorage.setItem(userRoleKey, data.user.role ?? "user");
@@ -167,23 +158,9 @@ export function UserProfilePage() {
     setStatus("Menyimpan nama akun...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/me"), {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders(userToken),
-        },
-        body: JSON.stringify({
-          username: nextUsername,
-        }),
+      const data = await apiPatch<ProfileUpdateResponse>("/api/auth/user/me", {
+        username: nextUsername,
       });
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as Partial<ProfileUpdateResponse>;
-        throw new Error(errorData.message ?? "Gagal menyimpan profil.");
-      }
-
-      const data = (await response.json()) as ProfileUpdateResponse;
       setProfile(data.user);
       setProfileForm({ username: data.user.username });
       window.localStorage.setItem(userUsernameKey, data.user.username);
@@ -191,9 +168,7 @@ export function UserProfilePage() {
       window.dispatchEvent(new Event(userSessionEvent));
       setStatus("Nama akun berhasil diperbarui.");
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Gagal menyimpan profil.",
-      );
+      setStatus(getApiErrorMessage(error, "Gagal menyimpan profil."));
     } finally {
       setIsSavingProfile(false);
     }
@@ -221,32 +196,16 @@ export function UserProfilePage() {
     setStatus("Menyimpan password baru...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/me"), {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders(userToken),
-        },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-          confirmPassword: passwordForm.confirmPassword,
-        }),
+      const data = await apiPatch<ProfileUpdateResponse>("/api/auth/user/me", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
       });
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as Partial<ProfileUpdateResponse>;
-        throw new Error(errorData.message ?? "Gagal menyimpan password.");
-      }
-
-      const data = (await response.json()) as ProfileUpdateResponse;
       setProfile(data.user);
       setPasswordForm(defaultPasswordForm);
       setStatus("Password berhasil diperbarui.");
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Gagal menyimpan password.",
-      );
+      setStatus(getApiErrorMessage(error, "Gagal menyimpan password."));
     } finally {
       setIsSavingPassword(false);
     }
@@ -296,7 +255,9 @@ export function UserProfilePage() {
       deleteDialogConfirmation.trim().toLowerCase() !==
       deleteAccountConfirmationText
     ) {
-      setStatus("Ketik kalimat konfirmasi dengan benar sebelum menghapus akun.");
+      setStatus(
+        "Ketik kalimat konfirmasi dengan benar sebelum menghapus akun.",
+      );
       return;
     }
 
@@ -304,22 +265,12 @@ export function UserProfilePage() {
     setStatus("Menghapus akun...");
 
     try {
-      const response = await fetch(getApiUrl("/api/auth/user/me"), {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders(userToken),
-        },
-        body: JSON.stringify({
+      await apiDelete<DeleteAccountResponse>("/api/auth/user/me", {
+        data: {
           currentPassword: deleteAccountForm.currentPassword,
           confirmEmail: deleteAccountForm.confirmEmail,
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as Partial<DeleteAccountResponse>;
-        throw new Error(errorData.message ?? "Gagal menghapus akun.");
-      }
 
       clearUserSession();
       setProfile(null);
@@ -329,9 +280,7 @@ export function UserProfilePage() {
       setIsDeleteDialogOpen(false);
       navigate("/login");
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Gagal menghapus akun.",
-      );
+      setStatus(getApiErrorMessage(error, "Gagal menghapus akun."));
     } finally {
       setIsDeletingAccount(false);
     }
@@ -416,7 +365,7 @@ export function UserProfilePage() {
             <button
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-naki-frost px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
               disabled={isLoading}
-              onClick={() => void loadProfile(userToken)}
+              onClick={() => void loadProfile()}
               type="button"
             >
               <RefreshCw size={16} />
@@ -859,9 +808,7 @@ function DeleteAccountDialog({
               autoComplete="off"
               name="delete-account-final-confirmation"
               value={confirmationText}
-              onChange={(event) =>
-                onConfirmationTextChange(event.target.value)
-              }
+              onChange={(event) => onConfirmationTextChange(event.target.value)}
               placeholder={deleteAccountConfirmationText}
               type="text"
             />
@@ -912,7 +859,9 @@ function FormPanel({
       className={`rounded-xl border ${borderClass} bg-naki-frost p-5 shadow-naki-card md:p-6`}
     >
       <div className="mb-5 flex items-start gap-3">
-        <span className={`grid size-11 shrink-0 place-items-center rounded-lg ${iconClass}`}>
+        <span
+          className={`grid size-11 shrink-0 place-items-center rounded-lg ${iconClass}`}
+        >
           {icon}
         </span>
         <div>
@@ -925,12 +874,6 @@ function FormPanel({
       {children}
     </section>
   );
-}
-
-function authHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 function formatDate(value: string) {

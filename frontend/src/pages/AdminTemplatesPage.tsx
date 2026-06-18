@@ -24,7 +24,15 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
-import { getApiUrl } from "../api-client";
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPut,
+  apiUpload,
+  getApiErrorMessage,
+} from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
@@ -52,6 +60,7 @@ type AdminTemplatesPageProps = {
   categories: TemplateCategory[];
   projects: PortfolioItem[];
   onTemplatesChange: (templates: TemplateItem[]) => void;
+  onCategoriesChange: (categories: TemplateCategory[]) => void;
   onProjectsChange: (projects: PortfolioItem[]) => void;
 };
 
@@ -84,6 +93,12 @@ type TemplateMutationResponse = {
 
 type ProjectMutationResponse = {
   project: PortfolioItem;
+};
+
+type CategoryMutationResponse = {
+  category: TemplateCategory;
+  categories: TemplateCategory[];
+  message?: string;
 };
 
 type PortfolioFormState = {
@@ -194,6 +209,7 @@ export function AdminTemplatesPage({
   categories,
   projects,
   onTemplatesChange,
+  onCategoriesChange,
   onProjectsChange,
 }: AdminTemplatesPageProps) {
   const location = useLocation();
@@ -252,6 +268,11 @@ export function AdminTemplatesPage({
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
   const [status, setStatus] = useState("Siap mengelola katalog template.");
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryStatus, setCategoryStatus] = useState(
+    "Tambahkan kategori agar muncul di dropdown template.",
+  );
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [ordersStatus, setOrdersStatus] = useState(
     "Login untuk melihat request konsultasi.",
   );
@@ -298,8 +319,7 @@ export function AdminTemplatesPage({
   useEffect(() => {
     let isActive = true;
 
-    fetch(getApiUrl("/api/templates"))
-      .then((response) => response.json())
+    apiGet<TemplatesResponse>("/api/templates")
       .then((data: TemplatesResponse) => {
         if (isActive && Array.isArray(data.templates)) {
           onTemplatesChange(data.templates);
@@ -357,16 +377,7 @@ export function AdminTemplatesPage({
 
     let isActive = true;
 
-    fetch(getApiUrl("/api/auth/user/me"), {
-      headers: createAuthHeaders(adminToken),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Token tidak valid.");
-        }
-
-        return response.json();
-      })
+    apiGet<AuthResponse>("/api/auth/user/me")
       .then((data: AuthResponse) => {
         if (isActive) {
           setAdminUsername(data.user.username);
@@ -409,8 +420,7 @@ export function AdminTemplatesPage({
     setForm((current) => ({
       ...current,
       [key]: value,
-      slug:
-        key === "title" && !selectedId ? slugify(String(value)) : current.slug,
+      slug: key === "title" ? slugify(String(value)) : current.slug,
     }));
   }
 
@@ -505,23 +515,9 @@ export function AdminTemplatesPage({
     setOrdersStatus("Memuat request konsultasi...");
 
     try {
-      const response = await fetch(
+      const data = await apiGet<OrdersResponse>(
         `/api/orders?page=${page}&pageSize=${adminOrdersPageSize}`,
-        {
-          headers: createAuthHeaders(token),
-        },
       );
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat order.");
-      }
-
-      const data = (await response.json()) as OrdersResponse;
       setOrders(data.orders ?? []);
       setOrdersPage(data.page ?? page);
       setOrdersMeta({
@@ -551,25 +547,9 @@ export function AdminTemplatesPage({
     setOrdersStatus("Mengubah status order...");
 
     try {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...createAuthHeaders(adminToken),
-        },
-        body: JSON.stringify({
-          status: nextStatus,
-        }),
+      await apiPatch(`/api/orders/${orderId}/status`, {
+        status: nextStatus,
       });
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal mengubah status order.");
-      }
 
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
@@ -594,19 +574,7 @@ export function AdminTemplatesPage({
     setOrdersStatus(`Menghapus order #${order.id}...`);
 
     try {
-      const response = await fetch(`/api/orders/${order.id}`, {
-        method: "DELETE",
-        headers: createAuthHeaders(adminToken),
-      });
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal menghapus order.");
-      }
+      await apiDelete(`/api/orders/${order.id}`);
 
       setOrders((currentOrders) =>
         currentOrders.filter((currentOrder) => currentOrder.id !== order.id),
@@ -638,28 +606,12 @@ export function AdminTemplatesPage({
     const isEditing = selectedTemplate !== undefined;
 
     try {
-      const response = await fetch(
-        isEditing ? `/api/templates/${selectedTemplate.id}` : "/api/templates",
-        {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...createAuthHeaders(adminToken),
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal menyimpan template.");
-      }
-
-      const data = (await response.json()) as TemplateMutationResponse;
+      const data = isEditing
+        ? await apiPut<TemplateMutationResponse>(
+            `/api/templates/${selectedTemplate.id}`,
+            payload,
+          )
+        : await apiPost<TemplateMutationResponse>("/api/templates", payload);
       const nextTemplates = isEditing
         ? templates.map((template) =>
             template.id === data.template.id ? data.template : template,
@@ -687,19 +639,7 @@ export function AdminTemplatesPage({
     setStatus(`Menghapus ${template.title}...`);
 
     try {
-      const response = await fetch(`/api/templates/${template.id}`, {
-        method: "DELETE",
-        headers: createAuthHeaders(adminToken),
-      });
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal menghapus template.");
-      }
+      await apiDelete(`/api/templates/${template.id}`);
 
       onTemplatesChange(
         templates.filter(
@@ -714,6 +654,41 @@ export function AdminTemplatesPage({
       setStatus(`Template ${template.title} dihapus.`);
     } catch {
       setStatus("Gagal menghapus. Pastikan backend aktif.");
+    }
+  }
+
+  async function submitCategory(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!adminToken) {
+      setCategoryStatus("Login admin diperlukan untuk menambah kategori.");
+      return;
+    }
+
+    const name = categoryName.trim();
+
+    if (name.length < 2) {
+      setCategoryStatus("Nama kategori minimal 2 karakter.");
+      return;
+    }
+
+    setIsSavingCategory(true);
+    setCategoryStatus("Menyimpan kategori...");
+
+    try {
+      const data = await apiPost<CategoryMutationResponse>("/api/categories", {
+        name,
+      });
+
+      onCategoriesChange(data.categories);
+      setCategoryName("");
+      setCategoryStatus(data.message ?? `Kategori ${data.category} tersedia.`);
+    } catch (error) {
+      setCategoryStatus(
+        getApiErrorMessage(error, "Gagal menambahkan kategori."),
+      );
+    } finally {
+      setIsSavingCategory(false);
     }
   }
 
@@ -743,28 +718,12 @@ export function AdminTemplatesPage({
     const isEditing = typeof portfolioForm.id === "number";
 
     try {
-      const response = await fetch(
-        isEditing ? `/api/projects/${portfolioForm.id}` : "/api/projects",
-        {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...createAuthHeaders(adminToken),
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal menyimpan portofolio.");
-      }
-
-      const data = (await response.json()) as ProjectMutationResponse;
+      const data = isEditing
+        ? await apiPut<ProjectMutationResponse>(
+            `/api/projects/${portfolioForm.id}`,
+            payload,
+          )
+        : await apiPost<ProjectMutationResponse>("/api/projects", payload);
       const nextProjects = isEditing
         ? projects.map((project) =>
             project.id === data.project.id ? data.project : project,
@@ -792,19 +751,7 @@ export function AdminTemplatesPage({
     setPortfolioStatus(`Menghapus portofolio ${project.title}...`);
 
     try {
-      const response = await fetch(`/api/projects/${project.id}`, {
-        method: "DELETE",
-        headers: createAuthHeaders(adminToken),
-      });
-
-      if (response.status === 401) {
-        logout();
-        throw new Error("Sesi admin habis.");
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal menghapus portofolio.");
-      }
+      await apiDelete(`/api/projects/${project.id}`);
 
       onProjectsChange(
         projects.filter((currentProject) => currentProject.id !== project.id),
@@ -897,6 +844,9 @@ export function AdminTemplatesPage({
           isTemplateModalOpen={isTemplateModalOpen}
           adminToken={adminToken}
           activeAdminView={activeAdminView}
+          categoryName={categoryName}
+          categoryStatus={categoryStatus}
+          isSavingCategory={isSavingCategory}
           portfolioForm={portfolioForm}
           isPortfolioModalOpen={isPortfolioModalOpen}
           portfolioStatus={portfolioStatus}
@@ -922,6 +872,8 @@ export function AdminTemplatesPage({
           onDeleteTemplate={deleteTemplate}
           onSubmitTemplate={submitTemplate}
           onUpdateField={updateField}
+          onCategoryNameChange={setCategoryName}
+          onSubmitCategory={submitCategory}
           onUpdatePortfolioField={updatePortfolioField}
           onSubmitPortfolio={submitPortfolio}
           onStartEditPortfolio={startEditPortfolio}
@@ -966,6 +918,9 @@ type AdminTemplateWorkspaceProps = {
   isTemplateModalOpen: boolean;
   adminToken: string | null;
   activeAdminView: "templates" | "orders" | "portfolio";
+  categoryName: string;
+  categoryStatus: string;
+  isSavingCategory: boolean;
   portfolioForm: PortfolioFormState;
   isPortfolioModalOpen: boolean;
   portfolioStatus: string;
@@ -995,6 +950,8 @@ type AdminTemplateWorkspaceProps = {
     key: Key,
     value: TemplateFormState[Key],
   ) => void;
+  onCategoryNameChange: (value: string) => void;
+  onSubmitCategory: (event: React.FormEvent<HTMLFormElement>) => void;
   onUpdatePortfolioField: <Key extends keyof PortfolioFormState>(
     key: Key,
     value: PortfolioFormState[Key],
@@ -1018,6 +975,9 @@ function AdminTemplateWorkspace({
   isTemplateModalOpen,
   adminToken,
   activeAdminView,
+  categoryName,
+  categoryStatus,
+  isSavingCategory,
   portfolioForm,
   isPortfolioModalOpen,
   portfolioStatus,
@@ -1040,6 +1000,8 @@ function AdminTemplateWorkspace({
   onDeleteTemplate,
   onSubmitTemplate,
   onUpdateField,
+  onCategoryNameChange,
+  onSubmitCategory,
   onUpdatePortfolioField,
   onSubmitPortfolio,
   onStartEditPortfolio,
@@ -1143,6 +1105,52 @@ function AdminTemplateWorkspace({
       ) : (
         <div className="py-8">
           <section className="min-w-0">
+            <form
+              className="mb-4 grid gap-4 rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card lg:grid-cols-[minmax(0,1fr)_340px] lg:items-end"
+              onSubmit={onSubmitCategory}
+            >
+              <div>
+                <h2 className="text-2xl font-black">Kategori template</h2>
+                <p className="mt-1 text-sm font-semibold text-naki-smoke">
+                  {categoryStatus}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {categoryOptions.map((category) => (
+                    <span
+                      className="rounded-lg bg-naki-steel px-3 py-2 text-xs font-black text-naki-secondary"
+                      key={category}
+                    >
+                      {category}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <label className="grid gap-1 text-sm font-black text-naki-primary">
+                  Kategori baru
+                  <input
+                    className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+                    disabled={isSavingCategory}
+                    value={categoryName}
+                    onChange={(event) =>
+                      onCategoryNameChange(event.target.value)
+                    }
+                    placeholder="Contoh: Landing Page"
+                    required
+                    type="text"
+                  />
+                </label>
+                <button
+                  className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                  disabled={isSavingCategory}
+                  type="submit"
+                >
+                  <Plus size={16} />
+                  {isSavingCategory ? "Menyimpan..." : "Tambah"}
+                </button>
+              </div>
+            </form>
+
             <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h2 className="text-2xl font-black">Katalog aktif</h2>
@@ -2911,7 +2919,7 @@ function formToPayload(
 
 function splitLines(value: string) {
   return value
-    .split("\n")
+    .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -2933,21 +2941,9 @@ async function uploadPreviewImages(files: File[], adminToken: string | null) {
     formData.append("images", file);
   });
 
-  const response = await fetch(getApiUrl("/api/uploads/images"), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error("Upload preview gagal.");
-  }
-
-  const data = (await response.json()) as {
+  const data = await apiUpload<{
     images?: Array<{ url: string }>;
-  };
+  }>("/api/uploads/images", formData);
 
   return data.images?.map((image) => image.url).filter(Boolean) ?? [];
 }
@@ -2979,12 +2975,6 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-function createAuthHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 function formatOrderDate(value: string) {
