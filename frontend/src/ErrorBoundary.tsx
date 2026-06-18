@@ -19,7 +19,21 @@ export class ErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Naki Code UI error", error, errorInfo);
-    
+
+    // A new deploy changes asset hashes; clients holding a stale index.html
+    // request chunks that no longer exist. Reload once to pull the new build.
+    if (
+      /Failed to fetch dynamically imported module|error loading dynamically imported module|MIME type/i.test(
+        error.message,
+      )
+    ) {
+      if (!sessionStorage.getItem("naki-chunk-reloaded")) {
+        sessionStorage.setItem("naki-chunk-reloaded", "1");
+        window.location.reload();
+        return;
+      }
+    }
+
     // Send error to Sentry with component stack
     Sentry.captureException(error, {
       contexts: {

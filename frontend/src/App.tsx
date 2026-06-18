@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import type { ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -15,52 +16,96 @@ import { UserLoginPage } from "./pages/UserLoginPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { RequireAdmin, RequireAuth } from "./route-guards";
 
-const HomePage = lazy(() =>
+/**
+ * One-time stale chunk reload guard.
+ * Vite hashed chunks become 404 after new deploy — Vercel serves HTML instead
+ * of JS, which fails as "Failed to fetch dynamically imported module".
+ * On first failure we reload the page (new index.html → new chunk references).
+ * If the reload doesn't fix it we let the ErrorBoundary catch the error.
+ */
+const STALE_CHUNK_KEY = "naki-stale-chunk-reloaded";
+
+function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message;
+  return (
+    /Failed to fetch dynamically imported module/i.test(msg) ||
+    /Importing a module script failed/i.test(msg) ||
+    /ChunkLoadError/i.test(msg)
+  );
+}
+
+function lazyWithReload<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T }>,
+) {
+  return lazy(() =>
+    factory().catch((error) => {
+      if (isChunkLoadError(error)) {
+        if (!sessionStorage.getItem(STALE_CHUNK_KEY)) {
+          sessionStorage.setItem(STALE_CHUNK_KEY, "1");
+          console.warn(
+            "[Naki] Stale chunk detected, reloading to get latest app shell...",
+          );
+          window.location.reload();
+          // Return a never-resolving promise so React stays in Suspense
+          // while the page reloads.
+          return new Promise<{ default: T }>(() => {});
+        }
+        // Already reloaded once — clear flag and let ErrorBoundary handle it.
+        sessionStorage.removeItem(STALE_CHUNK_KEY);
+        console.error("[Naki] Chunk still stale after reload. Falling through to ErrorBoundary.");
+      }
+      throw error;
+    }),
+  );
+}
+
+const HomePage = lazyWithReload(() =>
   import("./pages/HomePage").then((module) => ({
     default: module.HomePage,
   })),
 );
-const TemplateDetailPage = lazy(() =>
+const TemplateDetailPage = lazyWithReload(() =>
   import("./pages/TemplateDetailPage").then((module) => ({
     default: module.TemplateDetailPage,
   })),
 );
-const AdminTemplatesPage = lazy(() =>
+const AdminTemplatesPage = lazyWithReload(() =>
   import("./pages/AdminTemplatesPage").then((module) => ({
     default: module.AdminTemplatesPage,
   })),
 );
-const CheckoutPage = lazy(() =>
+const CheckoutPage = lazyWithReload(() =>
   import("./pages/CheckoutPage").then((module) => ({
     default: module.CheckoutPage,
   })),
 );
-const BlogListPage = lazy(() =>
+const BlogListPage = lazyWithReload(() =>
   import("./pages/BlogListPage").then((module) => ({
     default: module.BlogListPage,
   })),
 );
-const BlogDetailPage = lazy(() =>
+const BlogDetailPage = lazyWithReload(() =>
   import("./pages/BlogDetailPage").then((module) => ({
     default: module.BlogDetailPage,
   })),
 );
-const MyOrdersPage = lazy(() =>
+const MyOrdersPage = lazyWithReload(() =>
   import("./pages/MyOrdersPage").then((module) => ({
     default: module.MyOrdersPage,
   })),
 );
-const UserProfilePage = lazy(() =>
+const UserProfilePage = lazyWithReload(() =>
   import("./pages/UserProfilePage").then((module) => ({
     default: module.UserProfilePage,
   })),
 );
-const WishlistPage = lazy(() =>
+const WishlistPage = lazyWithReload(() =>
   import("./pages/WishlistPage").then((module) => ({
     default: module.WishlistPage,
   })),
 );
-const ComparePage = lazy(() =>
+const ComparePage = lazyWithReload(() =>
   import("./pages/ComparePage").then((module) => ({
     default: module.ComparePage,
   })),
