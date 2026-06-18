@@ -85,6 +85,26 @@ apiClient.interceptors.response.use(
   },
 );
 
+/**
+ * Get the API base URL from environment variables
+ * Used for fetch calls that don't use the axios api-client
+ */
+export function getApiUrl(path: string = "") {
+  const baseURL = import.meta.env.VITE_API_URL || "";
+  
+  if (!path) {
+    return baseURL;
+  }
+  
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+  
+  // Remove trailing slash from baseURL if present
+  const cleanBaseURL = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
+  
+  return `${cleanBaseURL}/${cleanPath}`;
+}
+
 export function getApiErrorMessage(
   error: unknown,
   fallback = "Terjadi kesalahan koneksi API.",
