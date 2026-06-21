@@ -27,6 +27,8 @@ const rateLimitOptions: Parameters<typeof rateLimit>[0] = {
   windowMs: config.rateLimit.windowMs,
   standardHeaders: true,
   legacyHeaders: false,
+  // Disable validation for Vercel/serverless proxies that set forwarded headers
+  validate: false,
 };
 
 if (redisClient) {
