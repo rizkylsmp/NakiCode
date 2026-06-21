@@ -1,7 +1,9 @@
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 import helmet from 'helmet';
 import { config } from './config';
+import { getRedisClient } from './redis-cache';
 
 export const securityHeaders = helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -19,16 +21,26 @@ export const corsMiddleware = cors({
   },
 });
 
-export const apiRateLimit = rateLimit({
+const redisClient = getRedisClient();
+
+const rateLimitOptions: Parameters<typeof rateLimit>[0] = {
   windowMs: config.rateLimit.windowMs,
-  limit: config.rateLimit.apiLimit,
   standardHeaders: true,
   legacyHeaders: false,
+};
+
+if (redisClient) {
+  rateLimitOptions.store = new RedisStore({
+    sendCommand: async (...args: string[]) => redisClient.call(...args),
+  });
+}
+
+export const apiRateLimit = rateLimit({
+  ...rateLimitOptions,
+  limit: config.rateLimit.apiLimit,
 });
 
 export const authRateLimit = rateLimit({
-  windowMs: config.rateLimit.windowMs,
+  ...rateLimitOptions,
   limit: config.rateLimit.authLimit,
-  standardHeaders: true,
-  legacyHeaders: false,
 });

@@ -48,7 +48,7 @@ app.disable('x-powered-by');
 app.use(securityHeaders);
 app.use(corsMiddleware);
 app.use(apiRateLimit);
-app.use(express.json({ limit: '15mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(cacheHeaders);
 
 app.get('/api', (_request, response) => {

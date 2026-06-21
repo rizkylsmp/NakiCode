@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import { config } from '../config';
 import {
@@ -8,6 +9,7 @@ import {
   markOrderPaymentFailedByReference,
 } from '../models/order.model';
 import { createNotification } from '../models/notification.model';
+import { parseCurrencyAmount } from '../payments/payment.service';
 import { parseBody } from '../validation';
 
 export const paymentsRouter = Router();
@@ -45,32 +47,59 @@ paymentsRouter.post('/midtrans/webhook', async (request, response) => {
   );
 
   try {
+    const order = await findOrderByPaymentReference(body.order_id);
+
+    if (!order) {
+      Sentry.captureMessage('Midtrans webhook: order not found', {
+        level: 'warning',
+        extra: { orderId: body.order_id },
+      });
+      response.status(404).json({ message: 'Order tidak ditemukan' });
+      return;
+    }
+
+    // #8: Verify amount matches
     if (shouldMarkPaid) {
+      const midtransAmount = parseInt(body.gross_amount, 10);
+      const orderAmount = order.paymentAmount;
+
+      if (midtransAmount !== orderAmount) {
+        Sentry.captureMessage('Midtrans webhook: amount mismatch', {
+          level: 'error',
+          extra: {
+            orderId: body.order_id,
+            midtransAmount,
+            orderAmount,
+          },
+        });
+        response.status(400).json({ message: 'Jumlah pembayaran tidak sesuai' });
+        return;
+      }
+
       await markOrderPaidByPaymentReference(body.order_id);
-      const order = await findOrderByPaymentReference(body.order_id);
 
       await createNotification({
-        userId: order?.userId ?? null,
+        userId: order.userId,
         title: 'Pembayaran berhasil',
-        message: `Pembayaran untuk ${order?.templateTitle ?? 'pesanan kamu'} sudah diterima. Source code dan panduan sudah terbuka.`,
+        message: `Pembayaran untuk ${order.templateTitle ?? 'pesanan kamu'} sudah diterima. Source code dan panduan sudah terbuka.`,
         type: 'payment',
-        relatedOrderId: order?.id ?? null,
+        relatedOrderId: order.id,
       });
     } else if (shouldMarkFailed) {
       await markOrderPaymentFailedByReference(body.order_id);
-      const order = await findOrderByPaymentReference(body.order_id);
 
       await createNotification({
-        userId: order?.userId ?? null,
+        userId: order.userId,
         title: 'Pembayaran gagal',
-        message: `Pembayaran untuk ${order?.templateTitle ?? 'pesanan kamu'} gagal atau kedaluwarsa. Kamu bisa membuat sesi pembayaran baru.`,
+        message: `Pembayaran untuk ${order.templateTitle ?? 'pesanan kamu'} gagal atau kedaluwarsa. Kamu bisa membuat sesi pembayaran baru.`,
         type: 'payment',
-        relatedOrderId: order?.id ?? null,
+        relatedOrderId: order.id,
       });
     }
 
     response.json({ message: 'OK' });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal memproses webhook Midtrans' });
   }
 });

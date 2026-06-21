@@ -1,8 +1,11 @@
 import crypto from 'crypto';
+import { promisify } from 'util';
 import type { NextFunction, Request, Response } from 'express';
 import { config } from './config';
 
 export type UserRole = 'user' | 'admin';
+
+const scryptAsync = promisify(crypto.scrypt);
 
 export type UserTokenPayload = {
   sub: string;
@@ -31,21 +34,21 @@ export function createUserToken(user: {
   return `${body}.${signature}`;
 }
 
-export function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = crypto.randomBytes(16).toString('base64url');
-  const hash = crypto.scryptSync(password, salt, 64).toString('base64url');
+  const hash = (await scryptAsync(password, salt, 64) as Buffer).toString('base64url');
 
   return `scrypt:${salt}:${hash}`;
 }
 
-export function verifyPassword(password: string, storedHash: string) {
+export async function verifyPassword(password: string, storedHash: string) {
   const [algorithm, salt, hash] = storedHash.split(':');
 
   if (algorithm !== 'scrypt' || !salt || !hash) {
     return false;
   }
 
-  const candidate = crypto.scryptSync(password, salt, 64);
+  const candidate = (await scryptAsync(password, salt, 64)) as Buffer;
   const expected = Buffer.from(hash, 'base64url');
 
   return (
@@ -100,13 +103,14 @@ function verifyToken(token: string): TokenPayload | null {
 
 export function requireAdmin(request: Request, response: Response, next: NextFunction) {
   const token = request.header('authorization')?.replace(/^Bearer\s+/i, '');
+  const payload = token ? verifyAdminToken(token) : null;
 
-  if (!token || !verifyAdminToken(token)) {
+  if (!payload) {
     response.status(401).json({ message: 'Admin authorization required' });
     return;
   }
 
-  response.locals.admin = verifyAdminToken(token);
+  response.locals.admin = payload;
   next();
 }
 

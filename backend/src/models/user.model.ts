@@ -222,11 +222,12 @@ export async function updateUserPassword(
   userId: number,
   password: string,
 ) {
+  const hashed = await hashPassword(password);
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE users
     SET password_hash = ?
     WHERE id = ?`,
-    [hashPassword(password), userId],
+    [hashed, userId],
   );
 
   return result.affectedRows > 0;
@@ -274,6 +275,7 @@ export async function createUserAccount(payload: {
   role?: UserRole;
 }) {
   const emailVerificationToken = generateVerificationToken();
+  const hashedPassword = await hashPassword(payload.password);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO users (
       username,
@@ -291,7 +293,7 @@ export async function createUserAccount(payload: {
     [
       payload.username,
       payload.email,
-      hashPassword(payload.password),
+      hashedPassword,
       payload.role ?? 'user',
       emailVerificationToken,
     ],
@@ -349,6 +351,7 @@ export async function ensureDefaultAdminUser() {
     return existingByEmail;
   }
 
+  const hashedPassword = await hashPassword(password);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO users (
       username,
@@ -363,7 +366,7 @@ export async function ensureDefaultAdminUser() {
       email_verification_otp_sent_at
     )
     VALUES (?, ?, ?, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, NULL, NULL)`,
-    [username, email, hashPassword(password)],
+    [username, email, hashedPassword],
   );
 
   return {

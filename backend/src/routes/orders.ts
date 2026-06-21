@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import { requireAdmin, requireUser, type UserTokenPayload } from '../auth';
 import { config } from '../config';
@@ -90,7 +91,8 @@ ordersRouter.get('/', requireAdmin, async (request, response) => {
       source: 'mysql',
       ...(await findOrdersPage(query.data.page, query.data.pageSize)),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database orders belum tersedia',
       orders: [],
@@ -120,7 +122,8 @@ ordersRouter.get('/my', requireUser, async (request, response) => {
         query.data.paymentStatus as UserOrderPaymentFilter | undefined,
       )),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database orders belum tersedia',
       orders: [],
@@ -148,7 +151,8 @@ ordersRouter.get('/my/:id', requireUser, async (request, response) => {
       source: 'mysql',
       order,
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({ message: 'Database orders belum tersedia' });
   }
 });
@@ -178,7 +182,8 @@ ordersRouter.post('/', requireUser, async (request, response) => {
       source: 'mysql',
       order,
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan order' });
   }
 });
@@ -200,10 +205,20 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
       return;
     }
 
+    // SECURITY: the payable amount must come from a server-trusted source
+    // (templates.price), never from user-supplied fields like budget_range.
+    // Custom orders without a template price are consultation-only and cannot
+    // be self-checked-out — an admin sets the price/handles them manually.
+    if (!existingOrder.templatePrice) {
+      response.status(409).json({
+        message:
+          'Pesanan custom belum bisa dibayar mandiri. Tim kami akan menghubungi kamu untuk penawaran harga.',
+      });
+      return;
+    }
+
     const paymentMethod = normalizePaymentMethod(body.method);
-    const baseAmount = parseCurrencyAmount(
-      existingOrder.templatePrice ?? existingOrder.budgetRange,
-    );
+    const baseAmount = parseCurrencyAmount(existingOrder.templatePrice);
     const coupon = body.couponCode
       ? await validateCoupon(body.couponCode, baseAmount)
       : null;
@@ -243,7 +258,8 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
         url: order.paymentUrl,
       },
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal membuat pembayaran' });
   }
 });
@@ -284,7 +300,8 @@ ordersRouter.post('/:id/payment/confirm', requireUser, async (request, response)
       source: 'mysql',
       order,
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengonfirmasi pembayaran' });
   }
 });
@@ -335,7 +352,8 @@ ordersRouter.patch('/:id/status', requireAdmin, async (request, response) => {
         status: body.status,
       },
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengubah status order' });
   }
 });
@@ -369,7 +387,8 @@ ordersRouter.delete('/:id', requireAdmin, async (request, response) => {
     });
 
     response.status(204).send();
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menghapus order' });
   }
 });
@@ -391,8 +410,10 @@ ordersRouter.get('/:id/invoice', requireUser, async (request, response) => {
       return;
     }
 
-    // Only generate invoice for paid orders
-    if (order.status !== 'paid') {
+    // Only generate invoice for paid orders.
+    // Paid state lives in payment_status; `status` is the fulfilment enum
+    // (new|contacted|deal|closed) and is never 'paid'.
+    if (order.paymentStatus !== 'paid') {
       response.status(400).json({ 
         message: 'Invoice hanya tersedia untuk pesanan yang sudah dibayar' 
       });

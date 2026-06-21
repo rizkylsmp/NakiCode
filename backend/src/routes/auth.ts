@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import zxcvbn from 'zxcvbn';
 import {
@@ -93,7 +94,7 @@ authRouter.post('/login', async (request, response) => {
     if (
       !admin ||
       admin.role !== 'admin' ||
-      !verifyPassword(body.password, admin.passwordHash)
+      !(await verifyPassword(body.password, admin.passwordHash))
     ) {
       response.status(401).json({ message: 'Username atau password salah' });
       return;
@@ -106,7 +107,8 @@ authRouter.post('/login', async (request, response) => {
         role: admin.role,
       },
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({ message: 'Database login belum tersedia' });
   }
 });
@@ -212,7 +214,8 @@ authRouter.post('/user/register', async (request, response) => {
       verificationEmail: user.email,
       verificationUrl: buildVerificationUrl(user.email),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal membuat akun user' });
   }
 });
@@ -227,7 +230,7 @@ authRouter.post('/user/login', async (request, response) => {
   try {
     const user = await findUserByUsernameOrEmail(body.identifier);
 
-    if (!user || !verifyPassword(body.password, user.passwordHash)) {
+    if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
       response.status(401).json({ message: 'Akun atau password salah' });
       return;
     }
@@ -250,7 +253,8 @@ authRouter.post('/user/login', async (request, response) => {
         role: user.role,
       },
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({ message: 'Database user belum tersedia' });
   }
 });
@@ -298,7 +302,8 @@ authRouter.post('/user/forgot-password', async (request, response) => {
       resetEmail: user.email,
       resetUrl: buildPasswordResetUrl(user.email),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengirim OTP reset password' });
   }
 });
@@ -357,7 +362,8 @@ authRouter.post('/user/reset-password', async (request, response) => {
     response.json({
       message: 'Password berhasil direset. Silakan login dengan password baru.',
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal reset password' });
   }
 });
@@ -444,7 +450,7 @@ authRouter.patch('/user/me', async (request, response) => {
         return;
       }
 
-      if (!verifyPassword(currentPassword, user.passwordHash)) {
+      if (!(await verifyPassword(currentPassword, user.passwordHash))) {
         response.status(401).json({ message: 'Current password salah' });
         return;
       }
@@ -474,7 +480,8 @@ authRouter.patch('/user/me', async (request, response) => {
             emailVerificationSentAt: user.emailVerificationSentAt,
           },
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal memperbarui profil user' });
   }
 });
@@ -508,7 +515,7 @@ authRouter.delete('/user/me', async (request, response) => {
       return;
     }
 
-    if (!verifyPassword(body.currentPassword, user.passwordHash)) {
+    if (!(await verifyPassword(body.currentPassword, user.passwordHash))) {
       response.status(401).json({ message: 'Password aktif salah' });
       return;
     }
@@ -521,7 +528,8 @@ authRouter.delete('/user/me', async (request, response) => {
     }
 
     response.json({ message: 'Akun berhasil dihapus' });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menghapus akun' });
   }
 });
@@ -590,7 +598,8 @@ authRouter.post('/user/verify-email', async (request, response) => {
         role: verifiedUser.role,
       },
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal memverifikasi email' });
   }
 });
@@ -640,7 +649,8 @@ authRouter.post('/user/resend-otp', async (request, response) => {
       verificationEmail: user.email,
       verificationUrl: buildVerificationUrl(user.email),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengirim OTP verifikasi' });
   }
 });

@@ -7,6 +7,7 @@ export type PaymentSession = {
   method: string;
   reference: string;
   url: string;
+  amount: number;
 };
 
 type PaymentSessionInput = {
@@ -46,6 +47,7 @@ export async function createPaymentSession({
     url: `${config.clientOrigin}/pesanan-saya?payment=${encodeURIComponent(
       reference,
     )}`,
+    amount,
   };
 }
 
@@ -148,5 +150,6 @@ async function createMidtransSnapSession({
       `${config.clientOrigin}/pesanan-saya?payment=${encodeURIComponent(
         reference,
       )}`,
+    amount,
   };
 }

@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "Write-Output '{\"systemMessage\":\"Reminder: update docs/PROJECT_SUMMARY.md -> AI Task Checklist / Changelog with completed or blocked task before ending this session.\"}'",
+            "shell": "powershell",
+            "timeout": 5,
+            "statusMessage": "Reminding summary update"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)"
+    ]
+  }
+}

@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method VARCHAR(80) NULL,
   payment_reference VARCHAR(120) NULL,
   payment_url VARCHAR(500) NULL,
+  payment_amount INT NULL,
   paid_at TIMESTAMP NULL,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

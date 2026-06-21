@@ -17,6 +17,7 @@ type OrderRow = RowDataPacket & {
   payment_method?: string | null;
   payment_reference?: string | null;
   payment_url?: string | null;
+  payment_amount?: number | null;
   paid_at?: string | null;
   created_at?: string;
   template_price?: string | null;
@@ -42,6 +43,7 @@ export type OrderItem = {
   paymentMethod: string | null;
   paymentReference: string | null;
   paymentUrl: string | null;
+  paymentAmount: number | null;
   paidAt: string | null;
   templatePrice: string | null;
   deliveryStatus: 'locked' | 'available';
@@ -82,6 +84,7 @@ const orderSelect = `SELECT
   orders.payment_method,
   orders.payment_reference,
   orders.payment_url,
+  orders.payment_amount,
   orders.paid_at,
   orders.created_at,
   templates.price AS template_price,
@@ -151,8 +154,9 @@ export async function createOrder(payload: OrderPayload) {
       payment_method,
       payment_reference,
       payment_url,
+      payment_amount,
       paid_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.userId,
       payload.templateId,
@@ -168,6 +172,7 @@ export async function createOrder(payload: OrderPayload) {
       payload.paymentMethod,
       payload.paymentReference,
       payload.paymentUrl,
+      payload.paymentAmount,
       payload.paidAt,
     ],
   );
@@ -233,6 +238,7 @@ export async function startOrderPayment(
     method: string;
     reference: string;
     url: string;
+    amount: number;
   },
 ) {
   const [result] = await pool.query<ResultSetHeader>(
@@ -240,13 +246,15 @@ export async function startOrderPayment(
     SET payment_status = ?,
       payment_method = ?,
       payment_reference = ?,
-      payment_url = ?
+      payment_url = ?,
+      payment_amount = ?
     WHERE id = ? AND user_id = ? AND payment_status <> ? AND deleted_at IS NULL`,
     [
       'waiting_payment',
       payment.method,
       payment.reference,
       payment.url,
+      payment.amount,
       id,
       userId,
       'paid',
@@ -386,6 +394,7 @@ export function normalizeOrderPayload(
     paymentMethod: null,
     paymentReference: null,
     paymentUrl: null,
+    paymentAmount: null,
     paidAt: null,
     templatePrice: null,
     deliveryStatus: 'locked',
@@ -416,6 +425,7 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     paymentMethod: row.payment_method ?? null,
     paymentReference: row.payment_reference ?? null,
     paymentUrl: row.payment_url ?? null,
+    paymentAmount: row.payment_amount ?? null,
     paidAt: row.paid_at ?? null,
     templatePrice: row.template_price ?? null,
     deliveryStatus: isPaid ? 'available' : 'locked',
