@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import { requireAdmin, type UserTokenPayload } from '../auth';
 import { createAdminAuditLog } from '../models/audit-log.model';
@@ -46,7 +47,8 @@ blogPostsRouter.get('/', async (_request, response) => {
 
     await setJsonCache(cacheKey, payload);
     response.json(payload);
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database blog belum tersedia',
       posts: [],
@@ -60,7 +62,8 @@ blogPostsRouter.get('/admin', requireAdmin, async (_request, response) => {
       source: 'mysql',
       posts: await findBlogPostsForAdmin(),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database blog belum tersedia',
       posts: [],
@@ -92,7 +95,8 @@ blogPostsRouter.get('/:slug', async (request, response) => {
 
     await setJsonCache(cacheKey, payload);
     response.json(payload);
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({ message: 'Database blog belum tersedia' });
   }
 });
@@ -118,7 +122,8 @@ blogPostsRouter.post('/', requireAdmin, async (request, response) => {
     });
 
     response.status(201).json({ source: 'mysql', post });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan artikel' });
   }
 });
@@ -150,7 +155,8 @@ blogPostsRouter.put('/:id', requireAdmin, async (request, response) => {
     });
 
     response.json({ source: 'mysql', post });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengubah artikel' });
   }
 });
@@ -180,7 +186,8 @@ blogPostsRouter.delete('/:id', requireAdmin, async (request, response) => {
     });
 
     response.status(204).send();
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menghapus artikel' });
   }
 });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import multer from 'multer';
 import { requireAdmin } from '../auth';
 import { storePreviewImage } from '../storage/image-storage';
@@ -39,7 +40,8 @@ uploadsRouter.post(
       response.status(201).json({
         images,
       });
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       response.status(500).json({ message: 'Gagal upload gambar preview' });
     }
   },

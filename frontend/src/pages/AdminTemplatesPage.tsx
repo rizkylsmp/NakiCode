@@ -12,6 +12,7 @@ import {
   GripVertical,
   ImagePlus,
   Inbox,
+  LayoutDashboard,
   LockKeyhole,
   MessageSquareText,
   Plus,
@@ -33,6 +34,7 @@ import {
   apiUpload,
   getApiErrorMessage,
 } from "../api-client";
+import { AdminDashboard } from "../components/AdminDashboard";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
@@ -231,8 +233,12 @@ export function AdminTemplatesPage({
   const [form, setForm] = useState<TemplateFormState>(defaultFormState);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeAdminView, setActiveAdminView] = useState<
-    "templates" | "orders" | "portfolio"
+    "dashboard" | "templates" | "orders" | "portfolio"
   >(() => {
+    if (window.location.hash === "#dashboard") {
+      return "dashboard";
+    }
+
     if (window.location.hash === "#orders") {
       return "orders";
     }
@@ -241,7 +247,11 @@ export function AdminTemplatesPage({
       return "portfolio";
     }
 
-    return "templates";
+    if (window.location.hash === "#templates") {
+      return "templates";
+    }
+
+    return "dashboard";
   });
   const [portfolioForm, setPortfolioForm] = useState<PortfolioFormState>(
     defaultPortfolioFormState,
@@ -917,7 +927,7 @@ type AdminTemplateWorkspaceProps = {
   isSaving: boolean;
   isTemplateModalOpen: boolean;
   adminToken: string | null;
-  activeAdminView: "templates" | "orders" | "portfolio";
+  activeAdminView: "dashboard" | "templates" | "orders" | "portfolio";
   categoryName: string;
   categoryStatus: string;
   isSavingCategory: boolean;
@@ -936,7 +946,7 @@ type AdminTemplateWorkspaceProps = {
   };
   isLoadingOrders: boolean;
   updatingOrderId: number | null;
-  onActiveAdminViewChange: (view: "templates" | "orders" | "portfolio") => void;
+  onActiveAdminViewChange: (view: "dashboard" | "templates" | "orders" | "portfolio") => void;
   onRefreshOrders: () => void;
   onOrdersPageChange: (page: number) => void;
   onUpdateOrderStatus: (orderId: number, status: OrderStatus) => void;
@@ -1033,12 +1043,27 @@ function AdminTemplateWorkspace({
       <div className="mt-6 flex flex-wrap gap-2">
         <button
           className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition ${
+            activeAdminView === "dashboard"
+              ? "bg-naki-primary text-naki-frost"
+              : "border border-naki-steel text-naki-secondary hover:border-naki-smoke"
+          }`}
+          onClick={() => {
+            window.location.hash = "dashboard";
+            onActiveAdminViewChange("dashboard");
+          }}
+          type="button"
+        >
+          <LayoutDashboard size={17} />
+          Dashboard
+        </button>
+        <button
+          className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition ${
             activeAdminView === "templates"
               ? "bg-naki-primary text-naki-frost"
               : "border border-naki-steel text-naki-secondary hover:border-naki-smoke"
           }`}
           onClick={() => {
-            window.location.hash = "";
+            window.location.hash = "templates";
             onActiveAdminViewChange("templates");
           }}
           type="button"
@@ -1079,7 +1104,11 @@ function AdminTemplateWorkspace({
         </button>
       </div>
 
-      {activeAdminView === "orders" ? (
+      {activeAdminView === "dashboard" ? (
+        <div className="py-8">
+          <AdminDashboard />
+        </div>
+      ) : activeAdminView === "orders" ? (
         <OrdersPanel
           orders={orders}
           ordersStatus={ordersStatus}

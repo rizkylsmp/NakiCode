@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import { requireUser, type UserTokenPayload } from '../auth';
 import {
@@ -22,7 +23,8 @@ notificationsRouter.get('/my', requireUser, async (_request, response) => {
       source: 'mysql',
       notifications: await findNotificationsByUser(user.userId),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database notifications belum tersedia',
       notifications: [],
@@ -50,7 +52,8 @@ notificationsRouter.patch('/:id/read', requireUser, async (request, response) =>
       source: 'mysql',
       notifications: await findNotificationsByUser(user.userId),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal membaca notifikasi' });
   }
 });
@@ -65,7 +68,8 @@ notificationsRouter.patch('/read-all', requireUser, async (_request, response) =
       source: 'mysql',
       notifications: await findNotificationsByUser(user.userId),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal membaca semua notifikasi' });
   }
 });

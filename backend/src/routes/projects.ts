@@ -1,4 +1,5 @@
 import { Router } from "express";
+import * as Sentry from "@sentry/node";
 import { z } from "zod";
 import { requireAdmin, type UserTokenPayload } from "../auth";
 import { createAdminAuditLog } from "../models/audit-log.model";
@@ -31,7 +32,8 @@ const projectBodySchema = z.object({
 projectsRouter.get("/", async (_request, response) => {
   try {
     response.json({ source: "mysql", projects: await findProjects() });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: "Database projects belum tersedia",
       projects: [],
@@ -61,7 +63,8 @@ projectsRouter.post("/", requireAdmin, async (request, response) => {
     });
 
     response.status(201).json({ source: "mysql", project });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: "Gagal menyimpan portofolio" });
   }
 });
@@ -99,7 +102,8 @@ projectsRouter.put("/:id", requireAdmin, async (request, response) => {
     });
 
     response.json({ source: "mysql", project });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: "Gagal mengubah portofolio" });
   }
 });
@@ -132,7 +136,8 @@ projectsRouter.delete("/:id", requireAdmin, async (request, response) => {
     });
 
     response.status(204).send();
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: "Gagal menghapus portofolio" });
   }
 });

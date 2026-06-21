@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import { requireAdmin, requireUser, type UserTokenPayload } from '../auth';
 import { createAdminAuditLog } from '../models/audit-log.model';
@@ -81,7 +82,8 @@ templatesRouter.get('/', async (_request, response) => {
 
     await setJsonCache(cacheKey, payload);
     response.json(payload);
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database templates belum tersedia',
       templates: [],
@@ -118,7 +120,8 @@ templatesRouter.post('/', requireAdmin, async (request, response) => {
       source: 'mysql',
       template,
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan template' });
   }
 });
@@ -148,7 +151,8 @@ templatesRouter.get('/:slug', async (request, response) => {
 
     await setJsonCache(cacheKey, payload);
     response.json(payload);
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({ message: 'Database templates belum tersedia' });
   }
 });
@@ -212,7 +216,8 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
       rating: payload,
       template: await findTemplateBySlugOrId(String(params.id)),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan rating' });
   }
 });
@@ -252,7 +257,8 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
       source: 'mysql',
       template,
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengubah template' });
   }
 });
@@ -282,7 +288,8 @@ templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
     await deleteCacheKeys(['templates:list']);
 
     response.status(204).send();
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menghapus template' });
   }
 });

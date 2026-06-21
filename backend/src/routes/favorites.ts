@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import { requireUser, type UserTokenPayload } from '../auth';
 import {
@@ -23,7 +24,8 @@ favoritesRouter.get('/my', requireUser, async (_request, response) => {
       source: 'mysql',
       templateIds: await findFavoriteTemplateIds(user.userId),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database favorites belum tersedia',
       templateIds: [],
@@ -53,7 +55,8 @@ favoritesRouter.post('/:templateId', requireUser, async (request, response) => {
       source: 'mysql',
       templateIds: await findFavoriteTemplateIds(user.userId),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan wishlist' });
   }
 });
@@ -73,7 +76,8 @@ favoritesRouter.delete('/:templateId', requireUser, async (request, response) =>
       source: 'mysql',
       templateIds: await findFavoriteTemplateIds(user.userId),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menghapus wishlist' });
   }
 });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import {
   findActiveTemplateBundles,
@@ -24,7 +25,8 @@ businessRouter.get('/bundles', async (_request, response) => {
       source: 'mysql',
       bundles: await findActiveTemplateBundles(),
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(503).json({
       message: 'Database bundle belum tersedia',
       bundles: [],
@@ -51,7 +53,8 @@ businessRouter.post('/coupons/validate', async (request, response) => {
       source: 'mysql',
       coupon,
     });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal memvalidasi kupon' });
   }
 });
@@ -66,7 +69,8 @@ businessRouter.post('/referrals/:code/click', async (request, response) => {
   try {
     await trackReferralClick(params.code);
     response.json({ source: 'mysql', tracked: true });
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mencatat referral' });
   }
 });

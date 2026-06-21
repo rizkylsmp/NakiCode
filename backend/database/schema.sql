@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS template_bundle_items (
 
 INSERT IGNORE INTO template_categories (name, sort_order) VALUES
   ('Portfolio', 1),
-  ('E-commerce', 2),
+  ('E-commerce  ', 2),
   ('Top up games', 3),
   ('Web Bucin', 4),
   ('CRUD', 5),

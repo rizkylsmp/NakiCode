@@ -31,6 +31,7 @@ const rateLimitOptions: Parameters<typeof rateLimit>[0] = {
 
 if (redisClient) {
   rateLimitOptions.store = new RedisStore({
+    // @ts-expect-error - type mismatch between ioredis and rate-limit-redis
     sendCommand: async (...args: string[]) => redisClient.call(...args),
   });
 }

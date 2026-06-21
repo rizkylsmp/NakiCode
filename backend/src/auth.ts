@@ -78,6 +78,10 @@ export function verifyUserToken(token: string) {
 }
 
 function verifyToken(token: string): TokenPayload | null {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
   const [body, signature] = token.split('.');
 
   if (!body || !signature || !safeEqual(signature, sign(body))) {
