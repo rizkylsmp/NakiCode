@@ -51,6 +51,46 @@ app.use(apiRateLimit);
 app.use(express.json({ limit: '1mb' }));
 app.use(cacheHeaders);
 
+// Track database initialization for serverless
+let dbInitialized = false;
+let dbInitPromise: Promise<void> | null = null;
+
+async function ensureDatabase() {
+  if (dbInitialized) return;
+
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      await initializeDatabase();
+      await ensureDefaultAdminUser();
+      initializeEmailQueue();
+      dbInitialized = true;
+      console.log(`MySQL database ready: ${config.mysql.database}`);
+    })();
+  }
+
+  await dbInitPromise;
+}
+
+// Middleware to ensure database is initialized before API routes (serverless)
+app.use('/api', async (req, res, next) => {
+  try {
+    await ensureDatabase();
+    next();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Database initialization failed';
+    console.error(`Database init error: ${message}`);
+
+    if (config.sentry.dsn && error instanceof Error) {
+      Sentry.captureException(error);
+    }
+
+    res.status(503).json({
+      error: 'Service temporarily unavailable',
+      message: 'Database is not ready. Please try again later.'
+    });
+  }
+});
+
 app.get('/api', (_request, response) => {
   response.json({
     name: 'Naki Code API',
