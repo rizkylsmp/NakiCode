@@ -12,6 +12,11 @@
       "dest": "src/server.ts"
     }
   ],
+  "functions": {
+    "src/server.ts": {
+      "includeFiles": "database/**"
+    }
+  },
   "env": {
     "NODE_ENV": "production"
   }

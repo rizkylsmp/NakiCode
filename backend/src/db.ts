@@ -70,8 +70,14 @@ export async function initializeDatabase() {
     await ensureColumn(
       connection,
       "orders",
+      "payment_amount",
+      "INT NULL AFTER payment_url",
+    );
+    await ensureColumn(
+      connection,
+      "orders",
       "paid_at",
-      "TIMESTAMP NULL AFTER payment_url",
+      "TIMESTAMP NULL AFTER payment_amount",
     );
     await ensureColumn(
       connection,
