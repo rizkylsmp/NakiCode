@@ -4,6 +4,7 @@ import {
   ArrowDown,
   ArrowUp,
   BadgeCheck,
+  Check,
   ClipboardList,
   Edit3,
   ExternalLink,
@@ -17,12 +18,13 @@ import {
   MessageSquareText,
   Plus,
   RefreshCw,
+  Tag,
   Save,
   Trash2,
   UploadCloud,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -34,7 +36,6 @@ import {
   apiUpload,
   getApiErrorMessage,
 } from "../api-client";
-import { AdminDashboard } from "../components/AdminDashboard";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
@@ -182,6 +183,7 @@ const paymentStatusFilters: Array<{
   { label: "Failed", value: "failed" },
 ];
 const adminOrdersPageSize = 8;
+const adminTemplatesPageSize = 8;
 const levelOptions = ["Pemula", "Menengah", "Lanjut"];
 const stackOptions = [
   "React",
@@ -232,11 +234,14 @@ export function AdminTemplatesPage({
   );
   const [form, setForm] = useState<TemplateFormState>(defaultFormState);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState("all");
+  const [templatesPage, setTemplatesPage] = useState(1);
   const [activeAdminView, setActiveAdminView] = useState<
     "dashboard" | "templates" | "orders" | "portfolio"
   >(() => {
-    if (window.location.hash === "#dashboard") {
-      return "dashboard";
+    if (window.location.hash === "#templates") {
+      return "templates";
     }
 
     if (window.location.hash === "#orders") {
@@ -245,10 +250,6 @@ export function AdminTemplatesPage({
 
     if (window.location.hash === "#portfolio") {
       return "portfolio";
-    }
-
-    if (window.location.hash === "#templates") {
-      return "templates";
     }
 
     return "dashboard";
@@ -283,6 +284,10 @@ export function AdminTemplatesPage({
     "Tambahkan kategori agar muncul di dropdown template.",
   );
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [ordersStatus, setOrdersStatus] = useState(
     "Login untuk melihat request konsultasi.",
   );
@@ -296,6 +301,12 @@ export function AdminTemplatesPage({
   }, [adminToken]);
 
   useEffect(() => {
+    if (location.hash === "#templates") {
+      setActiveAdminView("templates");
+      setIsTemplateModalOpen(false);
+      return;
+    }
+
     if (location.hash === "#orders") {
       setActiveAdminView("orders");
       setIsTemplateModalOpen(false);
@@ -319,9 +330,7 @@ export function AdminTemplatesPage({
       return;
     }
 
-    if (!location.hash) {
-      setActiveAdminView("templates");
-    }
+    setActiveAdminView("dashboard");
     // loadOrders is intentionally omitted because this effect only syncs route hash into UI state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminToken, isAdmin, location.hash]);
@@ -422,6 +431,32 @@ export function AdminTemplatesPage({
     () => templates.find((template) => template.id === selectedId),
     [selectedId, templates],
   );
+  const filteredAdminTemplates = useMemo(() => {
+    const normalizedSearch = templateSearch.trim().toLowerCase();
+
+    return templates.filter((template) => {
+      const matchesCategory =
+        templateCategoryFilter === "all" ||
+        template.category === templateCategoryFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        [template.title, template.slug, template.category, template.price]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [templateCategoryFilter, templateSearch, templates]);
+  const templateTotalPages = Math.max(
+    1,
+    Math.ceil(filteredAdminTemplates.length / adminTemplatesPageSize),
+  );
+  const safeTemplatesPage = Math.min(templatesPage, templateTotalPages);
+  const paginatedAdminTemplates = filteredAdminTemplates.slice(
+    (safeTemplatesPage - 1) * adminTemplatesPageSize,
+    safeTemplatesPage * adminTemplatesPageSize,
+  );
 
   function updateField<Key extends keyof TemplateFormState>(
     key: Key,
@@ -486,13 +521,13 @@ export function AdminTemplatesPage({
     setStatus("Mode tambah template baru.");
   }
 
-  function startEdit(template: TemplateItem) {
+  const startEdit = useCallback((template: TemplateItem) => {
     window.location.hash = `template-${template.id}`;
     setSelectedId(template.id);
     setForm(templateToForm(template));
     setIsTemplateModalOpen(true);
     setStatus(`Mengedit ${template.title}.`);
-  }
+  }, []);
 
   function closeTemplateModal() {
     if (!isSaving) {
@@ -702,6 +737,148 @@ export function AdminTemplatesPage({
     }
   }
 
+  async function handleEditCategory(categoryName: string) {
+    if (!adminToken) {
+      setCategoryStatus("Login admin diperlukan untuk mengedit kategori.");
+      return;
+    }
+
+    // First, get the category ID from the API
+    try {
+      const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
+      const category = response.categories.find(c => c.name === categoryName);
+
+      if (!category) {
+        setCategoryStatus("Kategori tidak ditemukan.");
+        return;
+      }
+
+      setEditingCategory(categoryName);
+      setEditingCategoryId(category.id);
+      setEditingCategoryName(categoryName);
+    } catch (error) {
+      setCategoryStatus(getApiErrorMessage(error, "Gagal memuat data kategori."));
+    }
+  }
+
+  async function handleUpdateCategory() {
+    if (!adminToken || editingCategoryId === null) {
+      setCategoryStatus("Login admin diperlukan untuk mengedit kategori.");
+      return;
+    }
+
+    const newName = editingCategoryName.trim();
+
+    if (newName.length < 2) {
+      setCategoryStatus("Nama kategori minimal 2 karakter.");
+      return;
+    }
+
+    setIsSavingCategory(true);
+    setCategoryStatus("Memperbarui kategori...");
+
+    try {
+      const data = await apiPut<CategoryMutationResponse>(`/api/categories/${editingCategoryId}`, {
+        name: newName,
+      });
+
+      onCategoriesChange(data.categories);
+      setEditingCategory(null);
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+      setCategoryStatus(data.message ?? "Kategori berhasil diperbarui.");
+    } catch (error) {
+      setCategoryStatus(getApiErrorMessage(error, "Gagal memperbarui kategori."));
+    } finally {
+      setIsSavingCategory(false);
+    }
+  }
+
+  function handleCancelEdit() {
+    setEditingCategory(null);
+    setEditingCategoryName("");
+    setCategoryStatus("Edit kategori dibatalkan.");
+  }
+
+  async function handleSubmitCategory(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!adminToken) {
+      setCategoryStatus("Login admin diperlukan untuk menambah kategori.");
+      return;
+    }
+
+    const name = categoryName.trim();
+    if (name.length < 2) {
+      setCategoryStatus("Nama kategori minimal 2 karakter.");
+      return;
+    }
+
+    setIsSavingCategory(true);
+    setCategoryStatus("Menyimpan kategori...");
+
+    try {
+      await apiPost("/api/categories", { name });
+      const response = await apiGet<{ categories: string[] }>("/api/categories/admin");
+      onCategoriesChange(response.categories);
+      setCategoryName("");
+      setCategoryStatus(`Kategori "${name}" berhasil ditambahkan.`);
+      setIsCategoryModalOpen(false);
+    } catch (error) {
+      setCategoryStatus(getApiErrorMessage(error, "Gagal menambahkan kategori."));
+    } finally {
+      setIsSavingCategory(false);
+    }
+  }
+
+  async function handleDeleteCategory(categoryName: string) {
+    if (!adminToken) {
+      setCategoryStatus("Login admin diperlukan untuk menghapus kategori.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Apakah Anda yakin ingin menghapus kategori "${categoryName}"?\n\nPerhatian: Kategori yang sedang digunakan oleh template tidak dapat dihapus.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // First, get the category ID from the API
+    try {
+      const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
+      const category = response.categories.find(c => c.name === categoryName);
+
+      if (!category) {
+        setCategoryStatus("Kategori tidak ditemukan.");
+        return;
+      }
+
+      setIsSavingCategory(true);
+      setCategoryStatus("Menghapus kategori...");
+
+      const data = await apiDelete<CategoryMutationResponse>(`/api/categories/${category.id}`);
+
+      onCategoriesChange(data.categories);
+      setCategoryStatus(data.message ?? "Kategori berhasil dihapus.");
+    } catch (error) {
+      setCategoryStatus(getApiErrorMessage(error, "Gagal menghapus kategori."));
+    } finally {
+      setIsSavingCategory(false);
+    }
+  }
+
+  function openCategoryModal() {
+    setIsCategoryModalOpen(true);
+  }
+
+  function closeCategoryModal() {
+    setIsCategoryModalOpen(false);
+    setEditingCategory(null);
+    setEditingCategoryName("");
+    setCategoryName("");
+  }
+
   async function submitPortfolio(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -798,7 +975,7 @@ export function AdminTemplatesPage({
             </p>
             <Link
               className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
-              to="/login?next=%2Fadmin%2Ftemplates"
+              to="/login?next=%2Fadmin%2Fdashboard"
             >
               <LockKeyhole size={17} />
               Buka login
@@ -824,7 +1001,7 @@ export function AdminTemplatesPage({
             <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
               <Link
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
-                to="/login?next=%2Fadmin%2Ftemplates"
+                to="/login?next=%2Fadmin%2Fdashboard"
               >
                 Login akun admin
               </Link>
@@ -844,6 +1021,12 @@ export function AdminTemplatesPage({
       ) : (
         <AdminTemplateWorkspace
           templates={templates}
+          paginatedTemplates={paginatedAdminTemplates}
+          filteredTemplatesCount={filteredAdminTemplates.length}
+          templatesPage={safeTemplatesPage}
+          templatesTotalPages={templateTotalPages}
+          templateSearch={templateSearch}
+          templateCategoryFilter={templateCategoryFilter}
           projects={projects}
           categoryOptions={categoryOptions}
           selectedId={selectedId}
@@ -857,6 +1040,17 @@ export function AdminTemplatesPage({
           categoryName={categoryName}
           categoryStatus={categoryStatus}
           isSavingCategory={isSavingCategory}
+          isCategoryModalOpen={isCategoryModalOpen}
+          editingCategory={editingCategory}
+          editingCategoryName={editingCategoryName}
+          onEditCategoryNameChange={setEditingCategoryName}
+          onEditCategory={handleEditCategory}
+          onSaveEditCategory={handleUpdateCategory}
+          onCancelEditCategory={handleCancelEdit}
+          onDeleteCategory={handleDeleteCategory}
+          onOpenCategoryModal={() => setIsCategoryModalOpen(true)}
+          onCloseCategoryModal={() => setIsCategoryModalOpen(false)}
+          onSubmitCategory={handleSubmitCategory}
           portfolioForm={portfolioForm}
           isPortfolioModalOpen={isPortfolioModalOpen}
           portfolioStatus={portfolioStatus}
@@ -869,6 +1063,15 @@ export function AdminTemplatesPage({
           isLoadingOrders={isLoadingOrders}
           updatingOrderId={updatingOrderId}
           onActiveAdminViewChange={setActiveAdminView}
+          onTemplateSearchChange={(value) => {
+            setTemplateSearch(value);
+            setTemplatesPage(1);
+          }}
+          onTemplateCategoryFilterChange={(value) => {
+            setTemplateCategoryFilter(value);
+            setTemplatesPage(1);
+          }}
+          onTemplatesPageChange={setTemplatesPage}
           onRefreshOrders={() => loadOrders(adminToken, ordersPage)}
           onOrdersPageChange={(page) => {
             setOrdersPage(page);
@@ -883,7 +1086,6 @@ export function AdminTemplatesPage({
           onSubmitTemplate={submitTemplate}
           onUpdateField={updateField}
           onCategoryNameChange={setCategoryName}
-          onSubmitCategory={submitCategory}
           onUpdatePortfolioField={updatePortfolioField}
           onSubmitPortfolio={submitPortfolio}
           onStartEditPortfolio={startEditPortfolio}
@@ -918,6 +1120,12 @@ export function AdminTemplatesPage({
 
 type AdminTemplateWorkspaceProps = {
   templates: TemplateItem[];
+  paginatedTemplates: TemplateItem[];
+  filteredTemplatesCount: number;
+  templatesPage: number;
+  templatesTotalPages: number;
+  templateSearch: string;
+  templateCategoryFilter: string;
   projects: PortfolioItem[];
   categoryOptions: TemplateItem["category"][];
   selectedId: number | null;
@@ -931,6 +1139,17 @@ type AdminTemplateWorkspaceProps = {
   categoryName: string;
   categoryStatus: string;
   isSavingCategory: boolean;
+  isCategoryModalOpen: boolean;
+  editingCategory: string | null;
+  editingCategoryName: string;
+  onEditCategoryNameChange: (value: string) => void;
+  onEditCategory: (name: string) => void;
+  onSaveEditCategory: () => void;
+  onCancelEditCategory: () => void;
+  onDeleteCategory: (name: string) => void;
+  onOpenCategoryModal: () => void;
+  onCloseCategoryModal: () => void;
+  onSubmitCategory: (event: React.FormEvent<HTMLFormElement>) => void;
   portfolioForm: PortfolioFormState;
   isPortfolioModalOpen: boolean;
   portfolioStatus: string;
@@ -947,6 +1166,9 @@ type AdminTemplateWorkspaceProps = {
   isLoadingOrders: boolean;
   updatingOrderId: number | null;
   onActiveAdminViewChange: (view: "dashboard" | "templates" | "orders" | "portfolio") => void;
+  onTemplateSearchChange: (value: string) => void;
+  onTemplateCategoryFilterChange: (value: string) => void;
+  onTemplatesPageChange: (page: number) => void;
   onRefreshOrders: () => void;
   onOrdersPageChange: (page: number) => void;
   onUpdateOrderStatus: (orderId: number, status: OrderStatus) => void;
@@ -961,7 +1183,6 @@ type AdminTemplateWorkspaceProps = {
     value: TemplateFormState[Key],
   ) => void;
   onCategoryNameChange: (value: string) => void;
-  onSubmitCategory: (event: React.FormEvent<HTMLFormElement>) => void;
   onUpdatePortfolioField: <Key extends keyof PortfolioFormState>(
     key: Key,
     value: PortfolioFormState[Key],
@@ -975,6 +1196,12 @@ type AdminTemplateWorkspaceProps = {
 
 function AdminTemplateWorkspace({
   templates,
+  paginatedTemplates,
+  filteredTemplatesCount,
+  templatesPage,
+  templatesTotalPages,
+  templateSearch,
+  templateCategoryFilter,
   projects,
   categoryOptions,
   selectedId,
@@ -988,6 +1215,16 @@ function AdminTemplateWorkspace({
   categoryName,
   categoryStatus,
   isSavingCategory,
+  isCategoryModalOpen,
+  editingCategory,
+  editingCategoryName,
+  onEditCategoryNameChange,
+  onEditCategory,
+  onSaveEditCategory,
+  onCancelEditCategory,
+  onDeleteCategory,
+  onOpenCategoryModal,
+  onCloseCategoryModal,
   portfolioForm,
   isPortfolioModalOpen,
   portfolioStatus,
@@ -1000,6 +1237,9 @@ function AdminTemplateWorkspace({
   isLoadingOrders,
   updatingOrderId,
   onActiveAdminViewChange,
+  onTemplateSearchChange,
+  onTemplateCategoryFilterChange,
+  onTemplatesPageChange,
   onRefreshOrders,
   onOrdersPageChange,
   onUpdateOrderStatus,
@@ -1031,11 +1271,11 @@ function AdminTemplateWorkspace({
             Kembali ke storefront
           </Link>
           <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
-            Admin template
+            Admin dashboard
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-naki-smoke">
             Kelola katalog Naki Code, pantau request konsultasi, dan tindak
-            lanjuti calon pembeli.
+            lanjuti calon pembeli dari satu halaman.
           </p>
         </div>
       </div>
@@ -1048,7 +1288,7 @@ function AdminTemplateWorkspace({
               : "border border-naki-steel text-naki-secondary hover:border-naki-smoke"
           }`}
           onClick={() => {
-            window.location.hash = "dashboard";
+            window.location.hash = "";
             onActiveAdminViewChange("dashboard");
           }}
           type="button"
@@ -1105,9 +1345,13 @@ function AdminTemplateWorkspace({
       </div>
 
       {activeAdminView === "dashboard" ? (
-        <div className="py-8">
-          <AdminDashboard />
-        </div>
+        <AdminDashboardHome
+          templates={templates}
+          projects={projects}
+          orders={orders}
+          onNavigate={onActiveAdminViewChange}
+          onRefreshOrders={onRefreshOrders}
+        />
       ) : activeAdminView === "orders" ? (
         <OrdersPanel
           orders={orders}
@@ -1134,57 +1378,11 @@ function AdminTemplateWorkspace({
       ) : (
         <div className="py-8">
           <section className="min-w-0">
-            <form
-              className="mb-4 grid gap-4 rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card lg:grid-cols-[minmax(0,1fr)_340px] lg:items-end"
-              onSubmit={onSubmitCategory}
-            >
-              <div>
-                <h2 className="text-2xl font-black">Kategori template</h2>
-                <p className="mt-1 text-sm font-semibold text-naki-smoke">
-                  {categoryStatus}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {categoryOptions.map((category) => (
-                    <span
-                      className="rounded-lg bg-naki-steel px-3 py-2 text-xs font-black text-naki-secondary"
-                      key={category}
-                    >
-                      {category}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                <label className="grid gap-1 text-sm font-black text-naki-primary">
-                  Kategori baru
-                  <input
-                    className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
-                    disabled={isSavingCategory}
-                    value={categoryName}
-                    onChange={(event) =>
-                      onCategoryNameChange(event.target.value)
-                    }
-                    placeholder="Contoh: Landing Page"
-                    required
-                    type="text"
-                  />
-                </label>
-                <button
-                  className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
-                  disabled={isSavingCategory}
-                  type="submit"
-                >
-                  <Plus size={16} />
-                  {isSavingCategory ? "Menyimpan..." : "Tambah"}
-                </button>
-              </div>
-            </form>
-
             <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h2 className="text-2xl font-black">Katalog aktif</h2>
                 <p className="mt-1 text-sm font-semibold text-naki-smoke">
-                  {templates.length} template tersedia.
+                  {filteredTemplatesCount} dari {templates.length} template tampil.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1192,6 +1390,14 @@ function AdminTemplateWorkspace({
                   <BadgeCheck size={16} />
                   {status}
                 </span>
+                <button
+                  className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+                  onClick={onOpenCategoryModal}
+                  type="button"
+                >
+                  <Tag size={16} />
+                  Kategori
+                </button>
                 <button
                   className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
                   onClick={onStartCreate}
@@ -1203,6 +1409,34 @@ function AdminTemplateWorkspace({
               </div>
             </div>
 
+            <div className="mb-4 grid gap-3 rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card lg:grid-cols-[1fr_240px]">
+              <label className="grid gap-1.5 text-sm font-black text-naki-primary">
+                Search template
+                <input
+                  className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+                  onChange={(event) => onTemplateSearchChange(event.target.value)}
+                  placeholder="Cari judul, slug, kategori, harga..."
+                  type="search"
+                  value={templateSearch}
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm font-black text-naki-primary">
+                Filter kategori
+                <select
+                  className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+                  onChange={(event) => onTemplateCategoryFilterChange(event.target.value)}
+                  value={templateCategoryFilter}
+                >
+                  <option value="all">Semua kategori</option>
+                  {categoryOptions.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             <div className="overflow-hidden rounded-lg border border-naki-steel bg-naki-frost shadow-naki-card">
               <div className="hidden grid-cols-[1.1fr_0.7fr_0.5fr_118px] border-b border-naki-steel bg-naki-steel px-4 py-3 text-xs font-black uppercase text-naki-smoke md:grid">
                 <span>Template</span>
@@ -1211,7 +1445,17 @@ function AdminTemplateWorkspace({
                 <span>Aksi</span>
               </div>
               <div className="divide-y divide-naki-steel">
-                {templates.map((template) => (
+                {paginatedTemplates.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-lg font-black text-naki-primary">
+                      Template tidak ditemukan.
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-naki-smoke">
+                      Coba ubah keyword search atau filter kategori.
+                    </p>
+                  </div>
+                ) : (
+                  paginatedTemplates.map((template) => (
                   <article
                     key={template.id}
                     className={`grid gap-3 px-4 py-4 text-sm md:grid-cols-[1.1fr_0.7fr_0.5fr_118px] md:items-center ${
@@ -1243,7 +1487,10 @@ function AdminTemplateWorkspace({
                     <div className="flex gap-2 md:justify-start">
                       <button
                         className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke"
-                        onClick={() => onStartEdit(template)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartEdit(template);
+                        }}
                         type="button"
                         aria-label={`Edit ${template.title}`}
                       >
@@ -1259,9 +1506,16 @@ function AdminTemplateWorkspace({
                       </button>
                     </div>
                   </article>
-                ))}
+                )))}
               </div>
             </div>
+            <PaginationControls
+              page={templatesPage}
+              total={filteredTemplatesCount}
+              totalPages={templatesTotalPages}
+              pageSize={adminTemplatesPageSize}
+              onPageChange={onTemplatesPageChange}
+            />
           </section>
           <TemplateFormModal
             categoryOptions={categoryOptions}
@@ -1274,6 +1528,22 @@ function AdminTemplateWorkspace({
             onStartCreate={onStartCreate}
             onSubmitTemplate={onSubmitTemplate}
             onUpdateField={onUpdateField}
+          />
+          <CategoryModal
+            isOpen={isCategoryModalOpen}
+            onClose={onCloseCategoryModal}
+            onSubmit={onSubmitCategory}
+            categoryName={categoryName}
+            onCategoryNameChange={onCategoryNameChange}
+            isSavingCategory={isSavingCategory}
+            categoryOptions={categoryOptions}
+            editingCategory={editingCategory}
+            editingCategoryName={editingCategoryName}
+            onEditCategoryNameChange={onEditCategoryNameChange}
+            onEditCategory={onEditCategory}
+            onSaveEditCategory={onSaveEditCategory}
+            onCancelEditCategory={onCancelEditCategory}
+            onDeleteCategory={onDeleteCategory}
           />
         </div>
       )}
@@ -1467,6 +1737,160 @@ function TemplateFormModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+type CategoryModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  categoryName: string;
+  onCategoryNameChange: (value: string) => void;
+  isSavingCategory: boolean;
+  categoryOptions: TemplateCategory[];
+  editingCategory: TemplateCategory | null;
+  editingCategoryName: string;
+  onEditCategoryNameChange: (value: string) => void;
+  onEditCategory: (category: TemplateCategory) => void;
+  onSaveEditCategory: () => void;
+  onCancelEditCategory: () => void;
+  onDeleteCategory: (category: TemplateCategory) => void;
+};
+
+function CategoryModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  categoryName,
+  onCategoryNameChange,
+  isSavingCategory,
+  categoryOptions,
+  editingCategory,
+  editingCategoryName,
+  onEditCategoryNameChange,
+  onEditCategory,
+  onSaveEditCategory,
+  onCancelEditCategory,
+  onDeleteCategory,
+}: CategoryModalProps) {
+  if (!isOpen || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="category-modal-title"
+    >
+      <div className="w-full my-10 mx-auto max-w-2xl rounded-xl border border-naki-steel bg-naki-frost shadow-naki-soft">
+        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-naki-frost/95 p-5 backdrop-blur sm:flex-row sm:items-start">
+          <div>
+            <h2 id="category-modal-title" className="text-2xl font-black">
+              Kelola Kategori
+            </h2>
+            <p className="mt-1 text-sm font-semibold text-naki-smoke">
+              Tambah, edit, atau hapus kategori template.
+            </p>
+          </div>
+          <button
+            className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-primary transition hover:border-naki-smoke"
+            onClick={onClose}
+            type="button"
+            aria-label="Tutup modal"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="grid gap-5 p-5">
+          <form className="grid gap-3" onSubmit={onSubmit}>
+            <Field
+              label="Nama Kategori Baru"
+              value={categoryName}
+              onChange={onCategoryNameChange}
+              required
+            />
+            <button
+              type="submit"
+              disabled={isSavingCategory || !categoryName.trim()}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-black text-naki-frost transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:bg-naki-steel"
+            >
+              <Plus size={16} />
+              {isSavingCategory ? "Menyimpan..." : "Tambah Kategori"}
+            </button>
+          </form>
+
+          <div className="border-t border-naki-steel pt-4">
+            <h3 className="text-lg font-black mb-3">Kategori yang Ada</h3>
+            {categoryOptions.length === 0 ? (
+              <p className="text-sm text-naki-smoke">Belum ada kategori.</p>
+            ) : (
+              <div className="space-y-2">
+                {categoryOptions.map((category) => (
+                  <div
+                    key={category}
+                    className="flex items-center justify-between rounded-lg border border-naki-steel bg-white p-3"
+                  >
+                    {editingCategory === category ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="text"
+                          value={editingCategoryName}
+                          onChange={(e) => onEditCategoryNameChange(e.target.value)}
+                          className="flex-1 rounded-lg border border-naki-steel bg-naki-frost px-3 py-2 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={onSaveEditCategory}
+                          className="grid size-9 place-items-center rounded-lg bg-naki-primary text-naki-frost transition hover:bg-naki-primary/90"
+                          aria-label="Simpan"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={onCancelEditCategory}
+                          className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke"
+                          aria-label="Batal"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="font-semibold">{category}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onEditCategory(category)}
+                            className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke hover:text-naki-primary"
+                            aria-label="Edit"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteCategory(category)}
+                            className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-red-500 hover:text-red-600"
+                            aria-label="Hapus"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>,
     document.body,
@@ -1887,6 +2311,16 @@ function DeleteOrderMeta({ label, value }: DeleteOrderMetaProps) {
   );
 }
 
+type DashboardView = "dashboard" | "templates" | "orders" | "portfolio";
+
+type AdminDashboardHomeProps = {
+  templates: TemplateItem[];
+  projects: PortfolioItem[];
+  orders: OrderItem[];
+  onNavigate: (view: DashboardView) => void;
+  onRefreshOrders: () => void;
+};
+
 type OrdersPanelProps = {
   orders: OrderItem[];
   ordersStatus: string;
@@ -2053,6 +2487,119 @@ function PortfolioAdminPanel({
         </div>
       )}
     </section>
+  );
+}
+
+function AdminDashboardHome({
+  templates,
+  projects,
+  orders,
+  onNavigate,
+  onRefreshOrders,
+}: AdminDashboardHomeProps) {
+  function openView(view: Exclude<DashboardView, "dashboard">) {
+    window.location.hash = view;
+    onNavigate(view);
+
+    if (view === "orders") {
+      onRefreshOrders();
+    }
+  }
+
+  return (
+    <section className="grid gap-6 py-8">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardShortcutCard
+          icon={<ClipboardList size={20} />}
+          label="Kelola Template"
+          value={`${templates.length} template`}
+          description="Tambah, edit, atau hapus produk katalog."
+          onClick={() => openView("templates")}
+        />
+        <DashboardShortcutCard
+          icon={<Inbox size={20} />}
+          label="Order Masuk"
+          value={`${orders.length} order`}
+          description="Cek request konsultasi dan status pembayaran."
+          onClick={() => openView("orders")}
+        />
+        <DashboardShortcutCard
+          icon={<Tag size={20} />}
+          label="Kategori"
+          value="Kelola"
+          description="Buka tab template lalu atur kategori."
+          onClick={() => openView("templates")}
+        />
+        <DashboardShortcutCard
+          icon={<Globe2 size={20} />}
+          label="Portofolio"
+          value={`${projects.length} project`}
+          description="Update website yang tampil di storefront."
+          onClick={() => openView("portfolio")}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardStatCard label="Total Template" value={templates.length} />
+        <DashboardStatCard label="Order Masuk" value={orders.length} />
+        <DashboardStatCard
+          label="Order Paid"
+          value={orders.filter((order) => order.paymentStatus === "paid").length}
+        />
+        <DashboardStatCard label="Portofolio" value={projects.length} />
+      </div>
+    </section>
+  );
+}
+
+type DashboardShortcutCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  description: string;
+  onClick: () => void;
+};
+
+type DashboardStatCardProps = {
+  label: string;
+  value: number;
+};
+
+function DashboardStatCard({ label, value }: DashboardStatCardProps) {
+  return (
+    <div className="rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card">
+      <p className="text-sm font-black uppercase text-naki-smoke">{label}</p>
+      <p className="mt-2 text-3xl font-black text-naki-primary">{value}</p>
+    </div>
+  );
+}
+
+function DashboardShortcutCard({
+  icon,
+  label,
+  value,
+  description,
+  onClick,
+}: DashboardShortcutCardProps) {
+  return (
+    <button
+      className="group rounded-xl border border-naki-steel bg-naki-frost p-4 text-left shadow-naki-card transition hover:-translate-y-0.5 hover:shadow-naki-soft"
+      onClick={onClick}
+      type="button"
+    >
+      <span className="grid size-11 place-items-center rounded-lg bg-naki-steel text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-naki-frost">
+        {icon}
+      </span>
+      <span className="mt-4 block text-lg font-black text-naki-primary">
+        {label}
+      </span>
+      <span className="mt-1 block text-2xl font-black text-naki-secondary">
+        {value}
+      </span>
+      <span className="mt-2 block text-sm font-semibold leading-6 text-naki-smoke">
+        {description}
+      </span>
+    </button>
   );
 }
 

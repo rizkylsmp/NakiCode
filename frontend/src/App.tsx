@@ -341,7 +341,7 @@ function App() {
           }
         />
         <Route
-          path="/admin/templates"
+          path="/admin/dashboard"
           element={
             <RequireAdmin>
               <AdminTemplatesPage

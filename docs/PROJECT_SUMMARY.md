@@ -131,7 +131,7 @@ Jangan commit `.env`.
 - `/akun-saya` dan `/profile` — profil user
 - `/wishlist` — template favorit user
 - `/compare` — compare 2-3 template
-- `/admin/templates` — admin panel, butuh role admin
+- `/admin/dashboard` — admin panel, butuh role admin
 
 ---
 
@@ -326,7 +326,7 @@ User/auth:
 
 Admin:
 
-- Admin route `/admin/templates`
+- Admin route `/admin/dashboard`
 - CRUD templates
 - CRUD categories
 - CRUD projects/portfolio
@@ -434,3 +434,6 @@ npm run backup:list --workspace backend
 - [x] 2026-06-21 — Payment amount tracking: tambah kolom payment_amount ke orders table untuk webhook verification, migration berhasil dijalankan — files: backend/database/migrations/20260621-084842-add-payment-amount-column.sql, backend/src/models/order.model.ts
 - [x] 2026-06-21 — Bugfix: auth token verify crash saat token bukan string (TypeError: token.split). Tambah type guard di verifyToken() — files: backend/src/auth.ts
 - [x] 2026-06-21 — Fix Vercel serverless: disable express-rate-limit forwarded header validation yang bikin crash 503 di Vercel proxy — files: backend/src/security.ts
+- [x] 2026-06-21 — Fix dropdown header admin: link Dashboard admin diarahkan ke /admin/dashboard dan tambah link Kelola template ke /admin/dashboard#templates di desktop/mobile — files: frontend/src/components/Header.tsx, frontend/src/components/__tests__/Header.test.tsx
+- [x] 2026-06-21 — Admin dashboard route cleanup: hapus halaman wrapper dashboard duplikat dan jadikan AdminTemplatesPage sebagai halaman tunggal di /admin/dashboard — files: frontend/src/App.tsx, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/pages/AdminDashboardPage.tsx, frontend/src/components/Header.tsx
+- [x] 2026-06-21 — Admin dashboard page: tambah tab Dashboard di /admin/dashboard dengan shortcut Kelola Template, Order Masuk, Kategori, Portofolio plus statistik ringkas tanpa loading API tambahan — files: frontend/src/pages/AdminTemplatesPage.tsx

@@ -73,7 +73,7 @@ export function VerifyEmailPage() {
         window.localStorage.setItem(userUsernameKey, data.user.username);
         window.localStorage.setItem(userRoleKey, data.user.role ?? "user");
         window.dispatchEvent(new Event(userSessionEvent));
-        navigate(data.user.role === "admin" ? "/admin/templates" : nextTarget, {
+        navigate(data.user.role === "admin" ? "/admin/dashboard" : nextTarget, {
           replace: true,
         });
         return;

@@ -309,7 +309,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
         setUserUsername(authenticatedUser.username);
         setVerificationUrl("");
         if (authenticatedUser.role === "admin") {
-          navigate("/admin/templates", { replace: true });
+          navigate("/admin/dashboard", { replace: true });
           return;
         }
         setUserAuthStatus(`Masuk sebagai ${authenticatedUser.username}.`);

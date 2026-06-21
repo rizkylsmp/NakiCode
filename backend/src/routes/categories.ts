@@ -6,8 +6,12 @@ import { createAdminAuditLog } from "../models/audit-log.model";
 import {
   createTemplateCategory,
   findTemplateCategories,
+  findTemplateCategoriesWithIds,
+  updateTemplateCategory,
+  deleteTemplateCategory,
+  isCategoryInUse,
 } from "../models/category.model";
-import { parseBody } from "../validation";
+import { parseBody, parseParams } from "../validation";
 
 export const categoriesRouter = Router();
 
@@ -26,6 +30,21 @@ categoriesRouter.get("/", async (_request, response) => {
     response.status(503).json({
       message: "Database categories belum tersedia",
       categories: ["Semua"],
+    });
+  }
+});
+
+categoriesRouter.get("/admin", requireAdmin, async (_request, response) => {
+  try {
+    response.json({
+      source: "mysql",
+      categories: await findTemplateCategoriesWithIds(),
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(503).json({
+      message: "Database categories belum tersedia",
+      categories: [],
     });
   }
 });
@@ -62,5 +81,85 @@ categoriesRouter.post("/", requireAdmin, async (request, response) => {
   } catch (error) {
     Sentry.captureException(error);
     response.status(500).json({ message: "Gagal menambahkan kategori" });
+  }
+});
+
+const categoryIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const categoryUpdateBodySchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+categoriesRouter.put("/:id", requireAdmin, async (request, response) => {
+  const params = parseParams(categoryIdParamsSchema, request, response);
+  const body = parseBody(categoryUpdateBodySchema, request, response);
+  const admin = response.locals.admin as UserTokenPayload | null | undefined;
+
+  if (!params || !body) {
+    return;
+  }
+
+  try {
+    const result = await updateTemplateCategory(params.id, body);
+
+    if (!result.updated) {
+      response.status(404).json({ message: "Kategori tidak ditemukan" });
+      return;
+    }
+
+    await createAdminAuditLog({
+      admin,
+      action: "category.update",
+      entityType: "template_category",
+      entityId: params.id,
+      metadata: body,
+    });
+
+    response.json({
+      source: "mysql",
+      categories: result.categories,
+      message: "Kategori berhasil diperbarui.",
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: "Gagal memperbarui kategori" });
+  }
+});
+
+categoriesRouter.delete("/:id", requireAdmin, async (request, response) => {
+  const params = parseParams(categoryIdParamsSchema, request, response);
+  const admin = response.locals.admin as UserTokenPayload | null | undefined;
+
+  if (!params) {
+    return;
+  }
+
+  try {
+    const result = await deleteTemplateCategory(params.id);
+
+    if (!result.deleted) {
+      response.status(404).json({ message: "Kategori tidak ditemukan" });
+      return;
+    }
+
+    await createAdminAuditLog({
+      admin,
+      action: "category.delete",
+      entityType: "template_category",
+      entityId: params.id,
+      metadata: {},
+    });
+
+    response.json({
+      source: "mysql",
+      categories: result.categories,
+      message: "Kategori berhasil dihapus.",
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: "Gagal menghapus kategori" });
   }
 });

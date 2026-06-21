@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { Header } from '../Header';
 
@@ -66,7 +66,7 @@ describe('Header Component', () => {
     expect(username).toBeInTheDocument();
   });
 
-  it('shows admin link when authenticated as admin', () => {
+  it('shows admin links when authenticated as admin', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
       isAdmin: true,
@@ -78,10 +78,10 @@ describe('Header Component', () => {
     });
 
     renderWithRouter(<Header />);
-    
-    // Admin should see their username
-    const username = screen.getByText(/admin/i);
-    expect(username).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /admin/i }));
+
+    expect(screen.getByRole('menuitem', { name: /dashboard admin/i })).toHaveAttribute('href', '/admin/dashboard');
+    expect(screen.getByRole('menuitem', { name: /kelola template/i })).toHaveAttribute('href', '/admin/dashboard#templates');
   });
 
   it('renders navigation links', () => {

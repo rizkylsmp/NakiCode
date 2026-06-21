@@ -347,7 +347,7 @@ export function Header() {
                               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                               onClick={() => setIsProfileMenuOpen(false)}
                               role="menuitem"
-                              to="/admin/templates"
+                              to="/admin/dashboard"
                             >
                               <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
                                 <LayoutDashboard size={16} />
@@ -360,7 +360,20 @@ export function Header() {
                               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                               onClick={() => setIsProfileMenuOpen(false)}
                               role="menuitem"
-                              to="/admin/templates#orders"
+                              to="/admin/dashboard#templates"
+                            >
+                              <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
+                                <ShoppingBag size={16} />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block">Kelola template</span>
+                              </span>
+                            </Link>
+                            <Link
+                              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
+                              onClick={() => setIsProfileMenuOpen(false)}
+                              role="menuitem"
+                              to="/admin/dashboard#orders"
                             >
                               <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
                                 <ClipboardList size={16} />
@@ -373,7 +386,7 @@ export function Header() {
                               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                               onClick={() => setIsProfileMenuOpen(false)}
                               role="menuitem"
-                              to="/admin/templates#portfolio"
+                              to="/admin/dashboard#portfolio"
                             >
                               <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
                                 <Globe2 size={16} />
@@ -514,21 +527,28 @@ export function Header() {
                     <Link
                       className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      to="/admin/templates"
+                      to="/admin/dashboard"
                     >
                       Dashboard admin
                     </Link>
                     <Link
                       className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      to="/admin/templates#orders"
+                      to="/admin/dashboard#templates"
+                    >
+                      Kelola template
+                    </Link>
+                    <Link
+                      className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      to="/admin/dashboard#orders"
                     >
                       Order masuk
                     </Link>
                     <Link
                       className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      to="/admin/templates#portfolio"
+                      to="/admin/dashboard#portfolio"
                     >
                       Portofolio
                     </Link>

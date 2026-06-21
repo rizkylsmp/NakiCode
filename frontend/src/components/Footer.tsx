@@ -21,7 +21,7 @@ export function Footer() {
           <a className="hover:text-naki-primary" href="#pertanyaan">
             Pertanyaan
           </a>
-          <a className="hover:text-naki-primary" href="/admin/templates">
+          <a className="hover:text-naki-primary" href="/admin/dashboard">
             Login Admin
           </a>
         </div>
