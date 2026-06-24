@@ -196,8 +196,14 @@ export async function initializeDatabase() {
     await ensureColumn(
       connection,
       "projects",
+      "cover_index",
+      "INT NOT NULL DEFAULT 0 AFTER image_urls",
+    );
+    await ensureColumn(
+      connection,
+      "projects",
       "deleted_at",
-      "TIMESTAMP NULL AFTER image_urls",
+      "TIMESTAMP NULL AFTER cover_index",
     );
 
     await runMigrations(connection);

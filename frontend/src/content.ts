@@ -60,6 +60,7 @@ export type PortfolioItem = {
   websiteUrl?: string;
   imageUrl?: string | null;
   imageUrls?: string[];
+  coverIndex?: number;
   createdAt?: string;
 };
 

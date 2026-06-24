@@ -10,6 +10,7 @@ type ProjectRow = RowDataPacket & {
   website_url: string;
   image_url: string | null;
   image_urls: string | string[] | null;
+  cover_index: number;
   created_at?: string;
 };
 
@@ -21,6 +22,7 @@ export type ProjectPayload = {
   websiteUrl: string;
   imageUrl: string | null;
   imageUrls: string[];
+  coverIndex: number;
 };
 
 export type ProjectItem = ProjectPayload & {
@@ -37,6 +39,7 @@ const projectSelect = `SELECT
   website_url,
   image_url,
   image_urls,
+  cover_index,
   created_at
 FROM projects
 WHERE deleted_at IS NULL`;
@@ -71,8 +74,9 @@ export async function createProject(payload: ProjectPayload) {
       result,
       website_url,
       image_url,
-      image_urls
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      image_urls,
+      cover_index
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.title,
       payload.category,
@@ -81,6 +85,7 @@ export async function createProject(payload: ProjectPayload) {
       payload.websiteUrl,
       payload.imageUrl,
       JSON.stringify(payload.imageUrls),
+      payload.coverIndex,
     ],
   );
 
@@ -96,7 +101,8 @@ export async function updateProject(id: number, payload: ProjectPayload) {
       result = ?,
       website_url = ?,
       image_url = ?,
-      image_urls = ?
+      image_urls = ?,
+      cover_index = ?
     WHERE id = ? AND deleted_at IS NULL`,
     [
       payload.title,
@@ -106,6 +112,7 @@ export async function updateProject(id: number, payload: ProjectPayload) {
       payload.websiteUrl,
       payload.imageUrl,
       JSON.stringify(payload.imageUrls),
+      payload.coverIndex,
       id,
     ],
   );
@@ -132,6 +139,10 @@ export function normalizeProjectPayload(
   body: Record<string, unknown>,
 ): ProjectPayload {
   const imageUrls = normalizeProjectImages(body);
+  const coverIndex = normalizeProjectCoverIndex(
+    body.coverIndex ?? body.cover_index,
+    imageUrls,
+  );
 
   return {
     title: String(body.title ?? "").trim(),
@@ -141,15 +152,17 @@ export function normalizeProjectPayload(
     websiteUrl:
       String(body.websiteUrl ?? body.website_url ?? "#").trim() || "#",
     imageUrl:
-      String(body.imageUrl ?? body.image_url ?? imageUrls[0] ?? "").trim() ||
+      String(imageUrls[coverIndex] ?? body.imageUrl ?? body.image_url ?? "").trim() ||
       null,
     imageUrls,
+    coverIndex,
   };
 }
 
 function normalizeProjectRow(row: ProjectRow): ProjectItem {
   const imageUrls = normalizeProjectImages(row);
-  const imageUrl = row.image_url || imageUrls[0] || null;
+  const coverIndex = normalizeProjectCoverIndex(row.cover_index, imageUrls);
+  const imageUrl = row.image_url || imageUrls[coverIndex] || null;
 
   return {
     id: row.id,
@@ -160,8 +173,17 @@ function normalizeProjectRow(row: ProjectRow): ProjectItem {
     websiteUrl: row.website_url,
     imageUrl,
     imageUrls: imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [],
+    coverIndex,
     createdAt: row.created_at ?? new Date().toISOString(),
   };
+}
+
+function normalizeProjectCoverIndex(value: unknown, imageUrls: string[]) {
+  const index = Number(value ?? 0);
+
+  return Number.isInteger(index) && index >= 0 && index < imageUrls.length
+    ? index
+    : 0;
 }
 
 function normalizeProjectImages(source: Record<string, unknown>): string[] {

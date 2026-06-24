@@ -33,9 +33,10 @@ export function PortfolioSection({ items }: PortfolioSectionProps) {
 
       <div className="grid gap-4 lg:grid-cols-3">
         {items.map((item) => {
+          const coverIndex = item.coverIndex ?? 0;
           const coverImage =
             item.imageUrls && item.imageUrls.length > 0
-              ? item.imageUrls[0]
+              ? item.imageUrls[coverIndex] ?? item.imageUrls[0]
               : item.imageUrl;
 
           return (

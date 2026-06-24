@@ -63,6 +63,8 @@ export type OrdersPageResult = {
   totalPages: number;
 };
 
+export type AdminOrderStatusFilter = 'new' | 'contacted' | 'deal' | 'closed';
+export type AdminPaymentStatusFilter = 'pending' | 'waiting_payment' | 'paid' | 'failed';
 export type UserOrderPaymentFilter = 'paid' | 'waiting_payment' | 'unpaid';
 
 export const allowedOrderStatuses = new Set(['new', 'contacted', 'deal', 'closed']);
@@ -95,12 +97,32 @@ const orderSelect = `SELECT
 FROM orders
 LEFT JOIN templates ON templates.id = orders.template_id`;
 
-export async function findOrdersPage(page = 1, pageSize = 10) {
+export async function findOrdersPage(
+  page = 1,
+  pageSize = 10,
+  filters: {
+    status?: AdminOrderStatusFilter;
+    paymentStatus?: AdminPaymentStatusFilter;
+  } = {},
+) {
+  const conditions = ['orders.deleted_at IS NULL'];
+  const params: Array<number | string> = [];
+
+  if (filters.status) {
+    conditions.push('orders.status = ?');
+    params.push(filters.status);
+  }
+
+  if (filters.paymentStatus) {
+    conditions.push('orders.payment_status = ?');
+    params.push(filters.paymentStatus);
+  }
+
   return findOrdersPageInternal({
     page,
     pageSize,
-    whereClause: 'WHERE orders.deleted_at IS NULL',
-    params: [],
+    whereClause: `WHERE ${conditions.join(' AND ')}`,
+    params,
   });
 }
 

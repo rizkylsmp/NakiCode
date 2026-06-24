@@ -81,7 +81,7 @@ describe('Header Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /admin/i }));
 
     expect(screen.getByRole('menuitem', { name: /dashboard admin/i })).toHaveAttribute('href', '/admin/dashboard');
-    expect(screen.getByRole('menuitem', { name: /kelola template/i })).toHaveAttribute('href', '/admin/dashboard#templates');
+    expect(screen.getByRole('menuitem', { name: /kelola template/i })).toHaveAttribute('href', '/admin/templates');
   });
 
   it('renders navigation links', () => {

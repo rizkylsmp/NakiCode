@@ -175,7 +175,17 @@ describe('Orders API Integration', () => {
     it('filters admin orders by status', async () => {
       const response = await request(app)
         .get('/api/orders')
-        .query({ status: 'paid' })
+        .query({ status: 'deal' })
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body.orders)).toBe(true);
+    });
+
+    it('filters admin orders by payment status', async () => {
+      const response = await request(app)
+        .get('/api/orders')
+        .query({ paymentStatus: 'paid' })
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);

@@ -131,7 +131,7 @@ Jangan commit `.env`.
 - `/akun-saya` dan `/profile` — profil user
 - `/wishlist` — template favorit user
 - `/compare` — compare 2-3 template
-- `/admin/dashboard` — admin panel, butuh role admin
+- `/admin/dashboard`, `/admin/templates`, `/admin/orders`, `/admin/portfolio` — admin panel, butuh role admin
 
 ---
 

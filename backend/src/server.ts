@@ -59,16 +59,21 @@ async function ensureDatabase() {
   if (dbInitialized) return;
 
   if (!dbInitPromise) {
-    dbInitPromise = (async () => {
-      await initializeDatabase();
-      await ensureDefaultAdminUser();
-      initializeEmailQueue();
-      dbInitialized = true;
-      console.log(`MySQL database ready: ${config.mysql.database}`);
-    })();
+    dbInitPromise = initializeAppDatabase().catch((error) => {
+      dbInitPromise = null;
+      throw error;
+    });
   }
 
   await dbInitPromise;
+}
+
+async function initializeAppDatabase() {
+  await initializeDatabase();
+  await ensureDefaultAdminUser();
+  initializeEmailQueue();
+  dbInitialized = true;
+  console.log(`MySQL database ready: ${config.mysql.database}`);
 }
 
 // Middleware to ensure database is initialized before API routes (serverless)
@@ -137,10 +142,7 @@ function mountApiRoutes(prefix: string) {
 
 export async function startServer() {
   try {
-    await initializeDatabase();
-    await ensureDefaultAdminUser();
-    initializeEmailQueue();
-    console.log(`MySQL database ready: ${config.mysql.database}`);
+    await ensureDatabase();
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown database init error';

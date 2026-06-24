@@ -77,6 +77,7 @@ export function Header() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileServicesOpen, setIsMobileServicesOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
@@ -131,6 +132,7 @@ export function Header() {
     setIsProfileMenuOpen(false);
     setIsNotificationMenuOpen(false);
     setIsMobileMenuOpen(false);
+    setIsMobileServicesOpen(false);
   }
 
   const loginNext = buildNextTarget(location);
@@ -360,7 +362,7 @@ export function Header() {
                               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                               onClick={() => setIsProfileMenuOpen(false)}
                               role="menuitem"
-                              to="/admin/dashboard#templates"
+                              to="/admin/templates"
                             >
                               <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
                                 <ShoppingBag size={16} />
@@ -373,7 +375,7 @@ export function Header() {
                               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                               onClick={() => setIsProfileMenuOpen(false)}
                               role="menuitem"
-                              to="/admin/dashboard#orders"
+                              to="/admin/orders"
                             >
                               <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
                                 <ClipboardList size={16} />
@@ -386,7 +388,7 @@ export function Header() {
                               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                               onClick={() => setIsProfileMenuOpen(false)}
                               role="menuitem"
-                              to="/admin/dashboard#portfolio"
+                              to="/admin/portfolio"
                             >
                               <span className="grid size-8 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
                                 <Globe2 size={16} />
@@ -484,32 +486,53 @@ export function Header() {
       {isMobileMenuOpen ? (
         <div className="border-t border-naki-steel bg-naki-frost px-5 py-4 shadow-naki-card lg:hidden">
           <nav className="grid gap-2 text-sm font-black text-naki-primary">
-            {navItems.map((item) => (
-              <a
-                key={item.label}
-                className="rounded-lg px-3 py-3 transition hover:bg-naki-steel"
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.label}
-              </a>
-            ))}
+            {navItems.map((item) =>
+              item.hasDropdown ? (
+                <div key={item.label} className="rounded-lg bg-naki-steel">
+                  <button
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition hover:bg-naki-frost"
+                    aria-expanded={isMobileServicesOpen}
+                    onClick={() =>
+                      setIsMobileServicesOpen((current) => !current)
+                    }
+                    type="button"
+                  >
+                    {item.label}
+                    <ChevronDown
+                      className={`transition ${isMobileServicesOpen ? "rotate-180" : ""}`}
+                      size={16}
+                    />
+                  </button>
+                  {isMobileServicesOpen ? (
+                    <div className="grid gap-1 border-t border-naki-frost/70 p-2">
+                      {serviceItems.map((service) => (
+                        <Link
+                          key={service.label}
+                          className="rounded-lg px-3 py-2 text-naki-primary transition hover:bg-naki-frost"
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            setIsMobileServicesOpen(false);
+                          }}
+                          to={service.href}
+                        >
+                          {service.label}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <a
+                  key={item.label}
+                  className="rounded-lg px-3 py-3 transition hover:bg-naki-steel"
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ),
+            )}
           </nav>
-          <div className="mt-3 grid gap-1 rounded-lg border border-naki-steel bg-naki-steel p-2 text-sm font-black lg:hidden">
-            <p className="px-3 py-2 text-xs uppercase text-naki-smoke">
-              Layanan
-            </p>
-            {serviceItems.map((service) => (
-              <Link
-                key={service.label}
-                className="rounded-lg px-3 py-2 text-naki-primary transition hover:bg-naki-frost"
-                onClick={() => setIsMobileMenuOpen(false)}
-                to={service.href}
-              >
-                {service.label}
-              </Link>
-            ))}
-          </div>
 
           <div className="mt-4 border-t border-naki-steel pt-4">
             {activeProfile ? (
@@ -534,21 +557,21 @@ export function Header() {
                     <Link
                       className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      to="/admin/dashboard#templates"
+                      to="/admin/templates"
                     >
                       Kelola template
                     </Link>
                     <Link
                       className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      to="/admin/dashboard#orders"
+                      to="/admin/orders"
                     >
                       Order masuk
                     </Link>
                     <Link
                       className="rounded-lg px-3 py-3 text-sm font-black text-naki-primary transition hover:bg-naki-steel"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      to="/admin/dashboard#portfolio"
+                      to="/admin/portfolio"
                     >
                       Portofolio
                     </Link>

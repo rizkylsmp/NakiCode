@@ -20,6 +20,8 @@ import {
   findOrdersPageByUser,
   normalizeOrderPayload,
   startOrderPayment,
+  type AdminOrderStatusFilter,
+  type AdminPaymentStatusFilter,
   type UserOrderPaymentFilter,
   updateOrderStatus,
 } from '../models/order.model';
@@ -71,12 +73,17 @@ const paginationQuerySchema = z.object({
   pageSize: z.coerce.number().int().positive().max(50).optional().default(10),
 });
 
+const adminOrdersQuerySchema = paginationQuerySchema.extend({
+  status: z.enum(['new', 'contacted', 'deal', 'closed']).optional(),
+  paymentStatus: z.enum(['pending', 'waiting_payment', 'paid', 'failed']).optional(),
+});
+
 const userOrdersQuerySchema = paginationQuerySchema.extend({
   paymentStatus: z.enum(['paid', 'waiting_payment', 'unpaid']).optional(),
 });
 
 ordersRouter.get('/', requireAdmin, async (request, response) => {
-  const query = paginationQuerySchema.safeParse(request.query);
+  const query = adminOrdersQuerySchema.safeParse(request.query);
 
   if (!query.success) {
     response.status(400).json({
@@ -89,7 +96,10 @@ ordersRouter.get('/', requireAdmin, async (request, response) => {
   try {
     response.json({
       source: 'mysql',
-      ...(await findOrdersPage(query.data.page, query.data.pageSize)),
+      ...(await findOrdersPage(query.data.page, query.data.pageSize, {
+        status: query.data.status as AdminOrderStatusFilter | undefined,
+        paymentStatus: query.data.paymentStatus as AdminPaymentStatusFilter | undefined,
+      })),
     });
   } catch (error) {
     Sentry.captureException(error);

@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import dotenv from 'dotenv';
+import { config as loadEnv } from 'dotenv';
 
-dotenv.config();
+loadEnv();
 
 // Zod schema for environment variable validation
 const envSchema = z.object({

@@ -48,10 +48,11 @@ export async function updateTemplateCategory(
 ) {
   const updates: string[] = [];
   const params: (string | number)[] = [];
+  const nextName = data.name?.trim();
 
-  if (data.name !== undefined) {
+  if (nextName !== undefined) {
     updates.push("name = ?");
-    params.push(data.name.trim());
+    params.push(nextName);
   }
 
   if (data.sort_order !== undefined) {
@@ -63,19 +64,63 @@ export async function updateTemplateCategory(
     return { updated: false, categories: await findTemplateCategories() };
   }
 
-  params.push(id);
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE template_categories SET ${updates.join(", ")} WHERE id = ?`,
-    params,
-  );
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query<CategoryRow[]>(
+      "SELECT name FROM template_categories WHERE id = ? FOR UPDATE",
+      [id],
+    );
+    const previousName = rows[0]?.name;
+
+    if (!previousName) {
+      await connection.rollback();
+      return { updated: false, categories: await findTemplateCategories() };
+    }
+
+    await connection.query<ResultSetHeader>(
+      `UPDATE template_categories SET ${updates.join(", ")} WHERE id = ?`,
+      [...params, id],
+    );
+
+    if (nextName && nextName !== previousName) {
+      await connection.query(
+        "UPDATE templates SET category = ? WHERE category = ?",
+        [nextName, previousName],
+      );
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 
   return {
-    updated: result.affectedRows > 0,
+    updated: true,
     categories: await findTemplateCategories(),
   };
 }
 
 export async function deleteTemplateCategory(id: number) {
+  const [categoryRows] = await pool.query<CategoryRow[]>(
+    "SELECT name FROM template_categories WHERE id = ? LIMIT 1",
+    [id],
+  );
+  const categoryName = categoryRows[0]?.name;
+
+  if (!categoryName) {
+    return { deleted: false, inUse: false, categories: await findTemplateCategories() };
+  }
+
+  if (await isCategoryInUse(categoryName)) {
+    return { deleted: false, inUse: true, categories: await findTemplateCategories() };
+  }
+
   const [result] = await pool.query<ResultSetHeader>(
     "DELETE FROM template_categories WHERE id = ?",
     [id],
@@ -83,6 +128,7 @@ export async function deleteTemplateCategory(id: number) {
 
   return {
     deleted: result.affectedRows > 0,
+    inUse: false,
     categories: await findTemplateCategories(),
   };
 }

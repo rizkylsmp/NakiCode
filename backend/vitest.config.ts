@@ -4,5 +4,7 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
     exclude: ['dist/**', 'node_modules/**'],
+    pool: 'forks',
+    fileParallelism: false,
   },
 });

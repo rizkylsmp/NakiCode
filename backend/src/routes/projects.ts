@@ -27,6 +27,7 @@ const projectBodySchema = z.object({
   websiteUrl: z.string().trim().max(500).optional(),
   imageUrl: z.string().trim().max(500).optional(),
   imageUrls: z.array(z.string().trim().max(500)).max(12).optional(),
+  coverIndex: z.number().int().min(0).optional(),
 });
 
 projectsRouter.get("/", async (_request, response) => {
