@@ -41,6 +41,74 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: '003_template_category_id_fk',
+    async up(connection) {
+      await connection.query(`
+        UPDATE template_categories AS category
+        SET name = TRIM(category.name)
+        WHERE category.name <> TRIM(category.name)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM (SELECT id, name FROM template_categories) AS existing
+            WHERE existing.id <> category.id
+              AND existing.name = TRIM(category.name)
+          )
+      `);
+
+      if (!(await hasColumn(connection, 'templates', 'category_id'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('templates')}
+          ADD COLUMN ${connection.escapeId('category_id')} INT NULL AFTER ${connection.escapeId('category')}`,
+        );
+      }
+
+      await connection.query(`
+        INSERT IGNORE INTO template_categories (name, sort_order)
+        SELECT legacy.category_name, sort_orders.next_sort_order
+        FROM (
+          SELECT DISTINCT TRIM(category) AS category_name
+          FROM templates
+          WHERE TRIM(category) <> ''
+        ) AS legacy
+        CROSS JOIN (
+          SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort_order
+          FROM template_categories
+        ) AS sort_orders
+        LEFT JOIN template_categories AS existing
+          ON TRIM(existing.name) = legacy.category_name
+        WHERE existing.id IS NULL
+      `);
+
+      await connection.query(`
+        UPDATE templates AS template
+        INNER JOIN template_categories AS category
+          ON TRIM(template.category) = TRIM(category.name)
+        SET template.category_id = category.id,
+          template.category = category.name
+        WHERE template.category_id IS NULL
+          OR template.category_id <> category.id
+          OR template.category <> category.name
+      `);
+
+      if (!(await hasIndex(connection, 'templates', 'idx_templates_category_id'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('templates')}
+          ADD INDEX ${connection.escapeId('idx_templates_category_id')} (${connection.escapeId('category_id')})`,
+        );
+      }
+
+      if (!(await hasForeignKey(connection, 'templates', 'fk_templates_category_id'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('templates')}
+          ADD CONSTRAINT ${connection.escapeId('fk_templates_category_id')}
+          FOREIGN KEY (${connection.escapeId('category_id')})
+          REFERENCES ${connection.escapeId('template_categories')} (${connection.escapeId('id')})
+          ON DELETE RESTRICT ON UPDATE RESTRICT`,
+        );
+      }
+    },
+  },
 ];
 
 export async function runMigrations(connection: Connection) {
@@ -66,6 +134,61 @@ export async function runMigrations(connection: Connection) {
       migration.id,
     ]);
   }
+}
+
+async function hasColumn(
+  connection: Connection,
+  tableName: string,
+  columnName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT COLUMN_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = ?
+      AND COLUMN_NAME = ?
+    LIMIT 1`,
+    [tableName, columnName],
+  );
+
+  return rows.length > 0;
+}
+
+async function hasIndex(
+  connection: Connection,
+  tableName: string,
+  indexName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT INDEX_NAME
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = ?
+      AND INDEX_NAME = ?
+    LIMIT 1`,
+    [tableName, indexName],
+  );
+
+  return rows.length > 0;
+}
+
+async function hasForeignKey(
+  connection: Connection,
+  tableName: string,
+  constraintName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT CONSTRAINT_NAME
+    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = ?
+      AND CONSTRAINT_NAME = ?
+      AND REFERENCED_TABLE_NAME IS NOT NULL
+    LIMIT 1`,
+    [tableName, constraintName],
+  );
+
+  return rows.length > 0;
 }
 
 function parsePreview(value: unknown): Array<{ image: string; caption: string }> {

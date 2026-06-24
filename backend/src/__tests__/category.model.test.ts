@@ -39,7 +39,7 @@ describe('category model', () => {
     query.mockResolvedValue([[{ name: 'Semua' }, { name: 'Portfolio' }]]);
   });
 
-  it('renames templates that still reference a renamed category', async () => {
+  it('syncs template category text by category id after a rename', async () => {
     const { updateTemplateCategory } = await import('../models/category.model');
     connectionQuery
       .mockResolvedValueOnce([[{ name: 'Landing Page' }]])
@@ -54,8 +54,8 @@ describe('category model', () => {
       [7],
     );
     expect(connectionQuery).toHaveBeenCalledWith(
-      'UPDATE templates SET category = ? WHERE category = ?',
-      ['Company Profile', 'Landing Page'],
+      'UPDATE templates SET category = ? WHERE category_id = ?',
+      ['Company Profile', 7],
     );
     expect(commit).toHaveBeenCalledOnce();
     expect(release).toHaveBeenCalledOnce();

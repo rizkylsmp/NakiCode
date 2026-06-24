@@ -10,6 +10,7 @@ type TemplateRow = RowDataPacket & {
   slug: string;
   title: string;
   category: string;
+  category_id?: number | null;
   description: string;
   price: string;
   stack: string | string[];
@@ -41,6 +42,7 @@ export type TemplateItem = {
   slug: string;
   title: string;
   category: string;
+  categoryId?: number | null;
   description: string;
   price: string;
   stack: string[];
@@ -59,14 +61,15 @@ export type TemplateItem = {
 };
 export type TemplatePayload = Omit<
   TemplateItem,
-  'id' | 'rating' | 'buyerCount' | 'reviews'
+  'id' | 'categoryId' | 'rating' | 'buyerCount' | 'reviews'
 >;
 
 const templateSelect = `SELECT
   templates.id,
   templates.slug,
   templates.title,
-  templates.category,
+  COALESCE(template_categories.name, templates.category) AS category,
+  templates.category_id,
   templates.description,
   templates.price,
   templates.stack,
@@ -82,6 +85,7 @@ const templateSelect = `SELECT
   templates.license,
   templates.support
 FROM templates
+LEFT JOIN template_categories ON template_categories.id = templates.category_id
 LEFT JOIN (
   SELECT template_id, ROUND(AVG(rating), 1) AS rating
   FROM template_ratings
@@ -98,7 +102,7 @@ export async function findTemplates() {
   const [rows] = await pool.query<TemplateRow[]>(
     `${templateSelect}
     WHERE templates.deleted_at IS NULL
-    ORDER BY id DESC
+    ORDER BY templates.id DESC
     LIMIT 60`,
   );
 
@@ -108,7 +112,7 @@ export async function findTemplates() {
 export async function findTemplateBySlugOrId(slug: string) {
   const [rows] = await pool.query<TemplateRow[]>(
     `${templateSelect}
-    WHERE templates.deleted_at IS NULL AND (slug = ? OR id = ?)
+    WHERE templates.deleted_at IS NULL AND (templates.slug = ? OR templates.id = ?)
     LIMIT 1`,
     [slug, Number(slug) || 0],
   );
@@ -121,11 +125,13 @@ export async function findTemplateBySlugOrId(slug: string) {
 }
 
 export async function createTemplate(payload: TemplatePayload) {
+  const category = await resolveTemplateCategory(payload.category);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO templates (
       slug,
       title,
       category,
+      category_id,
       description,
       price,
       stack,
@@ -138,19 +144,21 @@ export async function createTemplate(payload: TemplatePayload) {
       suitable_for,
       license,
       support
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    serializeTemplatePayload(payload),
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    serializeTemplatePayload(payload, category),
   );
 
   return findTemplateBySlugOrId(String(result.insertId));
 }
 
 export async function updateTemplate(id: number, payload: TemplatePayload) {
+  const category = await resolveTemplateCategory(payload.category);
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE templates SET
       slug = ?,
       title = ?,
       category = ?,
+      category_id = ?,
       description = ?,
       price = ?,
       stack = ?,
@@ -164,7 +172,7 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
       license = ?,
       support = ?
     WHERE id = ? AND deleted_at IS NULL`,
-    [...serializeTemplatePayload(payload), id],
+    [...serializeTemplatePayload(payload, category), id],
   );
 
   if (result.affectedRows === 0) {
@@ -217,6 +225,7 @@ function normalizeTemplateRow(row: TemplateRow): TemplateItem {
     slug: row.slug,
     title: row.title,
     category: row.category,
+    categoryId: row.category_id ?? null,
     description: row.description,
     price: row.price,
     stack: parseStringArray(row.stack),
@@ -246,11 +255,15 @@ async function attachTemplateReviews(templates: TemplateItem[]) {
   }));
 }
 
-function serializeTemplatePayload(payload: TemplatePayload) {
+function serializeTemplatePayload(
+  payload: TemplatePayload,
+  category: { id: number; name: string },
+) {
   return [
     payload.slug,
     payload.title,
-    payload.category,
+    category.name,
+    category.id,
     payload.description,
     payload.price,
     JSON.stringify(payload.stack),
@@ -264,6 +277,41 @@ function serializeTemplatePayload(payload: TemplatePayload) {
     payload.license,
     payload.support,
   ];
+}
+
+async function resolveTemplateCategory(categoryName: string) {
+  const normalizedName = categoryName.trim();
+  const [rows] = await pool.query<(RowDataPacket & { id: number; name: string })[]>(
+    'SELECT id, name FROM template_categories WHERE name = ? LIMIT 1',
+    [normalizedName],
+  );
+
+  if (rows[0]) {
+    return { id: rows[0].id, name: rows[0].name };
+  }
+
+  const [result] = await pool.query<ResultSetHeader>(
+    `INSERT IGNORE INTO template_categories (name, sort_order)
+    SELECT ?, COALESCE(MAX(sort_order), 0) + 1
+    FROM template_categories`,
+    [normalizedName],
+  );
+
+  if (result.insertId > 0) {
+    return { id: result.insertId, name: normalizedName };
+  }
+
+  const [retryRows] = await pool.query<
+    (RowDataPacket & { id: number; name: string })[]
+  >('SELECT id, name FROM template_categories WHERE name = ? LIMIT 1', [
+    normalizedName,
+  ]);
+
+  if (retryRows[0]) {
+    return { id: retryRows[0].id, name: retryRows[0].name };
+  }
+
+  throw new Error('Template category could not be resolved');
 }
 
 function parseStringArray(value: string | string[]) {

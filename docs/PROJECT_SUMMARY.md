@@ -74,6 +74,7 @@ Target UX:
 
 - Schema utama: `backend/database/schema.sql`
 - Bootstrap DB: `backend/src/db.ts` → create database dari `MYSQL_DATABASE`, apply schema, ensure columns, run migrations.
+- Kategori template dinormalisasi via `templates.category_id` → `template_categories.id`; `templates.category` masih dipertahankan sebagai compatibility/display fallback.
 - MySQL wajib tersedia. Backend harus gagal start jika DB init gagal.
 - Query manual dipisah di `backend/src/models/*`; route sebaiknya tidak menulis query besar langsung kecuali endpoint kecil/statistik.
 
@@ -437,3 +438,4 @@ npm run backup:list --workspace backend
 - [x] 2026-06-21 — Fix dropdown header admin: link Dashboard admin diarahkan ke /admin/dashboard dan tambah link Kelola template ke /admin/dashboard#templates di desktop/mobile — files: frontend/src/components/Header.tsx, frontend/src/components/__tests__/Header.test.tsx
 - [x] 2026-06-21 — Admin dashboard route cleanup: hapus halaman wrapper dashboard duplikat dan jadikan AdminTemplatesPage sebagai halaman tunggal di /admin/dashboard — files: frontend/src/App.tsx, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/pages/AdminDashboardPage.tsx, frontend/src/components/Header.tsx
 - [x] 2026-06-21 — Admin dashboard page: tambah tab Dashboard di /admin/dashboard dengan shortcut Kelola Template, Order Masuk, Kategori, Portofolio plus statistik ringkas tanpa loading API tambahan — files: frontend/src/pages/AdminTemplatesPage.tsx
+- [x] 2026-06-24 — Admin improvement backlog #3: normalisasi kategori template dengan templates.category_id foreign key sambil mempertahankan API category string untuk kompatibilitas frontend — files: backend/database/schema.sql, backend/src/db.ts, backend/src/migrations.ts, backend/src/models/template.model.ts, backend/src/models/category.model.ts, backend/src/__tests__/category.model.test.ts, docs/PROJECT_SUMMARY.md

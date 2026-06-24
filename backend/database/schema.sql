@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS templates (
   title VARCHAR(160) NOT NULL,
   slug VARCHAR(180) NOT NULL UNIQUE,
   category VARCHAR(80) NOT NULL,
+  category_id INT NULL,
   description TEXT NOT NULL,
   price VARCHAR(32) NOT NULL,
   stack JSON NOT NULL,
@@ -47,7 +48,9 @@ CREATE TABLE IF NOT EXISTS templates (
   is_featured BOOLEAN NOT NULL DEFAULT FALSE,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_templates_category_id (category_id),
+  CONSTRAINT fk_templates_category_id FOREIGN KEY (category_id) REFERENCES template_categories(id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -194,7 +197,7 @@ CREATE TABLE IF NOT EXISTS template_bundle_items (
 
 INSERT IGNORE INTO template_categories (name, sort_order) VALUES
   ('Portfolio', 1),
-  ('E-commerce  ', 2),
+  ('E-commerce', 2),
   ('Top up games', 3),
   ('Web Bucin', 4),
   ('CRUD', 5),

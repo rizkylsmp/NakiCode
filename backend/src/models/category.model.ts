@@ -2,6 +2,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { pool } from "../db";
 
 type CategoryRow = RowDataPacket & {
+  id: number;
   name: string;
 };
 
@@ -87,8 +88,8 @@ export async function updateTemplateCategory(
 
     if (nextName && nextName !== previousName) {
       await connection.query(
-        "UPDATE templates SET category = ? WHERE category = ?",
-        [nextName, previousName],
+        "UPDATE templates SET category = ? WHERE category_id = ?",
+        [nextName, id],
       );
     }
 
@@ -117,7 +118,7 @@ export async function deleteTemplateCategory(id: number) {
     return { deleted: false, inUse: false, categories: await findTemplateCategories() };
   }
 
-  if (await isCategoryInUse(categoryName)) {
+  if (await isCategoryInUseById(id, categoryName)) {
     return { deleted: false, inUse: true, categories: await findTemplateCategories() };
   }
 
@@ -134,9 +135,27 @@ export async function deleteTemplateCategory(id: number) {
 }
 
 export async function isCategoryInUse(categoryName: string): Promise<boolean> {
+  const [categoryRows] = await pool.query<CategoryRow[]>(
+    "SELECT id, name FROM template_categories WHERE name = ? LIMIT 1",
+    [categoryName.trim()],
+  );
+
+  return isCategoryInUseById(categoryRows[0]?.id ?? null, categoryName);
+}
+
+async function isCategoryInUseById(
+  categoryId: number | null,
+  categoryName: string,
+): Promise<boolean> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM templates WHERE category = ? AND deleted_at IS NULL",
-    [categoryName],
+    `SELECT COUNT(*) as count
+    FROM templates
+    WHERE deleted_at IS NULL
+      AND (
+        category_id = ?
+        OR (category_id IS NULL AND TRIM(category) = ?)
+      )`,
+    [categoryId ?? 0, categoryName.trim()],
   );
 
   return (rows[0]?.count ?? 0) > 0;

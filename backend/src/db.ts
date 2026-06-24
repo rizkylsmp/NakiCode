@@ -88,6 +88,12 @@ export async function initializeDatabase() {
     await ensureColumn(
       connection,
       "templates",
+      "category_id",
+      "INT NULL AFTER category",
+    );
+    await ensureColumn(
+      connection,
+      "templates",
       "is_featured",
       "BOOLEAN NOT NULL DEFAULT FALSE AFTER demo_url",
     );
