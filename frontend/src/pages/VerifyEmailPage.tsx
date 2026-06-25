@@ -112,27 +112,27 @@ export function VerifyEmailPage() {
   }
 
   return (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <Header />
 
       <section className="grid min-h-[76vh] place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
-        <div className="w-full max-w-md rounded-xl border border-naki-steel bg-naki-frost p-6 shadow-naki-soft">
-          <span className="grid size-12 place-items-center rounded-lg bg-naki-primary text-naki-frost">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
+          <span className="grid size-12 place-items-center rounded-xl bg-naki-primary text-white">
             <MailCheck size={22} />
           </span>
-          <h1 className="mt-5 text-4xl font-black leading-tight">
+          <h1 className="mt-5 text-3xl font-bold leading-tight text-naki-primary">
             Verifikasi email
           </h1>
-          <p className="mt-3 leading-7 text-naki-smoke">
+          <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
             OTP dikirim ke email pendaftar. Masukkan email dan kode 6 digit
             untuk aktifkan akun.
           </p>
 
           <form className="mt-6 grid gap-4" onSubmit={submitVerification}>
-            <label className="grid gap-1.5 text-sm font-black">
-              Email
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-naki-smoke">Email</span>
               <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
+                className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none focus:border-blue-400"
                 value={form.email}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -144,10 +144,10 @@ export function VerifyEmailPage() {
                 type="email"
               />
             </label>
-            <label className="grid gap-1.5 text-sm font-black">
-              OTP
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-naki-smoke">OTP</span>
               <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
+                className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none focus:border-blue-400"
                 value={form.otp}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -162,7 +162,7 @@ export function VerifyEmailPage() {
               />
             </label>
             <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
               disabled={isSubmitting}
               type="submit"
             >
@@ -170,7 +170,7 @@ export function VerifyEmailPage() {
               {isSubmitting ? "Memverifikasi..." : "Verifikasi OTP"}
             </button>
             <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-semibold text-naki-primary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
               disabled={isResending}
               onClick={() => void resendOtp()}
               type="button"
@@ -180,13 +180,13 @@ export function VerifyEmailPage() {
             </button>
           </form>
 
-          <p className="mt-4 text-sm font-semibold leading-6 text-naki-smoke">
+          <p className="mt-4 text-sm leading-relaxed text-naki-smoke">
             {status}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-semibold text-naki-primary transition hover:border-naki-smoke"
               to={
                 nextTarget === "/"
                   ? "/login"
@@ -197,7 +197,7 @@ export function VerifyEmailPage() {
               Kembali ke login
             </Link>
             <Link
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-secondary"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90"
               to="/profile"
             >
               Profil saya

@@ -48,18 +48,18 @@ export function CategoryModal({
       aria-modal="true"
       aria-labelledby="category-modal-title"
     >
-      <div className="w-full my-10 mx-auto max-w-2xl rounded-xl border border-naki-steel bg-naki-frost shadow-naki-soft">
-        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-naki-frost/95 p-5 backdrop-blur sm:flex-row sm:items-start">
+      <div className="w-full my-10 mx-4 max-w-3xl rounded-2xl bg-white shadow-sm">
+        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-white/95 p-5 backdrop-blur sm:flex-row sm:items-start">
           <div>
-            <h2 id="category-modal-title" className="text-2xl font-black">
+            <h2 id="category-modal-title" className="text-2xl font-bold leading-tight text-naki-primary">
               Kelola Kategori
             </h2>
-            <p className="mt-1 text-sm font-semibold text-naki-smoke">
+            <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
               Tambah, edit, atau hapus kategori template.
             </p>
           </div>
           <button
-            className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-primary transition hover:border-naki-smoke"
+            className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
             onClick={onClose}
             type="button"
             aria-label="Tutup modal"
@@ -79,7 +79,7 @@ export function CategoryModal({
             <button
               type="submit"
               disabled={isSavingCategory || !categoryName.trim()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-black text-naki-frost transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:bg-naki-steel"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
             >
               <Plus size={16} />
               {isSavingCategory ? "Menyimpan..." : "Tambah Kategori"}
@@ -87,7 +87,7 @@ export function CategoryModal({
           </form>
 
           <div className="border-t border-naki-steel pt-4">
-            <h3 className="text-lg font-black mb-3">Kategori yang Ada</h3>
+            <h3 className="text-lg font-bold text-naki-primary mb-3">Kategori yang Ada</h3>
             {categoryOptions.length === 0 ? (
               <p className="text-sm text-naki-smoke">Belum ada kategori.</p>
             ) : (
@@ -95,7 +95,7 @@ export function CategoryModal({
                 {categoryOptions.map((category) => (
                   <div
                     key={category}
-                    className="flex items-center justify-between rounded-lg border border-naki-steel bg-white p-3"
+                    className="flex items-center justify-between rounded-xl bg-naki-frost p-3"
                   >
                     {editingCategory === category ? (
                       <div className="flex items-center gap-2 flex-1">
@@ -103,13 +103,13 @@ export function CategoryModal({
                           type="text"
                           value={editingCategoryName}
                           onChange={(e) => onEditCategoryNameChange(e.target.value)}
-                          className="flex-1 rounded-lg border border-naki-steel bg-naki-frost px-3 py-2 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+                          className="flex-1 rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary outline-none transition focus:border-blue-400"
                           autoFocus
                         />
                         <button
                           type="button"
                           onClick={onSaveEditCategory}
-                          className="grid size-9 place-items-center rounded-lg bg-naki-primary text-naki-frost transition hover:bg-naki-primary/90"
+                          className="grid size-9 place-items-center rounded-lg bg-naki-primary text-white transition hover:opacity-90"
                           aria-label="Simpan"
                         >
                           <Check size={16} />
@@ -117,7 +117,7 @@ export function CategoryModal({
                         <button
                           type="button"
                           onClick={onCancelEditCategory}
-                          className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke"
+                          className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-secondary transition hover:border-naki-smoke"
                           aria-label="Batal"
                         >
                           <X size={16} />
@@ -125,12 +125,12 @@ export function CategoryModal({
                       </div>
                     ) : (
                       <>
-                        <span className="font-semibold">{category}</span>
+                        <span className="text-sm font-medium text-naki-primary">{category}</span>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => onEditCategory(category)}
-                            className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke hover:text-naki-primary"
+                            className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-secondary transition hover:border-naki-secondary"
                             aria-label="Edit"
                           >
                             <Edit3 size={16} />
@@ -138,7 +138,7 @@ export function CategoryModal({
                           <button
                             type="button"
                             onClick={() => onDeleteCategory(category)}
-                            className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-red-500 hover:text-red-600"
+                            className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:border-red-400 hover:text-red-500"
                             aria-label="Hapus"
                           >
                             <Trash2 size={16} />
@@ -157,4 +157,3 @@ export function CategoryModal({
     document.body,
   );
 }
-

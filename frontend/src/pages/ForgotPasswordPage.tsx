@@ -119,25 +119,35 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <Header />
-      <section className="grid min-h-[76vh] place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
-        <div className="w-full max-w-md rounded-xl border border-naki-steel bg-naki-frost p-6 shadow-naki-soft">
-          <span className="grid size-12 place-items-center rounded-lg bg-naki-primary text-naki-frost">
-            <KeyRound size={22} />
-          </span>
-          <h1 className="mt-5 text-4xl font-black leading-tight">
+
+      {/* Dark hero section */}
+      <div className="bg-naki-primary">
+        <section className="mx-auto max-w-5xl px-5 pb-20 pt-14 text-center md:px-8 xl:px-12">
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white/10 text-white">
+            <KeyRound size={26} />
+          </div>
+          <h1 className="mt-5 text-3xl font-bold leading-tight text-white md:text-4xl">
             Lupa password
           </h1>
-          <p className="mt-3 leading-7 text-naki-smoke">
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-naki-frost/70 md:text-base">
             Kirim OTP ke email akun, lalu buat password baru dari kode tersebut.
           </p>
+        </section>
+      </div>
 
-          <form className="mt-6 grid gap-4" onSubmit={requestOtp}>
-            <label className="grid gap-1.5 text-sm font-black">
-              Email akun
+      {/* Form card — overlaps hero */}
+      <section className="relative -mt-8 px-5 pb-16 md:px-8 xl:px-12">
+        <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
+          {/* Request OTP form */}
+          <form className="grid gap-4" onSubmit={requestOtp}>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-naki-smoke">
+                Email akun
+              </span>
               <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
+                className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
                 value={form.email}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -150,7 +160,7 @@ export function ForgotPasswordPage() {
               />
             </label>
             <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isRequestingOtp}
               type="submit"
             >
@@ -159,11 +169,16 @@ export function ForgotPasswordPage() {
             </button>
           </form>
 
-          <form className="mt-5 grid gap-4" onSubmit={resetPassword}>
-            <label className="grid gap-1.5 text-sm font-black">
-              OTP reset
+          <div className="my-5 h-px bg-naki-steel" />
+
+          {/* Reset password form */}
+          <form className="grid gap-4" onSubmit={resetPassword}>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-naki-smoke">
+                OTP reset
+              </span>
               <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
+                className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400 disabled:bg-naki-frost disabled:text-naki-smoke"
                 disabled={!hasRequestedOtp}
                 value={form.otp}
                 onChange={(event) =>
@@ -178,10 +193,12 @@ export function ForgotPasswordPage() {
                 type="text"
               />
             </label>
-            <label className="grid gap-1.5 text-sm font-black">
-              Password baru
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-naki-smoke">
+                Password baru
+              </span>
               <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
+                className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400 disabled:bg-naki-frost disabled:text-naki-smoke"
                 disabled={!hasRequestedOtp}
                 value={form.password}
                 onChange={(event) =>
@@ -195,10 +212,12 @@ export function ForgotPasswordPage() {
                 type="password"
               />
             </label>
-            <label className="grid gap-1.5 text-sm font-black">
-              Konfirmasi password baru
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-naki-smoke">
+                Konfirmasi password baru
+              </span>
               <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
+                className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400 disabled:bg-naki-frost disabled:text-naki-smoke"
                 disabled={!hasRequestedOtp}
                 value={form.confirmPassword}
                 onChange={(event) =>
@@ -213,7 +232,7 @@ export function ForgotPasswordPage() {
               />
             </label>
             <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!hasRequestedOtp || isResettingPassword}
               type="submit"
             >
@@ -222,16 +241,18 @@ export function ForgotPasswordPage() {
             </button>
           </form>
 
+          {/* Status message */}
           <p
-            className="mt-4 text-sm font-semibold leading-6 text-naki-smoke"
+            className="mt-4 rounded-xl bg-naki-frost px-4 py-3 text-sm leading-relaxed text-naki-smoke"
             aria-live="polite"
             role="status"
           >
             {status}
           </p>
 
+          {/* Back to login */}
           <Link
-            className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+            className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
             to={loginUrl}
           >
             <ArrowLeft size={16} />
@@ -239,6 +260,7 @@ export function ForgotPasswordPage() {
           </Link>
         </div>
       </section>
+
       <Footer />
     </main>
   );

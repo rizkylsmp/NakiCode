@@ -82,22 +82,22 @@ export function PortfolioFormModal({
       aria-modal="true"
       aria-labelledby="portfolio-form-title"
     >
-      <div className="my-10 w-full max-w-6xl overflow-hidden rounded-xl border border-naki-steel bg-naki-frost shadow-naki-soft">
-        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-naki-frost/95 p-5 backdrop-blur sm:flex-row sm:items-start">
+      <div className="my-10 w-full max-w-7xl overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-white/95 p-5 backdrop-blur sm:flex-row sm:items-start">
           <div>
-            <p className="text-xs font-black uppercase text-naki-secondary">
+            <p className="text-xs font-medium uppercase text-naki-secondary">
               Portfolio admin
             </p>
-            <h2 id="portfolio-form-title" className="mt-1 text-2xl font-black">
+            <h2 id="portfolio-form-title" className="mt-1 text-2xl font-bold leading-tight text-naki-primary">
               {modalTitle}
             </h2>
-            <p className="mt-1 text-sm font-semibold text-naki-smoke">
+            <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
               Simpan website yang sudah jadi agar tampil di storefront.
             </p>
           </div>
           <div className="flex gap-2">
             <button
-              className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke"
+              className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-secondary transition hover:border-naki-secondary"
               onClick={onReset}
               type="button"
               aria-label="Reset form portofolio"
@@ -105,7 +105,7 @@ export function PortfolioFormModal({
               <RefreshCw size={16} />
             </button>
             <button
-              className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-primary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
+              className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
               disabled={isSaving}
               onClick={onClose}
               type="button"
@@ -121,7 +121,7 @@ export function PortfolioFormModal({
           onSubmit={onSubmit}
         >
           <div className="grid gap-4">
-            <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-naki-steel px-3 py-2 text-sm font-black text-naki-secondary">
+            <span className="inline-flex w-fit items-center gap-2 rounded-xl bg-naki-frost px-3 py-2 text-sm font-medium text-naki-primary">
               <BadgeCheck size={16} />
               {status}
             </span>
@@ -177,13 +177,13 @@ export function PortfolioFormModal({
             />
 
             {hasImage ? (
-              <div className="overflow-hidden rounded-lg border border-naki-steel bg-naki-frost">
-                <div className="flex items-center justify-between gap-3 border-b border-naki-steel bg-naki-steel px-3 py-2">
-                  <p className="text-sm font-black text-naki-primary">
+              <div className="overflow-hidden rounded-xl bg-naki-frost">
+                <div className="flex items-center justify-between gap-3 border-b border-naki-steel px-3 py-2">
+                  <p className="text-sm font-medium text-naki-primary">
                     Foto terpilih ({portfolioImages.length})
                   </p>
                   <button
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-naki-steel bg-naki-frost px-3 text-xs font-black text-naki-secondary transition hover:border-naki-smoke"
+                    className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:border-red-400 hover:text-red-500"
                     onClick={() => {
                       updatePortfolioImages([]);
                       setImageStatus(
@@ -199,10 +199,10 @@ export function PortfolioFormModal({
                 <div className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
                   {portfolioImages.map((imageUrl, index) => (
                     <div
-                      className="overflow-hidden rounded-lg border border-naki-steel bg-naki-frost"
+                      className="overflow-hidden rounded-xl bg-white shadow-sm"
                       key={`${imageUrl}-${index}`}
                     >
-                      <div className="relative h-32 overflow-hidden bg-naki-steel">
+                      <div className="relative h-32 overflow-hidden bg-naki-frost">
                         <img
                           className="h-full w-full object-cover"
                           src={imageUrl}
@@ -211,14 +211,14 @@ export function PortfolioFormModal({
                           decoding="async"
                         />
                         {index === coverIndex ? (
-                          <span className="absolute left-2 top-2 rounded-md bg-naki-primary px-2 py-1 text-xs font-black text-naki-frost">
+                          <span className="absolute left-2 top-2 rounded-lg bg-naki-primary px-2 py-1 text-xs font-medium text-white">
                             Cover
                           </span>
                         ) : null}
                       </div>
                       <div className="grid grid-cols-2 border-t border-naki-steel">
                         <button
-                          className="flex h-9 items-center justify-center gap-1 text-xs font-black text-naki-secondary transition hover:bg-naki-steel hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
+                          className="flex h-9 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
                           disabled={index === coverIndex}
                           onClick={() => {
                             onUpdateField("coverIndex", index);
@@ -233,7 +233,7 @@ export function PortfolioFormModal({
                           Cover
                         </button>
                         <button
-                          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-black text-naki-secondary transition hover:bg-naki-steel hover:text-naki-primary"
+                          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-medium text-naki-secondary transition hover:text-naki-primary"
                           onClick={() => {
                             updatePortfolioImages(
                               portfolioImages.filter(
@@ -263,8 +263,8 @@ export function PortfolioFormModal({
           </div>
 
           <aside className="grid content-start gap-4">
-            <div className="overflow-hidden rounded-xl border border-naki-steel bg-naki-frost shadow-naki-card">
-              <div className="relative flex h-52 items-end overflow-hidden bg-naki-primary p-4 text-naki-frost">
+            <div className="overflow-hidden rounded-xl bg-naki-frost shadow-sm">
+              <div className="relative flex h-52 items-end overflow-hidden bg-naki-primary p-4 text-white">
                 {hasImage ? (
                   <>
                     <img
@@ -280,36 +280,36 @@ export function PortfolioFormModal({
                   <span className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent),radial-gradient(circle_at_top_right,rgba(240,244,245,0.2),transparent_40%)]" />
                 )}
                 <div className="relative min-w-0">
-                  <p className="text-xs font-black uppercase text-naki-steel">
+                  <p className="text-xs font-medium uppercase text-white/80">
                     {previewCategory}
                   </p>
-                  <h3 className="mt-2 line-clamp-2 text-2xl font-black leading-tight">
+                  <h3 className="mt-2 line-clamp-2 text-2xl font-bold leading-tight text-white">
                     {previewTitle}
                   </h3>
                 </div>
               </div>
               <div className="grid gap-3 p-4">
-                <p className="line-clamp-3 text-sm font-semibold leading-6 text-naki-smoke">
+                <p className="line-clamp-3 text-sm leading-relaxed text-naki-smoke">
                   {previewDescription}
                 </p>
-                <p className="rounded-lg bg-naki-steel px-3 py-2 text-sm font-black text-naki-primary">
+                <p className="rounded-xl bg-naki-page-bg px-3 py-2.5 text-sm font-medium text-naki-primary">
                   {previewResult}
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-xl border border-naki-steel bg-naki-steel p-4">
-              <p className="text-xs font-black uppercase text-naki-smoke">
+            <div className="grid gap-2 rounded-xl bg-naki-frost p-4">
+              <p className="text-xs font-medium uppercase text-naki-smoke">
                 Website URL
               </p>
-              <p className="break-all text-sm font-black text-naki-primary">
+              <p className="break-all text-sm font-medium text-naki-primary">
                 {form.websiteUrl.trim() || "Belum diisi"}
               </p>
             </div>
 
             <div className="grid gap-2 border-t border-naki-steel pt-4">
               <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-naki-primary px-5 text-sm font-black text-naki-frost transition hover:bg-naki-secondary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
                 disabled={isSaving}
                 type="submit"
               >
@@ -317,7 +317,7 @@ export function PortfolioFormModal({
                 {isSaving ? "Menyimpan..." : "Simpan portofolio"}
               </button>
               <button
-                className="inline-flex h-12 items-center justify-center rounded-lg border border-naki-steel px-5 text-sm font-black text-naki-secondary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:text-naki-smoke"
                 disabled={isSaving}
                 onClick={onClose}
                 type="button"
@@ -332,4 +332,3 @@ export function PortfolioFormModal({
     document.body,
   );
 }
-

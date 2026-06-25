@@ -57,19 +57,19 @@ export function TemplateFormModal({
       aria-modal="true"
       aria-labelledby="template-form-title"
     >
-      <div className="w-full my-10 mx-20 rounded-xl border border-naki-steel bg-naki-frost shadow-naki-soft">
-        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-naki-frost/95 p-5 backdrop-blur sm:flex-row sm:items-start">
+      <div className="w-full my-10 mx-4 max-w-7xl rounded-2xl bg-white shadow-sm">
+        <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-white/95 p-5 backdrop-blur sm:flex-row sm:items-start">
           <div>
-            <h2 id="template-form-title" className="text-2xl font-black">
+            <h2 id="template-form-title" className="text-2xl font-bold leading-tight text-naki-primary">
               {selectedTemplate ? "Edit template" : "Tambah template"}
             </h2>
-            <p className="mt-1 text-sm font-semibold text-naki-smoke">
+            <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
               Kelola data katalog yang tersimpan ke database.
             </p>
           </div>
           <div className="flex gap-2">
             <button
-              className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-secondary transition hover:border-naki-smoke"
+              className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-secondary transition hover:border-naki-secondary"
               onClick={onStartCreate}
               type="button"
               aria-label="Reset form"
@@ -77,7 +77,7 @@ export function TemplateFormModal({
               <RefreshCw size={16} />
             </button>
             <button
-              className="grid size-10 place-items-center rounded-lg border border-naki-steel text-naki-primary transition hover:border-naki-smoke"
+              className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
               onClick={onClose}
               type="button"
               aria-label="Tutup form"
@@ -177,14 +177,14 @@ export function TemplateFormModal({
 
           <div className="flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
             <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-naki-steel px-5 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
               onClick={onClose}
               type="button"
             >
               Batal
             </button>
             <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-naki-primary px-5 text-sm font-black text-naki-frost transition hover:bg-naki-secondary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
               disabled={isSaving}
               type="submit"
             >
@@ -198,4 +198,3 @@ export function TemplateFormModal({
     document.body,
   );
 }
-

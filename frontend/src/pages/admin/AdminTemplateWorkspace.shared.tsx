@@ -205,10 +205,10 @@ export function Field({
   step,
 }: FieldProps) {
   return (
-    <label className="grid gap-1.5 text-sm font-black">
-      {label}
+    <label className="grid gap-1.5">
+      <span className="text-xs font-medium text-naki-smoke">{label}</span>
       <input
-        className="h-11 w-full rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+        className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
@@ -235,10 +235,10 @@ export function TextArea({
   required = false,
 }: TextAreaProps) {
   return (
-    <label className="grid gap-1.5 text-sm font-black">
-      {label}
+    <label className="grid gap-1.5">
+      <span className="text-xs font-medium text-naki-smoke">{label}</span>
       <textarea
-        className="resize-y rounded-lg border border-naki-steel bg-naki-frost px-3 py-2 text-sm font-semibold leading-6 outline-none transition focus:border-naki-secondary"
+        className="resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-blue-400"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={rows}
@@ -259,10 +259,10 @@ export type SelectFieldProps = {
 
 export function SelectField({ label, value, options, onChange }: SelectFieldProps) {
   return (
-    <label className="grid gap-1.5 text-sm font-black">
-      {label}
+    <label className="grid gap-1.5">
+      <span className="text-xs font-medium text-naki-smoke">{label}</span>
       <select
-        className="h-11 w-full rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+        className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -303,7 +303,7 @@ export function TagSelector({ label, options, value, onChange }: TagSelectorProp
 
   return (
     <section className="grid gap-2">
-      <p className="text-sm font-black">{label}</p>
+      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">{label}</p>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isSelected = selectedItems.includes(option);
@@ -311,10 +311,10 @@ export function TagSelector({ label, options, value, onChange }: TagSelectorProp
           return (
             <button
               key={option}
-              className={`inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-black transition ${
+              className={`inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm font-medium transition ${
                 isSelected
-                  ? "bg-naki-primary text-naki-frost"
-                  : "border border-naki-steel text-naki-secondary hover:border-naki-smoke"
+                  ? "bg-naki-primary text-white"
+                  : "border border-naki-steel bg-white text-naki-smoke hover:border-naki-primary/40"
               }`}
               onClick={() => toggleItem(option)}
               type="button"
@@ -360,12 +360,12 @@ export function TagInput({ label, value, onChange }: TagInputProps) {
 
   return (
     <section className="grid gap-2">
-      <p className="text-sm font-black">{label}</p>
+      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">{label}</p>
       <div className="flex flex-wrap gap-2">
         {items.map((item) => (
           <button
             key={item}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-naki-steel px-3 text-sm font-black text-naki-primary"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-naki-frost px-3 text-sm font-medium text-naki-primary"
             onClick={() => removeItem(item)}
             type="button"
           >
@@ -376,7 +376,7 @@ export function TagInput({ label, value, onChange }: TagInputProps) {
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
-          className="h-11 w-full min-w-0 flex-1 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+          className="h-11 w-full min-w-0 flex-1 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -388,7 +388,7 @@ export function TagInput({ label, value, onChange }: TagInputProps) {
           type="text"
         />
         <button
-          className="inline-flex h-11 items-center justify-center rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-naki-secondary px-4 text-sm font-medium text-white transition hover:bg-naki-primary"
           onClick={addDraft}
           type="button"
         >
@@ -452,7 +452,7 @@ export function ImageUploadDropZone({
   return (
     <section className="grid gap-2">
       <div
-        className="rounded-lg border border-dashed border-naki-steel bg-naki-steel/70 p-5 outline-none transition focus:border-naki-secondary"
+        className="rounded-xl border border-dashed border-naki-steel bg-naki-frost p-5 outline-none transition focus:border-blue-400"
         onDrop={(event) => {
           event.preventDefault();
 
@@ -470,17 +470,17 @@ export function ImageUploadDropZone({
       >
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
-            <span className="grid size-11 place-items-center rounded-lg bg-naki-frost text-naki-secondary">
+            <span className="grid size-11 place-items-center rounded-xl bg-white text-naki-secondary">
               <ImagePlus size={20} />
             </span>
             <div>
-              <p className="text-sm font-black text-naki-primary">{title}</p>
-              <p className="mt-1 text-sm font-semibold text-naki-smoke">
+              <p className="text-sm font-semibold text-naki-primary">{title}</p>
+              <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
                 {description}
               </p>
             </div>
           </div>
-          <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary">
+          <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90">
             <UploadCloud size={16} />
             {isUploading ? "Proses..." : uploadLabel}
             <input
@@ -497,7 +497,7 @@ export function ImageUploadDropZone({
           </label>
         </div>
       </div>
-      <p className="text-sm font-semibold text-naki-smoke">{status}</p>
+      <p className="text-sm text-naki-smoke">{status}</p>
     </section>
   );
 }
@@ -594,7 +594,7 @@ export function PreviewDropZone({
 
   return (
     <section className="grid gap-3">
-      <p className="text-sm font-black">Preview</p>
+      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Preview</p>
       <ImageUploadDropZone
         adminToken={adminToken}
         title="Upload / drop / paste foto preview"
@@ -620,7 +620,7 @@ export function PreviewDropZone({
           {value.map((item, index) => (
             <div
               key={`${item.image}-${index}`}
-              className={`overflow-hidden rounded-lg border bg-naki-frost transition ${
+              className={`overflow-hidden rounded-xl border bg-white transition ${
                 dragOverPreviewIndex === index &&
                 draggedPreviewIndex !== null &&
                 draggedPreviewIndex !== index
@@ -645,10 +645,10 @@ export function PreviewDropZone({
                 title="Drag untuk mengurutkan gambar dan caption"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-black uppercase text-naki-smoke">
+                  <p className="text-xs font-medium uppercase text-naki-smoke">
                     Posisi {index + 1}
                   </p>
-                  <p className="truncate text-sm font-black text-naki-primary">
+                  <p className="truncate text-sm font-medium text-naki-primary">
                     {item.caption || "Belum ada caption"}
                   </p>
                 </div>
@@ -674,7 +674,7 @@ export function PreviewDropZone({
                 />
               ) : (
                 <div
-                  className="grid h-36 cursor-grab place-items-center bg-naki-steel text-sm font-black text-naki-smoke active:cursor-grabbing"
+                  className="grid h-36 cursor-grab place-items-center bg-naki-steel text-sm font-medium text-naki-smoke active:cursor-grabbing"
                   draggable
                   onDragEnd={handlePreviewDragEnd}
                   onDragStart={(event) => handlePreviewDragStart(event, index)}
@@ -684,10 +684,10 @@ export function PreviewDropZone({
                 </div>
               )}
               <div className="grid gap-2 border-t border-naki-steel p-3">
-                <label className="grid gap-1 text-xs font-black text-naki-primary">
+                <label className="grid gap-1 text-xs font-medium text-naki-smoke">
                   Caption foto
                   <input
-                    className="h-10 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none transition focus:border-naki-secondary"
+                    className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
                     value={item.caption}
                     onChange={(event) =>
                       updateCaption(index, event.target.value)
@@ -699,7 +699,7 @@ export function PreviewDropZone({
               </div>
               <div className="grid grid-cols-3 border-t border-naki-steel">
                 <button
-                  className="flex h-10 items-center justify-center gap-1 border-r border-naki-steel text-xs font-black text-naki-secondary transition hover:bg-naki-steel disabled:cursor-not-allowed disabled:text-naki-smoke"
+                  className="flex h-10 items-center justify-center gap-1 border-r border-naki-steel text-xs font-medium text-naki-secondary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:text-naki-smoke"
                   disabled={!canMovePreviewItem(index, -1)}
                   onClick={() => movePreviewItem(index, index - 1)}
                   type="button"
@@ -708,7 +708,7 @@ export function PreviewDropZone({
                   Naik
                 </button>
                 <button
-                  className="flex h-10 items-center justify-center gap-1 border-r border-naki-steel text-xs font-black text-naki-secondary transition hover:bg-naki-steel disabled:cursor-not-allowed disabled:text-naki-smoke"
+                  className="flex h-10 items-center justify-center gap-1 border-r border-naki-steel text-xs font-medium text-naki-secondary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:text-naki-smoke"
                   disabled={!canMovePreviewItem(index, 1)}
                   onClick={() => movePreviewItem(index, index + 1)}
                   type="button"
@@ -717,7 +717,7 @@ export function PreviewDropZone({
                   Turun
                 </button>
                 <button
-                  className="flex h-10 items-center justify-center gap-1 text-xs font-black text-naki-secondary transition hover:bg-naki-steel hover:text-naki-primary"
+                  className="flex h-10 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:bg-naki-frost hover:text-naki-primary"
                   onClick={() => removeItem(index)}
                   type="button"
                 >
@@ -753,19 +753,19 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
 
   return (
     <section className="grid gap-3">
-      <div className="flex flex-col justify-between gap-3 rounded-lg border border-naki-steel bg-naki-frost p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-3 rounded-xl border border-naki-steel bg-naki-frost p-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-lg bg-naki-steel text-naki-secondary">
+          <span className="grid size-11 place-items-center rounded-xl bg-white text-naki-secondary">
             <FileArchive size={20} />
           </span>
           <div>
-            <p className="text-sm font-black">Source code</p>
-            <p className="mt-1 text-sm font-semibold text-naki-smoke">
+            <p className="text-sm font-semibold text-naki-primary">Source code</p>
+            <p className="mt-1 text-sm text-naki-smoke">
               ZIP atau RAR codingan.
             </p>
           </div>
         </div>
-        <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary">
+        <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90">
           <UploadCloud size={16} />
           Upload
           <input

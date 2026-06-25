@@ -1,19 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-naki-primary: #172447;
-  --color-naki-secondary: #31588d;
-  --color-naki-frost: #f0f4f5;
-  --color-naki-steel: #e1e7ed;
-  --color-naki-smoke: #5f6670;
+  /* Primary: deep navy for headings, dark sections, footer */
+  --color-naki-primary: #0f172a;
 
-  --shadow-naki-soft: 0 24px 80px rgb(23 36 71 / 0.22);
-  --shadow-naki-card: 0 10px 30px rgb(23 36 71 / 0.12);
+  /* Secondary: bright blue accent for CTAs, links, highlights */
+  --color-naki-secondary: #3b82f6;
+
+  /* Page background: very light blue-gray */
+  --color-naki-page-bg: #f7f9fc;
+
+  /* Frost: light surface for cards and inputs */
+  --color-naki-frost: #f0f4f8;
+
+  /* Steel: borders and subtle dividers */
+  --color-naki-steel: #e2e8f0;
+
+  /* Smoke: secondary/muted text */
+  --color-naki-smoke: #64748b;
+
+  /* Shadows: softer, cleaner */
+  --shadow-naki-soft: 0 20px 60px rgb(15 23 42 / 0.15);
+  --shadow-naki-card: 0 4px 20px rgb(15 23 42 / 0.08);
 }
 
 :root {
   font-family:
-    Murecho,
+    Inter,
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -25,12 +38,12 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 96px;
+  scroll-padding-top: 80px;
 }
 
 body {
   margin: 0;
-  background: var(--color-naki-frost);
+  background: var(--color-naki-page-bg);
 }
 
 * {
@@ -38,67 +51,75 @@ body {
 }
 
 [id] {
-  scroll-margin-top: 96px;
+  scroll-margin-top: 80px;
 }
 
+/* Background — grid lines + ambient glow blobs (like CTA section) */
 .naki-frosted-grid {
-  background-color: var(--color-naki-frost);
+  background-color: var(--color-naki-page-bg);
   background-image:
-    radial-gradient(
-      circle at 14% 10%,
-      color-mix(in srgb, var(--color-naki-secondary) 16%, transparent) 0,
-      transparent 34rem
-    ),
-    radial-gradient(
-      circle at 84% 4%,
-      color-mix(in srgb, var(--color-naki-steel) 76%, transparent) 0,
-      transparent 28rem
-    ),
-    radial-gradient(
-      circle at 68% 44%,
-      color-mix(in srgb, var(--color-naki-primary) 7%, transparent) 0,
-      transparent 26rem
-    ),
+    /* Grid lines — horizontal */
     linear-gradient(
-      color-mix(in srgb, var(--color-naki-secondary) 9%, transparent) 1px,
+      rgba(15, 23, 42, 0.06) 1px,
       transparent 1px
     ),
+    /* Grid lines — vertical */
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--color-naki-secondary) 9%, transparent) 1px,
+      rgba(15, 23, 42, 0.06) 1px,
       transparent 1px
     );
-  background-position:
-    center top,
-    right top,
-    center,
-    top left,
-    top left;
-  background-size:
-    auto,
-    auto,
-    auto,
-    42px 42px,
-    42px 42px;
+  background-position: top left, top left;
+  background-size: 40px 40px, 40px 40px;
+  position: relative;
 }
 
+/* Ambient glow blobs — soft blurred light spots (like CTA section) */
 .naki-frosted-grid::before {
-  background-image:
+  background:
     radial-gradient(
-      circle,
-      color-mix(in srgb, var(--color-naki-primary) 13%, transparent) 0 1px,
-      transparent 1.6px
+      ellipse 500px 350px at 30% 10%,
+      rgba(59, 130, 246, 0.07) 0,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 600px 400px at 80% 5%,
+      rgba(59, 130, 246, 0.05) 0,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 500px 450px at 75% 75%,
+      rgba(15, 23, 42, 0.04) 0,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 400px 350px at 10% 80%,
+      rgba(59, 130, 246, 0.05) 0,
+      transparent 70%
     );
-  background-size: 18px 18px;
   content: "";
   inset: 0;
-  opacity: 0.18;
   pointer-events: none;
   position: fixed;
   z-index: 0;
 }
 
-.naki-frosted-grid > * {
+/* Subtle vignette — edges slightly darker for depth */
+.naki-frosted-grid::after {
+  background: radial-gradient(
+    ellipse 80% 80% at 50% 50%,
+    transparent 50%,
+    rgba(15, 23, 42, 0.025) 100%
+  );
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+/* Only apply z-index:1 to direct children that don't have their own stacking context */
+.naki-frosted-grid > *:not(header):not(.z-60):not(.z-50):not([class*="z-["]) {
   position: relative;
   z-index: 1;
 }
@@ -107,4 +128,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 300;
+}
+
+/* Utility: smooth hover transition for interactive elements */
+.transition-all {
+  transition: all 0.2s ease;
 }

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { trackPageView } from "./analytics";
 import { apiGet } from "./api-client";
 import {
@@ -15,6 +15,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { UserLoginPage } from "./pages/UserLoginPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { RequireAdmin, RequireAuth } from "./route-guards";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 /**
  * One-time stale chunk reload guard.
@@ -68,6 +69,11 @@ const HomePage = lazyWithReload(() =>
 const TemplateDetailPage = lazyWithReload(() =>
   import("./pages/TemplateDetailPage").then((module) => ({
     default: module.TemplateDetailPage,
+  })),
+);
+const TemplateCatalogPage = lazyWithReload(() =>
+  import("./pages/TemplateCatalogPage").then((module) => ({
+    default: module.TemplateCatalogPage,
   })),
 );
 const AdminTemplatesPage = lazyWithReload(() =>
@@ -286,7 +292,21 @@ function App() {
       </Helmet>
       <Routes>
         <Route path="/" element={homePageElement} />
-        <Route path="/template" element={homePageElement} />
+        <Route
+          path="/template"
+          element={
+            <TemplateCatalogPage
+              health={health}
+              templates={templates}
+              categories={categories}
+              activeCategory={activeCategory}
+              query={query}
+              isLoading={isLoading}
+              onCategoryChange={setActiveCategory}
+              onQueryChange={setQuery}
+            />
+          }
+        />
         <Route
           path="/templates/:slug"
           element={<TemplateDetailPage templates={templates} />}
@@ -355,6 +375,15 @@ function App() {
             </RequireAdmin>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <Navigate replace to="/admin/dashboard" />
+            </RequireAdmin>
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );
@@ -373,11 +402,11 @@ async function fetchAppBootstrap() {
 
 function RouteLoading() {
   return (
-    <main className="naki-frosted-grid grid min-h-screen place-items-center text-naki-primary">
-      <div className="rounded-xl border border-naki-steel bg-naki-frost px-5 py-4 text-sm font-black shadow-naki-card">
+    <div className="naki-frosted-grid grid min-h-screen place-items-center text-naki-primary">
+      <div className="rounded-xl border border-naki-steel bg-white px-5 py-4 text-sm font-semibold shadow-sm">
         Memuat halaman...
       </div>
-    </main>
+    </div>
   );
 }
 

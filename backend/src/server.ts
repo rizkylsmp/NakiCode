@@ -17,6 +17,7 @@ import { favoritesRouter } from './routes/favorites';
 import { healthRouter } from './routes/health';
 import { notificationsRouter } from './routes/notifications';
 import { ordersRouter } from './routes/orders';
+import { router as ordersStatsRouter } from './routes/orders-stats';
 import { paymentsRouter } from './routes/payments';
 import { projectsRouter } from './routes/projects';
 import { templatesRouter } from './routes/templates';
@@ -133,6 +134,7 @@ function mountApiRoutes(prefix: string) {
   app.use(`${prefix}/favorites`, favoritesRouter);
   app.use(`${prefix}/notifications`, notificationsRouter);
   app.use(`${prefix}/categories`, categoriesRouter);
+  app.use(`${prefix}/orders`, ordersStatsRouter);
   app.use(`${prefix}/orders`, ordersRouter);
   app.use(`${prefix}/payments`, paymentsRouter);
   app.use(`${prefix}/uploads`, uploadsRouter);

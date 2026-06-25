@@ -1,6 +1,5 @@
 import { ArrowRight, ExternalLink } from "lucide-react";
 import type { PortfolioItem } from "../content";
-import { ResponsiveImage } from "./ResponsiveImage";
 
 type PortfolioSectionProps = {
   items: PortfolioItem[];
@@ -8,95 +7,100 @@ type PortfolioSectionProps = {
 
 export function PortfolioSection({ items }: PortfolioSectionProps) {
   return (
-    <section
-      id="portofolio"
-      className="w-full px-5 py-14 md:px-8 xl:px-12 2xl:px-16"
-    >
-      <div className="mb-7 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-        <div>
-          <h2 className="text-3xl font-black text-naki-primary">
-            Portofolio dan demo konsep
-          </h2>
-          <p className="mt-2 max-w-2xl text-naki-smoke">
-            Contoh arah project yang bisa dibangun dari template Naki Code atau
-            dari request custom.
-          </p>
-        </div>
-        <a
-          className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
-          href="#layanan"
-        >
-          Request mirip ini
-          <ArrowRight size={16} />
-        </a>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {items.map((item) => {
-          const coverIndex = item.coverIndex ?? 0;
-          const coverImage =
-            item.imageUrls && item.imageUrls.length > 0
-              ? item.imageUrls[coverIndex] ?? item.imageUrls[0]
-              : item.imageUrl;
-
-          return (
-            <article
-              key={item.id ?? item.title}
-              className="rounded-lg border border-naki-steel bg-naki-frost p-5 shadow-naki-card"
-            >
-              <div className="relative flex h-44 items-end overflow-hidden rounded-lg bg-naki-primary p-4 text-naki-frost">
-                {coverImage ? (
-                  <>
-                    <ResponsiveImage
-                      className="absolute inset-0 h-full w-full object-cover"
-                      src={coverImage}
-                      sizes="(min-width: 1024px) 30vw, 100vw"
-                      alt={item.title}
-                    />
-                    <span className="absolute inset-0 bg-naki-primary/65" />
-                  </>
-                ) : null}
-                <div className="relative">
-                  <p className="text-sm font-black text-naki-steel">
-                    {item.category}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-black leading-tight">
-                    {item.title}
-                  </h3>
-                </div>
-              </div>
-              <p className="mt-4 leading-7 text-naki-smoke">
-                {item.description}
+    <section className="w-full">
+      <div className="px-5 py-16 md:px-8 xl:px-12 2xl:px-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
+                Portofolio
               </p>
-              <div className="mt-5 flex items-center justify-between gap-4">
-                <span className="text-sm font-black text-naki-primary">
-                  {item.result}
-                </span>
-                <a
-                  className="grid size-10 place-items-center rounded-lg bg-naki-steel text-naki-secondary"
-                  href={
-                    item.websiteUrl && item.websiteUrl !== "#"
-                      ? item.websiteUrl
-                      : "#template"
-                  }
-                  target={
-                    item.websiteUrl && item.websiteUrl !== "#"
-                      ? "_blank"
-                      : undefined
-                  }
-                  rel={
-                    item.websiteUrl && item.websiteUrl !== "#"
-                      ? "noreferrer"
-                      : undefined
-                  }
-                  aria-label={`Lihat detail ${item.title}`}
+              <h2 className="mt-1 text-2xl font-bold text-naki-primary md:text-3xl">
+                Karya Developer Kami
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-naki-smoke">
+                Contoh project yang bisa dibangun dari template Naki Code atau dari request custom.
+              </p>
+            </div>
+            <a
+              className="inline-flex items-center gap-1 text-sm font-medium text-blue-500 transition hover:text-blue-600"
+              href="#layanan"
+            >
+              Request mirip ini
+              <ArrowRight size={14} />
+            </a>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item) => {
+              const coverIndex = item.coverIndex ?? 0;
+              const coverImage =
+                item.imageUrls && item.imageUrls.length > 0
+                  ? item.imageUrls[coverIndex] ?? item.imageUrls[0]
+                  : item.imageUrl;
+
+              return (
+                <article
+                  key={item.id ?? item.title}
+                  className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
                 >
-                  <ExternalLink size={16} />
-                </a>
-              </div>
-            </article>
-          );
-        })}
+                  {/* Image */}
+                  <div className="relative aspect-[16/10] overflow-hidden bg-naki-frost">
+                    {coverImage ? (
+                      <img
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        src={coverImage}
+                        alt={item.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/5 to-naki-secondary/5" />
+                    )}
+                    <span className="absolute left-3 top-3 rounded-md bg-white/90 px-2 py-0.5 text-xs font-medium text-naki-primary backdrop-blur">
+                      {item.category}
+                    </span>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="text-base font-semibold text-naki-primary">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 line-clamp-2 text-sm text-naki-smoke">
+                      {item.description}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-sm font-medium text-blue-500">
+                        {item.result}
+                      </span>
+                      <a
+                        className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-500 transition hover:bg-blue-100"
+                        href={
+                          item.websiteUrl && item.websiteUrl !== "#"
+                            ? item.websiteUrl
+                            : "#template"
+                        }
+                        target={
+                          item.websiteUrl && item.websiteUrl !== "#"
+                            ? "_blank"
+                            : undefined
+                        }
+                        rel={
+                          item.websiteUrl && item.websiteUrl !== "#"
+                            ? "noreferrer"
+                            : undefined
+                        }
+                        aria-label={`Lihat ${item.title}`}
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );

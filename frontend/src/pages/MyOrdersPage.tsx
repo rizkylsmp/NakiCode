@@ -21,7 +21,7 @@ import {
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { PaginationControls } from "../components/PaginationControls";
-import { OrderCardSkeletonGrid } from "../components/ProfileSkeleton";
+import { OrderCardSkeletonGrid } from "../components/skeletons/ProfileSkeleton";
 import type { TemplateItem } from "../content";
 import {
   canConfirmPaymentManually,
@@ -78,6 +78,21 @@ const orderPaymentMenus: Array<{
     description: "Source code sudah terbuka.",
   },
 ];
+
+function getPaymentStatusBadgeClass(paymentStatus: string): string {
+  switch (paymentStatus) {
+    case "paid":
+      return "bg-emerald-100 text-emerald-700";
+    case "waiting_payment":
+      return "bg-amber-100 text-amber-700";
+    case "pending":
+      return "bg-blue-100 text-blue-700";
+    case "failed":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-naki-frost text-naki-smoke";
+  }
+}
 
 export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
   const [userToken, setUserToken] = useState(() =>
@@ -253,33 +268,33 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
   }
 
   return (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <Header />
 
       <section className="w-full px-5 py-10 md:px-8 xl:px-12 2xl:px-16">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-black text-naki-secondary"
+          className="inline-flex items-center gap-2 text-sm font-medium text-naki-secondary transition hover:opacity-80"
           to="/"
         >
           <ArrowLeft size={16} />
           Kembali ke storefront
         </Link>
 
-        <div className="mt-6 flex flex-col justify-between gap-4 border-b border-naki-steel pb-6 lg:flex-row lg:items-end">
+        <div className="mt-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="text-sm font-black uppercase text-naki-secondary">
+            <p className="text-xs font-medium uppercase text-naki-smoke">
               Akun {userUsername || "user"}
             </p>
-            <h1 className="mt-2 text-4xl font-black leading-tight md:text-5xl">
+            <h1 className="mt-1 text-3xl font-bold leading-tight md:text-4xl">
               Pesanan saya
             </h1>
-            <p className="mt-3 max-w-2xl leading-7 text-naki-smoke">
+            <p className="mt-2 max-w-3xl text-sm text-naki-smoke leading-relaxed">
               Lacak order, pembayaran, dan beri rating setelah pembayaran
               berhasil.
             </p>
           </div>
           <button
-            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoading || !userToken}
             onClick={() => void loadOrders(ordersPage)}
             type="button"
@@ -289,19 +304,22 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
           </button>
         </div>
 
-        <p className="mt-5 inline-flex rounded-lg border border-naki-steel bg-naki-frost px-4 py-3 text-sm font-black text-naki-secondary shadow-naki-card">
-          {status}
-        </p>
+        <div className="mt-5 flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-naki-secondary" />
+          <p className="text-sm font-medium text-naki-smoke">{status}</p>
+        </div>
 
         {!userToken ? (
-          <div className="mt-8 rounded-xl border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">
-            <Inbox className="mx-auto text-naki-secondary" size={36} />
-            <h2 className="mt-4 text-2xl font-black">Login dulu.</h2>
-            <p className="mt-2 text-naki-smoke">
+          <div className="mt-8 rounded-2xl bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-naki-frost">
+              <Inbox className="text-naki-secondary" size={28} />
+            </div>
+            <h2 className="text-xl font-bold">Login dulu.</h2>
+            <p className="mt-2 text-sm text-naki-smoke">
               Pesanan hanya bisa dilihat oleh akun pembeli.
             </p>
             <Link
-              className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost"
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:opacity-90"
               to="/login?next=%2Fpesanan-saya"
             >
               Login user
@@ -309,27 +327,27 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
           </div>
         ) : (
           <>
-            <div className="mt-6 grid gap-2 rounded-xl border border-naki-steel bg-naki-frost p-2 shadow-naki-card md:grid-cols-3">
+            <div className="mt-6 grid gap-2 rounded-2xl bg-white p-2 shadow-sm md:grid-cols-3">
               {orderPaymentMenus.map((menu) => {
                 const isActive = activePaymentMenu === menu.value;
 
                 return (
                   <button
                     key={menu.value}
-                    className={`rounded-lg border px-4 py-3 text-left transition ${
+                    className={`rounded-xl px-4 py-3 text-left transition ${
                       isActive
-                        ? "border-naki-primary bg-naki-primary text-naki-frost"
-                        : "border-transparent bg-transparent text-naki-primary hover:border-naki-steel hover:bg-naki-steel"
+                        ? "bg-naki-primary text-white"
+                        : "bg-white text-naki-primary hover:bg-naki-frost"
                     }`}
                     onClick={() => selectPaymentMenu(menu.value)}
                     type="button"
                   >
-                    <span className="block text-sm font-black">
+                    <span className="block text-sm font-semibold">
                       {menu.label}
                     </span>
                     <span
-                      className={`mt-1 block text-xs font-semibold leading-5 ${
-                        isActive ? "text-naki-frost" : "text-naki-smoke"
+                      className={`mt-1 block text-xs leading-5 ${
+                        isActive ? "text-white/70" : "text-naki-smoke"
                       }`}
                     >
                       {menu.description}
@@ -344,23 +362,25 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                 <OrderCardSkeletonGrid count={3} />
               </div>
             ) : orders.length === 0 ? (
-              <div className="mt-8 rounded-xl border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">
-                <Inbox className="mx-auto text-naki-secondary" size={36} />
-                <h2 className="mt-4 text-2xl font-black">
+              <div className="mt-8 rounded-2xl bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-naki-frost">
+                  <Inbox className="text-naki-secondary" size={28} />
+                </div>
+                <h2 className="text-xl font-bold">
                   {getEmptyOrdersTitle(activePaymentMenu)}
                 </h2>
-                <p className="mt-2 text-naki-smoke">
+                <p className="mt-2 text-sm text-naki-smoke">
                   {getEmptyOrdersMessage(activePaymentMenu)}
                 </p>
                 <Link
-                  className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost"
+                  className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:opacity-90"
                   to="/#template"
                 >
                   Cari template
                 </Link>
               </div>
             ) : (
-              <div className="mt-8 grid w-full gap-3">
+              <div className="mt-8 grid w-full gap-4">
                 {orders.map((order) => {
                   const form = ratingForms[order.id] ?? defaultRatingForm;
                   const isProcessing = processingOrderId === order.id;
@@ -369,26 +389,28 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                   return (
                     <article
                       key={order.id}
-                      className="rounded-lg border border-naki-steel bg-naki-frost p-3 shadow-naki-card"
+                      className="rounded-2xl bg-white p-5 shadow-sm"
                     >
-                      <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
+                      <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-start">
                         <div className="min-w-0">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <p className="w-fit rounded-md bg-naki-steel px-2 py-1 text-xs font-black uppercase text-naki-secondary">
+                            <span className="w-fit rounded-lg bg-naki-frost px-2.5 py-1 text-xs font-semibold text-naki-smoke">
                               #{order.id}
-                            </p>
+                            </span>
                             <div className="min-w-0 flex-1">
-                              <h2 className="truncate text-lg font-black leading-tight">
+                              <h2 className="truncate text-lg font-semibold leading-tight">
                                 {order.templateTitle}
                               </h2>
                             </div>
-                            <span className="inline-flex h-8 w-fit items-center gap-1.5 rounded-md bg-naki-steel px-2.5 text-xs font-black text-naki-primary">
-                              <CreditCard size={14} />
+                            <span
+                              className={`inline-flex h-7 w-fit items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold ${getPaymentStatusBadgeClass(order.paymentStatus)}`}
+                            >
+                              <CreditCard size={13} />
                               {getPaymentStatusLabel(order.paymentStatus)}
                             </span>
                           </div>
 
-                          <div className="mt-2 grid gap-2 sm:grid-cols-4">
+                          <div className="mt-3 grid gap-2 sm:grid-cols-4">
                             <OrderInfo label="Tipe" value={order.projectType} />
                             <OrderInfo
                               label="Budget"
@@ -405,19 +427,19 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                           </div>
                         </div>
 
-                        <div className="rounded-lg bg-naki-steel p-2.5 xl:w-[390px]">
+                        <div className="rounded-xl bg-naki-frost p-4 xl:w-[390px]">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 text-sm font-black">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-naki-primary">
                               <Clock3 size={15} />
                               Pembayaran
                             </div>
                             {order.paymentMethod ? (
-                              <span className="truncate text-xs font-bold text-naki-smoke">
+                              <span className="truncate text-xs font-medium text-naki-smoke">
                                 {order.paymentMethod}
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-naki-smoke">
+                          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-naki-smoke">
                             {order.paymentStatus === "paid"
                               ? `Lunas${order.paidAt ? ` pada ${formatOrderDate(order.paidAt)}` : ""}.`
                               : order.paymentStatus === "waiting_payment"
@@ -425,15 +447,17 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                 : "Klik bayar sekarang untuk membuat instruksi pembayaran."}
                           </p>
                           {order.paymentReference ? (
-                            <p className="mt-1.5 truncate rounded-md bg-naki-frost px-2 py-1 font-mono text-[11px] font-black text-naki-primary">
-                              Ref: {order.paymentReference}
-                            </p>
+                            <div className="mt-2 rounded-lg bg-white px-3 py-1.5">
+                              <span className="font-mono text-xs font-medium text-naki-primary">
+                                Ref: {order.paymentReference}
+                              </span>
+                            </div>
                           ) : null}
-                          <div className="mt-2 flex flex-wrap gap-2">
+                          <div className="mt-3 flex flex-wrap gap-2">
                             {order.paymentStatus === "pending" ||
                             order.paymentStatus === "failed" ? (
                               <Link
-                                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-3 text-xs font-black text-naki-frost transition hover:bg-naki-primary"
+                                className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-3 text-xs font-semibold text-white transition hover:bg-naki-primary"
                                 to={`/checkout/${order.id}`}
                               >
                                 <CreditCard size={14} />
@@ -442,7 +466,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                             ) : null}
                             {order.paymentUrl ? (
                               <a
-                                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-naki-frost px-3 text-xs font-black text-naki-secondary transition hover:border-naki-smoke"
+                                className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-3 text-xs font-medium text-naki-primary transition hover:bg-naki-frost"
                                 href={order.paymentUrl}
                                 rel="noreferrer"
                                 target={
@@ -458,7 +482,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                             {order.paymentStatus === "waiting_payment" ? (
                               <>
                                 <Link
-                                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-naki-frost px-3 text-xs font-black text-naki-secondary transition hover:border-naki-smoke"
+                                  className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-3 text-xs font-medium text-naki-primary transition hover:bg-naki-frost"
                                   to={`/checkout/${order.id}`}
                                 >
                                   <CreditCard size={14} />
@@ -466,7 +490,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                 </Link>
                                 {canConfirmPaymentManually(order) ? (
                                   <button
-                                    className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-naki-primary px-3 text-xs font-black text-naki-frost transition hover:bg-naki-secondary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-naki-primary px-3 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                                     disabled={isProcessing}
                                     onClick={() =>
                                       void confirmPayment(order.id)
@@ -486,21 +510,21 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                       </div>
 
                       {order.deliveryStatus === "available" ? (
-                        <section className="mt-2 rounded-lg border border-naki-steel p-2.5">
-                          <div className="flex items-center gap-2 text-xs font-black uppercase text-naki-secondary">
+                        <section className="mt-4 rounded-xl bg-naki-frost p-4">
+                          <div className="flex items-center gap-2 text-xs font-semibold uppercase text-naki-secondary">
                             <PackageOpen
                               className="text-naki-secondary"
                               size={16}
                             />
                             Source code & panduan
                           </div>
-                          <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-start">
+                          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-start">
                             {order.sourceCodeItems.length > 0 ? (
-                              <div className="rounded-md bg-naki-steel p-2.5">
-                                <p className="text-xs font-black uppercase text-naki-smoke">
+                              <div className="rounded-lg bg-white p-3">
+                                <p className="text-xs font-medium uppercase text-naki-smoke">
                                   Paket source
                                 </p>
-                                <ul className="mt-1 grid gap-0.5 text-xs font-semibold text-naki-smoke">
+                                <ul className="mt-1.5 grid gap-0.5 text-sm text-naki-smoke">
                                   {order.sourceCodeItems.map((item) => (
                                     <li key={item}>- {item}</li>
                                   ))}
@@ -508,18 +532,18 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                               </div>
                             ) : null}
                             {order.setupGuide ? (
-                              <div className="rounded-md bg-naki-steel p-2.5">
-                                <p className="text-xs font-black uppercase text-naki-smoke">
+                              <div className="rounded-lg bg-white p-3">
+                                <p className="text-xs font-medium uppercase text-naki-smoke">
                                   Panduan
                                 </p>
-                                <p className="mt-1 line-clamp-3 whitespace-pre-line text-xs font-semibold leading-5 text-naki-smoke">
+                                <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-naki-smoke">
                                   {order.setupGuide}
                                 </p>
                               </div>
                             ) : null}
                             {order.demoUrl ? (
                               <a
-                                className="inline-flex h-8 w-fit items-center justify-center gap-1.5 rounded-md bg-naki-primary px-2.5 text-xs font-black text-naki-frost transition hover:bg-naki-secondary"
+                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-naki-primary px-3 text-xs font-semibold text-white transition hover:opacity-90"
                                 href={order.demoUrl}
                                 rel="noreferrer"
                                 target="_blank"
@@ -533,22 +557,24 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                       ) : null}
 
                       {canRateOrder(order) ? (
-                        <section className="mt-2 rounded-lg border border-naki-steel p-2.5">
-                          <div className="flex items-center gap-2 text-xs font-black uppercase text-naki-secondary">
+                        <section className="mt-4 rounded-xl bg-naki-frost p-4">
+                          <div className="flex items-center gap-2 text-xs font-semibold uppercase text-naki-secondary">
                             <Star className="text-naki-secondary" size={16} />
                             Rating template
                           </div>
                           {isRated ? (
-                            <p className="mt-1 text-xs font-semibold text-naki-smoke">
+                            <p className="mt-2 text-sm text-naki-smoke">
                               Rating sudah dikirim. Terima kasih atas
                               feedback-nya.
                             </p>
                           ) : (
-                            <div className="mt-2 grid gap-2 md:grid-cols-[150px_1fr_auto] md:items-end">
-                              <label className="grid gap-1 text-xs font-black">
-                                Rating
+                            <div className="mt-3 grid gap-3 md:grid-cols-[150px_1fr_auto] md:items-end">
+                              <label className="grid gap-1.5">
+                                <span className="text-xs font-medium text-naki-smoke">
+                                  Rating
+                                </span>
                                 <select
-                                  className="h-9 rounded-lg border border-naki-steel bg-naki-frost px-2.5 text-xs font-semibold outline-none focus:border-naki-secondary"
+                                  className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-2.5 text-sm outline-none focus:border-blue-400"
                                   value={form.rating}
                                   onChange={(event) =>
                                     updateRatingForm(order.id, {
@@ -564,10 +590,12 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                   <option value="1">1 - Tidak cocok</option>
                                 </select>
                               </label>
-                              <label className="grid gap-1 text-xs font-black">
-                                Catatan
+                              <label className="grid gap-1.5">
+                                <span className="text-xs font-medium text-naki-smoke">
+                                  Catatan
+                                </span>
                                 <textarea
-                                  className="min-h-9 resize-y rounded-lg border border-naki-steel bg-naki-frost px-2.5 py-2 text-xs font-semibold leading-5 outline-none focus:border-naki-secondary"
+                                  className="min-h-9 resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-2.5 py-2 text-sm leading-relaxed outline-none focus:border-blue-400"
                                   value={form.message}
                                   onChange={(event) =>
                                     updateRatingForm(order.id, {
@@ -579,7 +607,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                 />
                               </label>
                               <button
-                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-naki-secondary px-3 text-xs font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={isProcessing}
                                 onClick={() => void submitRating(order)}
                                 type="button"
@@ -591,9 +619,12 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                           )}
                         </section>
                       ) : (
-                        <p className="mt-2 rounded-lg border border-naki-steel px-2.5 py-1.5 text-xs font-bold text-naki-smoke">
-                          Rating akan terbuka setelah pembayaran berhasil.
-                        </p>
+                        <div className="mt-4 flex items-center gap-2 rounded-xl bg-naki-frost px-4 py-3">
+                          <Star size={14} className="text-naki-smoke" />
+                          <p className="text-sm font-medium text-naki-smoke">
+                            Rating akan terbuka setelah pembayaran berhasil.
+                          </p>
+                        </div>
                       )}
                     </article>
                   );
@@ -624,9 +655,9 @@ type OrderInfoProps = {
 
 function OrderInfo({ label, value }: OrderInfoProps) {
   return (
-    <div className="rounded-lg bg-naki-steel p-3">
-      <p className="text-xs font-black uppercase text-naki-smoke">{label}</p>
-      <p className="mt-1 text-sm font-black text-naki-primary">{value}</p>
+    <div className="rounded-xl bg-naki-frost px-3 py-2.5">
+      <p className="text-xs font-medium text-naki-smoke">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-naki-primary">{value}</p>
     </div>
   );
 }

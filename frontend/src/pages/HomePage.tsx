@@ -1,20 +1,17 @@
-import { CategoryFilter } from "../components/CategoryFilter";
-import { CommunitySection } from "../components/CommunitySection";
+import { CategorySection } from "../components/CategorySection";
+import { CTASection } from "../components/CTASection";
 import { FaqSection } from "../components/FaqSection";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { Hero } from "../components/Hero";
 import { LearningSection } from "../components/LearningSection";
 import { PortfolioSection } from "../components/PortfolioSection";
-import { ServicesSection } from "../components/ServicesSection";
 import { TemplateCatalog } from "../components/TemplateCatalog";
-import { WorkflowSection } from "../components/WorkflowSection";
+import { TestimonialSection } from "../components/TestimonialSection";
 import {
   articles,
   faqs,
   portfolioItems as defaultPortfolioItems,
-  services,
-  workflow,
   type HealthState,
   type PortfolioItem,
   type TemplateCategory,
@@ -41,26 +38,15 @@ export function HomePage({
   filteredTemplates,
   portfolioItems,
   activeCategory,
-  query,
+  query: _query,
   isLoading,
   onCategoryChange,
-  onQueryChange,
+  onQueryChange: _onQueryChange,
 }: HomePageProps) {
   return (
-    <>
+    <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Header />
-      <Hero
-        query={query}
-        onQueryChange={onQueryChange}
-        featuredTemplates={templates}
-      />
-      <CategoryFilter
-        categories={categories}
-        activeCategory={activeCategory}
-        query={query}
-        onCategoryChange={onCategoryChange}
-        onQueryChange={onQueryChange}
-      />
+      <Hero />
       <TemplateCatalog
         templates={filteredTemplates}
         allTemplates={templates}
@@ -68,15 +54,15 @@ export function HomePage({
         health={health}
         isLoading={isLoading}
       />
-      <ServicesSection services={services} />
+      <CategorySection categories={categories} />
+      <TestimonialSection />
       <PortfolioSection
         items={portfolioItems.length > 0 ? portfolioItems : defaultPortfolioItems}
       />
-      <CommunitySection />
       <LearningSection articles={articles} />
       <FaqSection faqs={faqs} />
-      <WorkflowSection workflow={workflow} />
+      <CTASection />
       <Footer />
-    </>
+    </div>
   );
 }

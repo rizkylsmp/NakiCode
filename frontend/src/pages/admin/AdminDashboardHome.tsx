@@ -27,100 +27,119 @@ export function AdminDashboardHome({
     }
   }
 
+  const paidOrders = orders.filter(
+    (order) => order.paymentStatus === "paid"
+  ).length;
+
   return (
-    <section className="grid gap-6 py-8">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardShortcutCard
-          icon={<ClipboardList size={20} />}
-          label="Kelola Template"
-          value={`${templates.length} template`}
-          description="Tambah, edit, atau hapus produk katalog."
-          onClick={() => openView("templates")}
-        />
-        <DashboardShortcutCard
-          icon={<Inbox size={20} />}
-          label="Order Masuk"
-          value={`${orders.length} order`}
-          description="Cek request konsultasi dan status pembayaran."
-          onClick={() => openView("orders")}
-        />
-        <DashboardShortcutCard
-          icon={<Tag size={20} />}
-          label="Kategori"
-          value="Kelola"
-          description="Buka tab template lalu atur kategori."
-          onClick={() => openView("templates")}
-        />
-        <DashboardShortcutCard
-          icon={<Globe2 size={20} />}
-          label="Portofolio"
-          value={`${projects.length} project`}
-          description="Update website yang tampil di storefront."
-          onClick={() => openView("portfolio")}
-        />
+    <section className="flex flex-col gap-8 py-8">
+      {/* Stat Cards */}
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium text-naki-smoke">Total Template</p>
+          <p className="mt-2 text-3xl font-bold text-naki-primary">
+            {templates.length}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium text-naki-smoke">Order Masuk</p>
+          <p className="mt-2 text-3xl font-bold text-naki-primary">
+            {orders.length}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium text-naki-smoke">Order Paid</p>
+          <p className="mt-2 text-3xl font-bold text-naki-primary">
+            {paidOrders}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium text-naki-smoke">Portofolio</p>
+          <p className="mt-2 text-3xl font-bold text-naki-primary">
+            {projects.length}
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardStatCard label="Total Template" value={templates.length} />
-        <DashboardStatCard label="Order Masuk" value={orders.length} />
-        <DashboardStatCard
-          label="Order Paid"
-          value={orders.filter((order) => order.paymentStatus === "paid").length}
-        />
-        <DashboardStatCard label="Portofolio" value={projects.length} />
+      {/* Shortcut Cards */}
+      <div>
+        <h2 className="text-lg font-bold leading-tight text-naki-primary">
+          Quick Actions
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <button
+            className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
+            onClick={() => openView("templates")}
+            type="button"
+          >
+            <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-white">
+              <ClipboardList size={20} />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-naki-primary">
+                Kelola Template
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
+                Tambah, edit, atau hapus produk katalog.
+              </p>
+            </div>
+          </button>
+
+          <button
+            className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
+            onClick={() => openView("orders")}
+            type="button"
+          >
+            <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-white">
+              <Inbox size={20} />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-naki-primary">
+                Order Masuk
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
+                Cek request konsultasi dan status pembayaran.
+              </p>
+            </div>
+          </button>
+
+          <button
+            className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
+            onClick={() => openView("templates")}
+            type="button"
+          >
+            <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-white">
+              <Tag size={20} />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-naki-primary">
+                Kategori
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
+                Buka tab template lalu atur kategori.
+              </p>
+            </div>
+          </button>
+
+          <button
+            className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
+            onClick={() => openView("portfolio")}
+            type="button"
+          >
+            <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-white">
+              <Globe2 size={20} />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-naki-primary">
+                Portofolio
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
+                Update website yang tampil di storefront.
+              </p>
+            </div>
+          </button>
+        </div>
       </div>
     </section>
   );
 }
-
-type DashboardShortcutCardProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  description: string;
-  onClick: () => void;
-};
-
-type DashboardStatCardProps = {
-  label: string;
-  value: number;
-};
-
-function DashboardStatCard({ label, value }: DashboardStatCardProps) {
-  return (
-    <div className="rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card">
-      <p className="text-sm font-black uppercase text-naki-smoke">{label}</p>
-      <p className="mt-2 text-3xl font-black text-naki-primary">{value}</p>
-    </div>
-  );
-}
-
-function DashboardShortcutCard({
-  icon,
-  label,
-  value,
-  description,
-  onClick,
-}: DashboardShortcutCardProps) {
-  return (
-    <button
-      className="group rounded-xl border border-naki-steel bg-naki-frost p-4 text-left shadow-naki-card transition hover:-translate-y-0.5 hover:shadow-naki-soft"
-      onClick={onClick}
-      type="button"
-    >
-      <span className="grid size-11 place-items-center rounded-lg bg-naki-steel text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-naki-frost">
-        {icon}
-      </span>
-      <span className="mt-4 block text-lg font-black text-naki-primary">
-        {label}
-      </span>
-      <span className="mt-1 block text-2xl font-black text-naki-secondary">
-        {value}
-      </span>
-      <span className="mt-2 block text-sm font-semibold leading-6 text-naki-smoke">
-        {description}
-      </span>
-    </button>
-  );
-}
-

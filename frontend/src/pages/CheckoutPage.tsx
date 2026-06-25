@@ -207,12 +207,12 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <Header />
 
       <section className="w-full px-5 py-10 md:px-8 xl:px-12 2xl:px-16">
         <button
-          className="inline-flex items-center gap-2 text-sm font-black text-naki-secondary"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-naki-smoke hover:text-naki-primary transition"
           onClick={() => navigate(-1)}
           type="button"
         >
@@ -221,20 +221,21 @@ export function CheckoutPage() {
         </button>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
-          <div className="rounded-xl border border-naki-steel bg-naki-frost p-5 shadow-naki-card">
-            <p className="text-sm font-black uppercase text-naki-secondary">
+          {/* Main checkout column */}
+          <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+            <p className="text-xs font-medium uppercase text-naki-smoke tracking-wide">
               Checkout
             </p>
-            <h1 className="mt-2 text-4xl font-black leading-tight md:text-5xl">
+            <h1 className="mt-2 text-2xl md:text-3xl font-bold leading-tight text-naki-primary">
               Pilih metode pembayaran
             </h1>
-            <p className="mt-3 max-w-2xl leading-7 text-naki-smoke">
+            <p className="mt-3 text-sm text-naki-smoke leading-relaxed">
               Bayar langsung dari website. Setelah pembayaran berhasil, source
               code dan panduan akan terbuka di Pesanan Saya.
             </p>
 
             <p
-              className="mt-5 inline-flex rounded-lg border border-naki-steel bg-naki-steel px-4 py-3 text-sm font-black text-naki-secondary"
+              className="mt-5 inline-flex rounded-lg bg-naki-frost px-4 py-3 text-sm font-medium text-naki-smoke"
               aria-live="polite"
               role="status"
             >
@@ -242,14 +243,16 @@ export function CheckoutPage() {
             </p>
 
             {!userToken ? (
-              <div className="mt-6 rounded-lg border border-naki-steel bg-naki-steel p-5">
+              <div className="mt-6 rounded-xl bg-naki-frost p-6">
                 <LockKeyhole className="text-naki-secondary" size={28} />
-                <h2 className="mt-3 text-xl font-black">Login diperlukan.</h2>
-                <p className="mt-2 text-sm font-semibold leading-6 text-naki-smoke">
+                <h2 className="mt-3 text-xl font-bold text-naki-primary">
+                  Login diperlukan.
+                </h2>
+                <p className="mt-2 text-sm text-naki-smoke leading-relaxed">
                   Checkout hanya bisa diproses oleh akun pembeli.
                 </p>
                 <Link
-                  className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost"
+                  className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-naki-primary px-5 text-sm font-medium text-white transition hover:bg-opacity-90"
                   to={`/login?next=${encodeURIComponent(
                     `/checkout/${orderId ?? ""}`,
                   )}`}
@@ -258,7 +261,8 @@ export function CheckoutPage() {
                 </Link>
               </div>
             ) : order ? (
-              <div className="mt-6 grid gap-4">
+              <div className="mt-6 grid gap-5">
+                {/* Payment method selection cards */}
                 <div className="grid gap-3 md:grid-cols-3">
                   {paymentMethods.map((method) => {
                     const Icon = method.icon;
@@ -267,26 +271,26 @@ export function CheckoutPage() {
                     return (
                       <button
                         key={method.value}
-                        className={`min-h-36 rounded-xl border p-4 text-left transition ${
+                        className={`rounded-xl p-4 text-left transition ${
                           isActive
-                            ? "border-naki-secondary bg-naki-primary text-naki-frost shadow-naki-soft"
-                            : "border-naki-steel bg-naki-frost text-naki-primary hover:border-naki-secondary"
+                            ? "bg-naki-primary text-white shadow-sm"
+                            : "bg-naki-frost text-naki-primary hover:shadow-sm"
                         }`}
                         onClick={() => setPaymentMethod(method.value)}
                         type="button"
                       >
                         <Icon
                           className={
-                            isActive ? "text-naki-frost" : "text-naki-secondary"
+                            isActive ? "text-white" : "text-naki-secondary"
                           }
                           size={26}
                         />
-                        <p className="mt-4 text-lg font-black">
+                        <p className="mt-3 text-base font-bold">
                           {method.title}
                         </p>
                         <p
-                          className={`mt-2 text-sm font-semibold leading-6 ${
-                            isActive ? "text-naki-frost" : "text-naki-smoke"
+                          className={`mt-1.5 text-sm leading-relaxed ${
+                            isActive ? "text-white/80" : "text-naki-smoke"
                           }`}
                         >
                           {method.description}
@@ -296,22 +300,27 @@ export function CheckoutPage() {
                   })}
                 </div>
 
-                <div className="rounded-xl border border-naki-steel bg-naki-steel p-5">
+                {/* Coupon, referral, and payment details card */}
+                <div className="rounded-xl bg-naki-frost p-6">
                   <div className="mb-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                    <label className="grid gap-1.5 text-sm font-black">
-                      Kode kupon
+                    <label className="grid gap-1.5">
+                      <span className="text-xs font-medium text-naki-smoke">
+                        Kode kupon
+                      </span>
                       <input
-                        className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold uppercase outline-none focus:border-naki-secondary"
+                        className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary uppercase outline-none focus:border-blue-400"
                         value={couponCode}
                         onChange={(event) => setCouponCode(event.target.value)}
                         placeholder="NAKIHEMAT"
                         type="text"
                       />
                     </label>
-                    <label className="grid gap-1.5 text-sm font-black">
-                      Referral
+                    <label className="grid gap-1.5">
+                      <span className="text-xs font-medium text-naki-smoke">
+                        Referral
+                      </span>
                       <input
-                        className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold uppercase outline-none focus:border-naki-secondary"
+                        className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary uppercase outline-none focus:border-blue-400"
                         value={referralCode}
                         onChange={(event) =>
                           setReferralCode(event.target.value)
@@ -321,7 +330,7 @@ export function CheckoutPage() {
                       />
                     </label>
                     <button
-                      className="self-end rounded-lg border border-naki-steel px-4 py-3 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+                      className="self-end h-11 rounded-xl border border-naki-steel bg-white px-4 text-sm font-medium text-naki-smoke transition hover:border-naki-primary hover:text-naki-primary"
                       onClick={() => void validateCoupon()}
                       type="button"
                     >
@@ -329,37 +338,37 @@ export function CheckoutPage() {
                     </button>
                   </div>
                   <p
-                    className="mb-5 text-sm font-semibold text-naki-smoke"
+                    className="mb-5 text-sm text-naki-smoke leading-relaxed"
                     aria-live="polite"
                     role="status"
                   >
                     {couponStatus}
                   </p>
-                  <div className="flex items-center gap-2 text-sm font-black">
+                  <div className="flex items-center gap-2 text-sm font-medium text-naki-smoke">
                     <ShieldCheck className="text-naki-secondary" size={18} />
                     Status pembayaran
                   </div>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-naki-smoke">
+                  <p className="mt-2 text-sm text-naki-smoke leading-relaxed">
                     {getPaymentStatusLabel(order.paymentStatus)}
                     {order.paymentReference
                       ? ` - Ref ${order.paymentReference}`
                       : ""}
                   </p>
                   {order.paymentStatus === "waiting_payment" ? (
-                    <p className="mt-2 rounded-lg border border-naki-steel bg-naki-frost px-3 py-2 text-sm font-semibold leading-6 text-naki-smoke">
+                    <p className="mt-2 rounded-lg bg-white px-3 py-2 text-sm text-naki-smoke leading-relaxed">
                       {getWaitingPaymentMessage(order)}
                     </p>
                   ) : null}
                   {order.paymentMethod ? (
-                    <p className="mt-2 text-sm font-bold text-naki-smoke">
+                    <p className="mt-2 text-sm font-medium text-naki-smoke">
                       Metode aktif: {order.paymentMethod}
                     </p>
                   ) : null}
 
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                     {order.paymentStatus === "paid" ? (
                       <Link
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-secondary"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:bg-opacity-90"
                         to="/pesanan-saya"
                       >
                         <BadgeCheck size={16} />
@@ -367,7 +376,7 @@ export function CheckoutPage() {
                       </Link>
                     ) : (
                       <button
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-4 text-sm font-medium text-white transition hover:bg-opacity-90 disabled:cursor-not-allowed disabled:bg-naki-steel disabled:text-naki-smoke"
                         disabled={isProcessing || isLoading}
                         onClick={() => void startPayment()}
                         type="button"
@@ -378,7 +387,7 @@ export function CheckoutPage() {
                     )}
                     {order.paymentUrl ? (
                       <a
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel px-4 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-medium text-naki-smoke transition hover:border-naki-primary hover:text-naki-primary"
                         href={order.paymentUrl}
                         rel="noreferrer"
                         target={
@@ -393,7 +402,7 @@ export function CheckoutPage() {
                     ) : null}
                     {canConfirmPaymentManually(order) ? (
                       <button
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-secondary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:bg-opacity-90 disabled:cursor-not-allowed disabled:bg-naki-steel disabled:text-naki-smoke"
                         disabled={isProcessing}
                         onClick={() => void confirmPayment()}
                         type="button"
@@ -406,14 +415,16 @@ export function CheckoutPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-6 rounded-lg border border-naki-steel bg-naki-steel p-5">
+              <div className="mt-6 rounded-xl bg-naki-frost p-6">
                 <RefreshCw className="text-naki-secondary" size={28} />
-                <h2 className="mt-3 text-xl font-black">Order belum ketemu.</h2>
-                <p className="mt-2 text-sm font-semibold leading-6 text-naki-smoke">
+                <h2 className="mt-3 text-xl font-bold text-naki-primary">
+                  Order belum ketemu.
+                </h2>
+                <p className="mt-2 text-sm text-naki-smoke leading-relaxed">
                   Pastikan kamu membuka checkout dari akun yang sama.
                 </p>
                 <Link
-                  className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost"
+                  className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-naki-secondary px-5 text-sm font-medium text-white transition hover:bg-opacity-90"
                   to="/pesanan-saya"
                 >
                   Buka Pesanan Saya
@@ -422,13 +433,14 @@ export function CheckoutPage() {
             )}
           </div>
 
-          <aside className="h-fit rounded-xl border border-naki-steel bg-naki-frost p-5 shadow-naki-card lg:sticky lg:top-24">
-            <p className="text-sm font-black text-naki-smoke">
+          {/* Order summary sidebar */}
+          <aside className="h-fit bg-white rounded-2xl shadow-sm p-6 lg:sticky lg:top-24">
+            <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
               Ringkasan order
             </p>
             {order ? (
               <>
-                <h2 className="mt-2 text-2xl font-black">
+                <h2 className="mt-2 text-lg font-bold text-naki-primary leading-tight">
                   {order.templateTitle}
                 </h2>
                 <div className="mt-5 grid gap-3">
@@ -448,7 +460,7 @@ export function CheckoutPage() {
                 </div>
               </>
             ) : (
-              <p className="mt-3 text-sm font-semibold leading-6 text-naki-smoke">
+              <p className="mt-3 text-sm text-naki-smoke leading-relaxed">
                 Ringkasan muncul setelah order berhasil dimuat.
               </p>
             )}
@@ -468,9 +480,9 @@ type CheckoutInfoProps = {
 
 function CheckoutInfo({ label, value }: CheckoutInfoProps) {
   return (
-    <div className="rounded-lg bg-naki-steel p-4">
-      <p className="text-xs font-black uppercase text-naki-smoke">{label}</p>
-      <p className="mt-1 text-sm font-black text-naki-primary">{value}</p>
+    <div className="rounded-xl bg-naki-frost p-4">
+      <p className="text-xs font-medium uppercase text-naki-smoke">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-naki-primary">{value}</p>
     </div>
   );
 }

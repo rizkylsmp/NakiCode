@@ -48,6 +48,34 @@ import {
 } from "./admin/AdminTemplateWorkspace.shared";
 import { DeleteOrderDialog } from "./admin/DeleteOrderDialog";
 
+/** Parse order filter state from URL query params. */
+function readOrderFiltersFromUrl(search: string): {
+  filters: AdminOrderFilters;
+  page: number;
+} {
+  const params = new URLSearchParams(search);
+  const status = params.get("ordersStatus");
+  const paymentStatus = params.get("ordersPaymentStatus");
+  const page = params.get("ordersPage");
+
+  return {
+    filters: {
+      status:
+        status === "new" || status === "contacted" || status === "deal" || status === "closed"
+          ? status
+          : "all",
+      paymentStatus:
+        paymentStatus === "pending" ||
+        paymentStatus === "waiting_payment" ||
+        paymentStatus === "paid" ||
+        paymentStatus === "failed"
+          ? paymentStatus
+          : "all",
+    },
+    page: page && Number(page) > 0 ? Number(page) : 1,
+  };
+}
+
 type AdminTemplatesPageProps = {
   templates: TemplateItem[];
   categories: TemplateCategory[];
@@ -102,12 +130,10 @@ export function AdminTemplatesPage({
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(
     null,
   );
+  const initialOrderState = useMemo(() => readOrderFiltersFromUrl(location.search), []);
   const [orders, setOrders] = useState<OrderItem[]>([]);
-  const [ordersPage, setOrdersPage] = useState(1);
-  const [orderFilters, setOrderFilters] = useState<AdminOrderFilters>({
-    status: "all",
-    paymentStatus: "all",
-  });
+  const [ordersPage, setOrdersPage] = useState(initialOrderState.page);
+  const [orderFilters, setOrderFilters] = useState<AdminOrderFilters>(initialOrderState.filters);
   const [ordersMeta, setOrdersMeta] = useState({
     total: 0,
     totalPages: 1,
@@ -166,6 +192,30 @@ export function AdminTemplatesPage({
     // loadOrders is intentionally omitted because this effect only syncs route into UI state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminSection, adminToken, isAdmin, location.hash, navigate, routeAdminView]);
+
+  // Sync order filters from URL query params when navigating to/from the orders view.
+  useEffect(() => {
+    if (routeAdminView === "orders") {
+      const { filters, page } = readOrderFiltersFromUrl(location.search);
+      setOrderFilters(filters);
+      setOrdersPage(page);
+      return;
+    }
+
+    // When leaving the orders view, strip order params from the URL.
+    const params = new URLSearchParams(location.search);
+    const orderKeys = ["ordersStatus", "ordersPaymentStatus", "ordersPage"];
+    let changed = false;
+    for (const key of orderKeys) {
+      if (params.has(key)) {
+        params.delete(key);
+        changed = true;
+      }
+    }
+    if (changed) {
+      navigate({ search: params.toString() }, { replace: true });
+    }
+  }, [routeAdminView, location.search, navigate]);
 
   useEffect(() => {
     let isActive = true;
@@ -440,6 +490,20 @@ export function AdminTemplatesPage({
     setOrderFilters(nextFilters);
     setOrdersPage(1);
     void loadOrders(adminToken, 1, nextFilters);
+
+    const params = new URLSearchParams(location.search);
+    if (nextFilters.status !== "all") {
+      params.set("ordersStatus", nextFilters.status);
+    } else {
+      params.delete("ordersStatus");
+    }
+    if (nextFilters.paymentStatus !== "all") {
+      params.set("ordersPaymentStatus", nextFilters.paymentStatus);
+    } else {
+      params.delete("ordersPaymentStatus");
+    }
+    params.set("ordersPage", "1");
+    navigate({ search: params.toString() }, { replace: true });
   }
 
   async function updateOrderStatus(orderId: number, nextStatus: OrderStatus) {
@@ -789,63 +853,63 @@ export function AdminTemplatesPage({
   }
 
   return (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <main className="bg-naki-page-bg min-h-screen text-naki-primary">
       <Header />
 
       {!adminToken ? (
         <section className="grid min-h-[76vh] w-full place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
-          <div className="w-full max-w-md rounded-xl border border-naki-steel bg-naki-frost p-6 shadow-naki-soft">
-            <span className="grid size-12 place-items-center rounded-lg bg-naki-primary text-naki-frost">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
+            <span className="grid size-12 place-items-center rounded-xl bg-naki-primary text-white">
               <LockKeyhole size={22} />
             </span>
-            <h1 className="mt-5 text-4xl font-black leading-tight">
+            <h1 className="mt-5 text-3xl font-bold leading-tight">
               Login diperlukan
             </h1>
-            <p className="mt-3 leading-7 text-naki-smoke">
+            <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
               Gunakan halaman login yang sama. Akun dengan role admin akan
               otomatis membuka dashboard ini.
             </p>
             <Link
-              className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
+              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm text-white transition hover:opacity-90"
               to="/login?next=%2Fadmin%2Fdashboard"
             >
               <LockKeyhole size={17} />
               Buka login
             </Link>
-            <p className="mt-4 text-sm font-semibold text-naki-smoke">
+            <p className="mt-4 text-xs font-medium text-naki-smoke">
               {loginStatus}
             </p>
           </div>
         </section>
       ) : !isAdmin ? (
         <section className="grid min-h-[76vh] w-full place-items-center px-5 py-12 text-center md:px-8 xl:px-12 2xl:px-16">
-          <div className="w-full max-w-md rounded-xl border border-naki-steel bg-naki-frost p-6 shadow-naki-soft">
-            <span className="mx-auto grid size-12 place-items-center rounded-lg bg-naki-primary text-naki-frost">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
+            <span className="mx-auto grid size-12 place-items-center rounded-xl bg-naki-primary text-white">
               <LockKeyhole size={22} />
             </span>
-            <h1 className="mt-5 text-4xl font-black leading-tight">
+            <h1 className="mt-5 text-3xl font-bold leading-tight">
               Akses admin
             </h1>
-            <p className="mt-3 leading-7 text-naki-smoke">
+            <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
               Akun {adminUsername || "ini"} sudah login, tapi belum punya role
               admin.
             </p>
-            <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-5 text-sm font-black text-naki-frost transition hover:bg-naki-primary"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm text-white transition hover:opacity-90"
                 to="/login?next=%2Fadmin%2Fdashboard"
               >
                 Login akun admin
               </Link>
               <button
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-naki-steel px-5 text-sm font-black text-naki-secondary transition hover:border-naki-smoke"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
                 onClick={logout}
                 type="button"
               >
                 Logout
               </button>
             </div>
-            <p className="mt-4 text-sm font-semibold text-naki-smoke">
+            <p className="mt-4 text-xs font-medium text-naki-smoke">
               {loginStatus}
             </p>
           </div>
@@ -910,6 +974,9 @@ export function AdminTemplatesPage({
           onOrdersPageChange={(page) => {
             setOrdersPage(page);
             void loadOrders(adminToken, page, orderFilters);
+            const params = new URLSearchParams(location.search);
+            params.set("ordersPage", String(page));
+            navigate({ search: params.toString() }, { replace: true });
           }}
           onUpdateOrderStatus={updateOrderStatus}
           onDeleteOrder={setDeleteCandidateOrder}

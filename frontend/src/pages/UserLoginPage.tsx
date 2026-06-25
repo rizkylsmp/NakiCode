@@ -173,185 +173,205 @@ export function UserLoginPage() {
   }
 
   return (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <Header />
-      <section className="grid min-h-[76vh] place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
-        <div className="w-full max-w-md rounded-xl border border-naki-steel bg-naki-frost p-6 shadow-naki-soft">
-          <span className="grid size-12 place-items-center rounded-lg bg-naki-primary text-naki-frost">
-            <LockKeyhole size={22} />
-          </span>
-          <h1 className="mt-5 text-4xl font-black leading-tight">Login user</h1>
-
-          <div className="mt-6 grid grid-cols-2 gap-2 rounded-lg bg-naki-steel p-1">
-            {(["login", "register"] as const).map((item) => (
-              <button
-                key={item}
-                className={`h-10 rounded-md text-sm font-black transition ${
-                  mode === item
-                    ? "bg-naki-frost text-naki-primary shadow-sm"
-                    : "text-naki-smoke hover:text-naki-primary"
-                }`}
-                onClick={() => setMode(item)}
-                type="button"
-              >
-                {item === "login" ? "Login" : "Daftar"}
-              </button>
-            ))}
+      <section className="min-h-[76vh] px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
+        {/* Dark navy hero */}
+        <div className="mb-8 rounded-2xl bg-naki-primary px-6 py-10 text-center md:px-12">
+          <div className="mx-auto mb-4 grid size-14 place-items-center rounded-xl bg-white/10">
+            <LockKeyhole size={26} className="text-white" />
           </div>
+          <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl">
+            Login User
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-white/60">
+            Masuk atau buat akun untuk mulai order template
+          </p>
+        </div>
 
-          <form className="mt-5 grid gap-4" onSubmit={submitAuth}>
-            <label className="grid gap-1.5 text-sm font-black">
-              {mode === "login" ? "Username / email" : "Username"}
-              <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
-                value={form.username}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    username: event.target.value,
-                  }))
-                }
-                required
-              />
-            </label>
-            {mode === "register" ? (
-              <label className="grid gap-1.5 text-sm font-black">
-                Email
+        {/* White card for form */}
+        <div className="mx-auto max-w-md">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            {/* Login / Register toggle */}
+            <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-naki-frost p-1">
+              {(["login", "register"] as const).map((item) => (
+                <button
+                  key={item}
+                  className={`h-10 rounded-lg text-sm font-bold transition ${
+                    mode === item
+                      ? "bg-white text-naki-primary shadow-sm"
+                      : "text-naki-smoke hover:text-naki-primary"
+                  }`}
+                  onClick={() => setMode(item)}
+                  type="button"
+                >
+                  {item === "login" ? "Login" : "Daftar"}
+                </button>
+              ))}
+            </div>
+
+            <form className="grid gap-4" onSubmit={submitAuth}>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-naki-smoke">
+                  {mode === "login" ? "Username / email" : "Username"}
+                </span>
                 <input
-                  className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
-                  value={form.email}
+                  className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
+                  value={form.username}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      email: event.target.value,
+                      username: event.target.value,
                     }))
                   }
                   required
-                  type="email"
                 />
               </label>
-            ) : null}
-            <label className="grid gap-1.5 text-sm font-black">
-              Password
-              <input
-                className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
-                value={form.password}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    password: event.target.value,
-                  }))
-                }
-                minLength={8}
-                required
-                type="password"
-              />
-            </label>
-
-            {/* Show password strength indicator in register mode */}
-            {mode === "register" && (
-              <PasswordStrengthIndicator password={form.password} />
-            )}
-            {mode === "login" ? (
-              <Link
-                className="w-fit text-sm font-black text-naki-secondary underline decoration-dotted underline-offset-4"
-                to={forgotPasswordUrl}
-              >
-                Lupa password?
-              </Link>
-            ) : null}
-            {mode === "register" ? (
-              <>
-                <label className="grid gap-1.5 text-sm font-black">
-                  Konfirmasi password
+              {mode === "register" ? (
+                <label className="grid gap-1.5">
+                  <span className="text-xs font-medium text-naki-smoke">
+                    Email
+                  </span>
                   <input
-                    className="h-11 rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm font-semibold outline-none focus:border-naki-secondary"
-                    value={form.confirmPassword}
+                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
+                    value={form.email}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
-                        confirmPassword: event.target.value,
+                        email: event.target.value,
                       }))
                     }
-                    minLength={8}
                     required
-                    type="password"
+                    type="email"
                   />
                 </label>
-
-                {/* Honeypot field - hidden from humans, catches bots */}
+              ) : null}
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-naki-smoke">
+                  Password
+                </span>
                 <input
-                  type="text"
-                  name="website"
-                  value={captcha.honeypot}
-                  onChange={(e) =>
-                    setCaptcha((prev) => ({
-                      ...prev,
-                      honeypot: e.target.value,
+                  className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
+                  value={form.password}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      password: event.target.value,
                     }))
                   }
-                  style={{
-                    position: "absolute",
-                    left: "-9999px",
-                    opacity: 0,
-                    height: 0,
-                  }}
-                  tabIndex={-1}
-                  autoComplete="off"
-                  aria-hidden="true"
+                  minLength={8}
+                  required
+                  type="password"
                 />
+              </label>
 
-                {/* Checkbox captcha */}
-                <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+              {/* Show password strength indicator in register mode */}
+              {mode === "register" && (
+                <PasswordStrengthIndicator password={form.password} />
+              )}
+              {mode === "login" ? (
+                <Link
+                  className="w-fit text-sm font-semibold text-naki-secondary underline decoration-dotted underline-offset-4"
+                  to={forgotPasswordUrl}
+                >
+                  Lupa password?
+                </Link>
+              ) : null}
+              {mode === "register" ? (
+                <>
+                  <label className="grid gap-1.5">
+                    <span className="text-xs font-medium text-naki-smoke">
+                      Konfirmasi password
+                    </span>
+                    <input
+                      className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
+                      value={form.confirmPassword}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          confirmPassword: event.target.value,
+                        }))
+                      }
+                      minLength={8}
+                      required
+                      type="password"
+                    />
+                  </label>
+
+                  {/* Honeypot field - hidden from humans, catches bots */}
                   <input
-                    type="checkbox"
-                    checked={captcha.isChecked}
+                    type="text"
+                    name="website"
+                    value={captcha.honeypot}
                     onChange={(e) =>
                       setCaptcha((prev) => ({
                         ...prev,
-                        isChecked: e.target.checked,
+                        honeypot: e.target.value,
                       }))
                     }
-                    className="h-4 w-4 rounded border-naki-steel cursor-pointer"
-                    required
+                    style={{
+                      position: "absolute",
+                      left: "-9999px",
+                      opacity: 0,
+                      height: 0,
+                    }}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
                   />
-                  Saya bukan robot
-                </label>
-              </>
-            ) : null}
-            <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
-              disabled={isSubmitting}
-              type="submit"
-            >
-              <LogIn size={16} />
-              {isSubmitting
-                ? "Memproses..."
-                : mode === "login"
-                  ? "Login user"
-                  : "Daftar user"}
-            </button>
-          </form>
-          <p
-            className="mt-4 text-sm font-semibold leading-6 text-naki-smoke"
-            aria-live="polite"
-            role="status"
-          >
-            {status}
-          </p>
-          {verificationUrl ? (
-            <div className="mt-4 rounded-lg border border-naki-steel bg-naki-steel p-4">
-              <p className="text-sm font-black text-naki-primary">
-                Link verifikasi
-              </p>
-              <Link
-                className="mt-2 inline-flex text-sm font-bold text-naki-secondary underline decoration-dotted underline-offset-4"
-                to={verificationUrl}
+
+                  {/* Checkbox captcha */}
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={captcha.isChecked}
+                      onChange={(e) =>
+                        setCaptcha((prev) => ({
+                          ...prev,
+                          isChecked: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-naki-steel cursor-pointer"
+                      required
+                    />
+                    Saya bukan robot
+                  </label>
+                </>
+              ) : null}
+              <button
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-bold text-white transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                disabled={isSubmitting}
+                type="submit"
               >
-                Buka verifikasi OTP
-              </Link>
-            </div>
-          ) : null}
+                <LogIn size={16} />
+                {isSubmitting
+                  ? "Memproses..."
+                  : mode === "login"
+                    ? "Login user"
+                    : "Daftar user"}
+              </button>
+            </form>
+            <p
+              className="mt-4 text-sm leading-relaxed text-naki-smoke"
+              aria-live="polite"
+              role="status"
+            >
+              {status}
+            </p>
+            {verificationUrl ? (
+              <div className="mt-4 rounded-xl bg-naki-frost p-4">
+                <p className="text-sm font-bold text-naki-primary">
+                  Link verifikasi
+                </p>
+                <Link
+                  className="mt-2 inline-flex text-sm font-semibold text-naki-secondary underline decoration-dotted underline-offset-4"
+                  to={verificationUrl}
+                >
+                  Buka verifikasi OTP
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
       <Footer />
