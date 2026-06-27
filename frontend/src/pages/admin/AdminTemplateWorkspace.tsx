@@ -1,4 +1,5 @@
 import { ArrowLeft, ClipboardList, Globe2, Inbox, LayoutDashboard } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { type PortfolioItem, type TemplateItem } from "../../content";
 import { type OrderItem } from "../../order-types";
@@ -9,11 +10,12 @@ import {
   type PortfolioFormState,
   type TemplateFormState,
 } from "./AdminTemplateWorkspace.shared";
-import { AdminDashboardHome } from "./AdminDashboardHome";
-import { OrdersPanel } from "./OrdersPanel";
-import { PortfolioAdminPanel } from "./PortfolioAdminPanel";
-import { PortfolioFormModal } from "./PortfolioFormModal";
-import { TemplatesPanel } from "./TemplatesPanel";
+
+// Lazy-loaded admin panels
+const AdminDashboardHome = lazy(() => import("./AdminDashboardHome").then((m) => ({ default: m.AdminDashboardHome })));
+const OrdersPanel = lazy(() => import("./OrdersPanel").then((m) => ({ default: m.OrdersPanel })));
+const PortfolioAdminPanel = lazy(() => import("./PortfolioAdminPanel").then((m) => ({ default: m.PortfolioAdminPanel })));
+const TemplatesPanel = lazy(() => import("./TemplatesPanel").then((m) => ({ default: m.TemplatesPanel })));
 
 type AdminTemplateWorkspaceProps = {
   templates: TemplateItem[];
@@ -44,6 +46,7 @@ type AdminTemplateWorkspaceProps = {
   onSaveEditCategory: () => void;
   onCancelEditCategory: () => void;
   onDeleteCategory: (name: string) => void;
+  isDeletingCategory: boolean;
   onOpenCategoryModal: () => void;
   onCloseCategoryModal: () => void;
   onSubmitCategory: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -87,6 +90,16 @@ type AdminTemplateWorkspaceProps = {
   onDeletePortfolio: (project: PortfolioItem) => void;
 };
 
+function PanelLoader() {
+  return (
+    <div className="grid min-h-75 place-items-center">
+      <div className="rounded-xl border border-naki-steel bg-white px-5 py-4 text-sm font-medium text-naki-smoke shadow-sm">
+        Memuat...
+      </div>
+    </div>
+  );
+}
+
 export function AdminTemplateWorkspace({
   templates,
   paginatedTemplates,
@@ -115,6 +128,7 @@ export function AdminTemplateWorkspace({
   onSaveEditCategory,
   onCancelEditCategory,
   onDeleteCategory,
+  isDeletingCategory,
   onOpenCategoryModal,
   onCloseCategoryModal,
   portfolioForm,
@@ -219,17 +233,23 @@ export function AdminTemplateWorkspace({
       {/* Content area */}
       <div className="w-full px-5 py-6 md:px-8 xl:px-12 2xl:px-16">
         {activeAdminView === "dashboard" ? (
-          <AdminDashboardHome templates={templates} projects={projects} orders={orders} onNavigate={onActiveAdminViewChange} onRefreshOrders={onRefreshOrders} />
+          <Suspense fallback={<PanelLoader />}>
+            <AdminDashboardHome templates={templates} projects={projects} orders={orders} onNavigate={onActiveAdminViewChange} onRefreshOrders={onRefreshOrders} />
+          </Suspense>
         ) : activeAdminView === "orders" ? (
-          <OrdersPanel orders={orders} ordersStatus={ordersStatus} ordersPage={ordersPage} orderFilters={orderFilters} ordersMeta={ordersMeta} isLoadingOrders={isLoadingOrders} updatingOrderId={updatingOrderId} onRefreshOrders={onRefreshOrders} onOrderFiltersChange={onOrderFiltersChange} onOrdersPageChange={onOrdersPageChange} onUpdateOrderStatus={onUpdateOrderStatus} onDeleteOrder={onDeleteOrder} />
+          <Suspense fallback={<PanelLoader />}>
+            <OrdersPanel orders={orders} ordersStatus={ordersStatus} ordersPage={ordersPage} orderFilters={orderFilters} ordersMeta={ordersMeta} isLoadingOrders={isLoadingOrders} updatingOrderId={updatingOrderId} onRefreshOrders={onRefreshOrders} onOrderFiltersChange={onOrderFiltersChange} onOrdersPageChange={onOrdersPageChange} onUpdateOrderStatus={onUpdateOrderStatus} onDeleteOrder={onDeleteOrder} />
+          </Suspense>
         ) : activeAdminView === "portfolio" ? (
-          <PortfolioAdminPanel projects={projects} form={portfolioForm} status={portfolioStatus} deletingProjectId={deletingProjectId} onStartEdit={onStartEditPortfolio} onReset={onResetPortfolioForm} onDelete={onDeletePortfolio} />
+          <Suspense fallback={<PanelLoader />}>
+            <PortfolioAdminPanel projects={projects} form={portfolioForm} status={portfolioStatus} deletingProjectId={deletingProjectId} onStartEdit={onStartEditPortfolio} onReset={onResetPortfolioForm} onDelete={onDeletePortfolio} />
+          </Suspense>
         ) : (
-          <TemplatesPanel templates={templates} paginatedTemplates={paginatedTemplates} filteredTemplatesCount={filteredTemplatesCount} templatesPage={templatesPage} templatesTotalPages={templatesTotalPages} templateSearch={templateSearch} templateCategoryFilter={templateCategoryFilter} categoryOptions={categoryOptions} selectedId={selectedId} selectedTemplate={selectedTemplate} form={form} status={status} isSaving={isSaving} isTemplateModalOpen={isTemplateModalOpen} adminToken={adminToken} categoryName={categoryName} isSavingCategory={isSavingCategory} isCategoryModalOpen={isCategoryModalOpen} editingCategory={editingCategory} editingCategoryName={editingCategoryName} onTemplateSearchChange={onTemplateSearchChange} onTemplateCategoryFilterChange={onTemplateCategoryFilterChange} onTemplatesPageChange={onTemplatesPageChange} onStartCreate={onStartCreate} onStartEdit={onStartEdit} onCloseTemplateModal={onCloseTemplateModal} onDeleteTemplate={onDeleteTemplate} onSubmitTemplate={onSubmitTemplate} onUpdateField={onUpdateField} onOpenCategoryModal={onOpenCategoryModal} onCloseCategoryModal={onCloseCategoryModal} onSubmitCategory={onSubmitCategory} onCategoryNameChange={onCategoryNameChange} onEditCategoryNameChange={onEditCategoryNameChange} onEditCategory={onEditCategory} onSaveEditCategory={onSaveEditCategory} onCancelEditCategory={onCancelEditCategory} onDeleteCategory={onDeleteCategory} />
+          <Suspense fallback={<PanelLoader />}>
+            <TemplatesPanel templates={templates} paginatedTemplates={paginatedTemplates} filteredTemplatesCount={filteredTemplatesCount} templatesPage={templatesPage} templatesTotalPages={templatesTotalPages} templateSearch={templateSearch} templateCategoryFilter={templateCategoryFilter} categoryOptions={categoryOptions} selectedId={selectedId} selectedTemplate={selectedTemplate} form={form} status={status} isSaving={isSaving} isTemplateModalOpen={isTemplateModalOpen} adminToken={adminToken} categoryName={categoryName} isSavingCategory={isSavingCategory} isCategoryModalOpen={isCategoryModalOpen} editingCategory={editingCategory} editingCategoryName={editingCategoryName} onTemplateSearchChange={onTemplateSearchChange} onTemplateCategoryFilterChange={onTemplateCategoryFilterChange} onTemplatesPageChange={onTemplatesPageChange} onStartCreate={onStartCreate} onStartEdit={onStartEdit} onCloseTemplateModal={onCloseTemplateModal} onDeleteTemplate={onDeleteTemplate} onSubmitTemplate={onSubmitTemplate} onUpdateField={onUpdateField} onOpenCategoryModal={onOpenCategoryModal} onCloseCategoryModal={onCloseCategoryModal} onSubmitCategory={onSubmitCategory} onCategoryNameChange={onCategoryNameChange} onEditCategoryNameChange={onEditCategoryNameChange} onEditCategory={onEditCategory} onSaveEditCategory={onSaveEditCategory} onCancelEditCategory={onCancelEditCategory} onDeleteCategory={onDeleteCategory} isDeletingCategory={isDeletingCategory} />
+          </Suspense>
         )}
       </div>
-
-      <PortfolioFormModal adminToken={adminToken} form={portfolioForm} isOpen={isPortfolioModalOpen} isSaving={isSavingPortfolio} status={portfolioStatus} onClose={onClosePortfolioModal} onReset={onResetPortfolioForm} onSubmit={onSubmitPortfolio} onUpdateField={onUpdatePortfolioField} />
     </section>
   );
 }

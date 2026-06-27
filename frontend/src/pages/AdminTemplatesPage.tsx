@@ -46,6 +46,7 @@ import {
   type TemplateMutationResponse,
   type TemplatesResponse,
 } from "./admin/AdminTemplateWorkspace.shared";
+import { DeleteCategoryDialog } from "./admin/DeleteCategoryDialog";
 import { DeleteOrderDialog } from "./admin/DeleteOrderDialog";
 
 /** Parse order filter state from URL query params. */
@@ -160,6 +161,8 @@ export function AdminTemplatesPage({
   );
   const [deleteCandidateOrder, setDeleteCandidateOrder] =
     useState<OrderItem | null>(null);
+  const [deleteCandidateCategory, setDeleteCandidateCategory] =
+    useState<string | null>(null);
   const adminTokenRef = useRef(adminToken);
   const isAdmin = Boolean(adminToken && adminRole === "admin");
 
@@ -721,19 +724,17 @@ export function AdminTemplatesPage({
     }
   }
 
-  async function handleDeleteCategory(categoryName: string) {
+  function handleDeleteCategory(categoryName: string) {
     if (!adminToken) {
       setCategoryStatus("Login admin diperlukan untuk menghapus kategori.");
       return;
     }
 
-    const confirmed = window.confirm(
-      `Apakah Anda yakin ingin menghapus kategori "${categoryName}"?\n\nPerhatian: Kategori yang sedang digunakan oleh template tidak dapat dihapus.`
-    );
+    setDeleteCandidateCategory(categoryName);
+  }
 
-    if (!confirmed) {
-      return;
-    }
+  async function handleConfirmDeleteCategory(categoryName: string) {
+    setDeleteCandidateCategory(null);
 
     // First, get the category ID from the API
     try {
@@ -944,6 +945,7 @@ export function AdminTemplatesPage({
           onSaveEditCategory={handleUpdateCategory}
           onCancelEditCategory={handleCancelEdit}
           onDeleteCategory={handleDeleteCategory}
+          isDeletingCategory={isSavingCategory}
           onOpenCategoryModal={openCategoryModal}
           onCloseCategoryModal={closeCategoryModal}
           onSubmitCategory={handleSubmitCategory}
@@ -995,6 +997,17 @@ export function AdminTemplatesPage({
           onDeletePortfolio={deletePortfolio}
         />
       )}
+
+      <DeleteCategoryDialog
+        category={deleteCandidateCategory}
+        isDeleting={isSavingCategory}
+        onClose={() => {
+          if (!isSavingCategory) {
+            setDeleteCandidateCategory(null);
+          }
+        }}
+        onConfirm={(category) => void handleConfirmDeleteCategory(category)}
+      />
 
       <DeleteOrderDialog
         order={deleteCandidateOrder}

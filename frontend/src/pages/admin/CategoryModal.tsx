@@ -19,6 +19,7 @@ type CategoryModalProps = {
   onSaveEditCategory: () => void;
   onCancelEditCategory: () => void;
   onDeleteCategory: (category: TemplateCategory) => void;
+  isDeletingCategory: boolean;
 };
 
 export function CategoryModal({
@@ -36,6 +37,7 @@ export function CategoryModal({
   onSaveEditCategory,
   onCancelEditCategory,
   onDeleteCategory,
+  isDeletingCategory,
 }: CategoryModalProps) {
   if (!isOpen || typeof document === "undefined") {
     return null;
@@ -137,8 +139,9 @@ export function CategoryModal({
                           </button>
                           <button
                             type="button"
+                            disabled={isDeletingCategory}
                             onClick={() => onDeleteCategory(category)}
-                            className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:border-red-400 hover:text-red-500"
+                            className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:border-red-400 hover:text-red-500 disabled:cursor-not-allowed disabled:border-transparent disabled:text-naki-smoke/50"
                             aria-label="Hapus"
                           >
                             <Trash2 size={16} />

@@ -55,7 +55,6 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
     console.error('Error fetching order stats:', error);
     res.status(500).json({
       error: 'Failed to fetch order statistics',
-      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

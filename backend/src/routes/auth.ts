@@ -11,6 +11,7 @@ import {
 } from '../auth';
 import { config } from '../config';
 import { enqueueEmail } from '../email-queue';
+import { createAdminAuditLog } from '../models/audit-log.model';
 import {
   createUserAccount,
   clearUserEmailVerificationOtp,
@@ -96,9 +97,28 @@ authRouter.post('/login', async (request, response) => {
       admin.role !== 'admin' ||
       !(await verifyPassword(body.password, admin.passwordHash))
     ) {
+      await createAdminAuditLog({
+        admin: null,
+        action: 'login_failed',
+        entityType: 'auth',
+        metadata: { identifier: body.username, ip: request.ip ?? 'unknown' },
+      });
+
       response.status(401).json({ message: 'Username atau password salah' });
       return;
     }
+
+    await createAdminAuditLog({
+      admin: {
+        userId: admin.id,
+        sub: admin.username,
+        role: admin.role,
+        exp: 0,
+      },
+      action: 'login',
+      entityType: 'auth',
+      metadata: { ip: request.ip ?? 'unknown' },
+    });
 
     response.json({
       token: createUserToken(admin),

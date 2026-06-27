@@ -45,6 +45,7 @@ type TemplatesPanelProps = {
   onSaveEditCategory: () => void;
   onCancelEditCategory: () => void;
   onDeleteCategory: (name: string) => void;
+  isDeletingCategory: boolean;
 };
 
 export function TemplatesPanel({
@@ -86,6 +87,7 @@ export function TemplatesPanel({
   onSaveEditCategory,
   onCancelEditCategory,
   onDeleteCategory,
+  isDeletingCategory,
 }: TemplatesPanelProps) {
   return (
     <div className="bg-naki-page-bg py-8">
@@ -254,6 +256,7 @@ export function TemplatesPanel({
         onSaveEditCategory={onSaveEditCategory}
         onCancelEditCategory={onCancelEditCategory}
         onDeleteCategory={onDeleteCategory}
+        isDeletingCategory={isDeletingCategory}
       />
     </div>
   );

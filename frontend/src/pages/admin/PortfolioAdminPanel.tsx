@@ -1,4 +1,5 @@
 import { Edit3, ExternalLink, Globe2, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { type PortfolioItem } from "../../content";
 import { normalizeCoverIndex, type PortfolioFormState } from "./AdminTemplateWorkspace.shared";
 
@@ -64,6 +65,7 @@ export function PortfolioAdminPanel({
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
           {projects.map((project) => {
+            const [imageError, setImageError] = useState(false);
             const coverIndex = normalizeCoverIndex(
               project.coverIndex,
               project.imageUrls ?? [],
@@ -83,12 +85,13 @@ export function PortfolioAdminPanel({
                 }`}
               >
                 <div className="relative flex h-44 items-end overflow-hidden bg-naki-primary p-4 text-naki-frost">
-                  {coverImage ? (
+                  {coverImage && !imageError ? (
                     <>
                       <img
                         className="absolute inset-0 h-full w-full object-cover"
                         src={coverImage}
                         alt={project.title}
+                        onError={() => setImageError(true)}
                       />
                       <span className="absolute inset-0 bg-naki-primary/62" />
                     </>

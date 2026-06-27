@@ -88,41 +88,10 @@ export type AuthResponse = {
   };
 };
 
-export const defaultFormState: TemplateFormState = {
-  slug: "",
-  title: "",
-  category: "Portfolio",
-  description: "",
-  price: "Rp149K",
-  stack: "React, Tailwind",
-  level: "Pemula",
-  accentClass: "bg-naki-secondary",
-  preview: [
-    { image: "", caption: "Hero section" },
-    { image: "", caption: "Feature grid" },
-    { image: "", caption: "Contact CTA" },
-  ],
-  demoUrl: "#",
-  features: "Responsive layout\nClean components\nEasy customization",
-  includedFiles: "React components\nTailwind theme\nSetup guide",
-  suitableFor: "Personal project\nClient project",
-  license:
-    "Boleh dipakai untuk satu personal/client project. Tidak untuk dijual ulang sebagai template mentah.",
-  support: "Support setup dasar setelah pembelian.",
-};
-
-export const defaultPortfolioFormState: PortfolioFormState = {
-  title: "",
-  category: "Company profile",
-  description: "",
-  result: "Website selesai",
-  websiteUrl: "#",
-  imageUrl: "",
-  imageUrls: [],
-  coverIndex: 0,
-};
-
-export function normalizeCoverIndex(coverIndex: number | undefined, imageUrls: string[]) {
+export function normalizeCoverIndex(
+  coverIndex: number | undefined,
+  imageUrls: string[],
+) {
   const index = coverIndex ?? 0;
 
   return Number.isInteger(index) && index >= 0 && index < imageUrls.length
@@ -131,7 +100,9 @@ export function normalizeCoverIndex(coverIndex: number | undefined, imageUrls: s
 }
 
 export function normalizeAdminSection(section: string): DashboardView {
-  return section === "templates" || section === "orders" || section === "portfolio"
+  return section === "templates" ||
+    section === "orders" ||
+    section === "portfolio"
     ? section
     : "dashboard";
 }
@@ -144,7 +115,10 @@ export function legacyHashToAdminView(hash: string): DashboardView | null {
     : null;
 }
 
-export const orderStatusFilters: Array<{ label: string; value: OrderStatusFilter }> = [
+export const orderStatusFilters: Array<{
+  label: string;
+  value: OrderStatusFilter;
+}> = [
   { label: "Semua", value: "all" },
   { label: "New", value: "new" },
   { label: "Contacted", value: "contacted" },
@@ -257,7 +231,12 @@ export type SelectFieldProps = {
   onChange: (value: string) => void;
 };
 
-export function SelectField({ label, value, options, onChange }: SelectFieldProps) {
+export function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: SelectFieldProps) {
   return (
     <label className="grid gap-1.5">
       <span className="text-xs font-medium text-naki-smoke">{label}</span>
@@ -290,7 +269,12 @@ export type TagSelectorProps = {
   onChange: (value: string) => void;
 };
 
-export function TagSelector({ label, options, value, onChange }: TagSelectorProps) {
+export function TagSelector({
+  label,
+  options,
+  value,
+  onChange,
+}: TagSelectorProps) {
   const selectedItems = splitLines(value);
 
   function toggleItem(item: string) {
@@ -303,7 +287,9 @@ export function TagSelector({ label, options, value, onChange }: TagSelectorProp
 
   return (
     <section className="grid gap-2">
-      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
+        {label}
+      </p>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isSelected = selectedItems.includes(option);
@@ -360,7 +346,9 @@ export function TagInput({ label, value, onChange }: TagInputProps) {
 
   return (
     <section className="grid gap-2">
-      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
+        {label}
+      </p>
       <div className="flex flex-wrap gap-2">
         {items.map((item) => (
           <button
@@ -423,9 +411,73 @@ export function ImageUploadDropZone({
   successMessage,
 }: ImageUploadDropZoneProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  function getImageDimensions(
+    file: File,
+  ): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () =>
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () =>
+        reject(new Error(`Gagal membaca dimensi gambar: ${file.name}`));
+      img.src = URL.createObjectURL(file);
+    });
+  }
 
   async function addFiles(files: File[]) {
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (!imageFiles.length) {
+      setValidationError("File yang dipilih bukan gambar.");
+      return;
+    }
+
+    // File count validation
+    if (multiple && imageFiles.length > 12) {
+      setValidationError("Maksimal 12 gambar");
+      return;
+    }
+
+    // File size validation (max 5MB per file)
+    const oversizedFile = imageFiles.find(
+      (file) => file.size > 5 * 1024 * 1024,
+    );
+    if (oversizedFile) {
+      setValidationError(
+        `Ukuran file "${oversizedFile.name}" terlalu besar (maks 5MB)`,
+      );
+      return;
+    }
+
+    // Dimension validation
+    const minDim = 200;
+    const maxDim = 4000;
+
+    for (const file of imageFiles) {
+      try {
+        const dims = await getImageDimensions(file);
+        if (dims.width < minDim || dims.height < minDim) {
+          setValidationError(
+            `Gambar "${file.name}" terlalu kecil. Minimum ${minDim}x${minDim} piksel`,
+          );
+          return;
+        }
+        if (dims.width > maxDim || dims.height > maxDim) {
+          setValidationError(
+            `Gambar "${file.name}" terlalu besar. Maksimum ${maxDim}x${maxDim} piksel`,
+          );
+          return;
+        }
+      } catch {
+        setValidationError(`Gagal membaca dimensi gambar "${file.name}".`);
+        return;
+      }
+    }
+
+    setValidationError(null);
+
     const selectedFiles = multiple ? imageFiles : imageFiles.slice(0, 1);
 
     if (!selectedFiles.length) {
@@ -594,7 +646,9 @@ export function PreviewDropZone({
 
   return (
     <section className="grid gap-3">
-      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Preview</p>
+      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
+        Preview
+      </p>
       <ImageUploadDropZone
         adminToken={adminToken}
         title="Upload / drop / paste foto preview"
@@ -759,7 +813,9 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
             <FileArchive size={20} />
           </span>
           <div>
-            <p className="text-sm font-semibold text-naki-primary">Source code</p>
+            <p className="text-sm font-semibold text-naki-primary">
+              Source code
+            </p>
             <p className="mt-1 text-sm text-naki-smoke">
               ZIP atau RAR codingan.
             </p>
@@ -841,7 +897,10 @@ export function appendLines(currentValue: string, nextItems: string[]) {
     .join("\n");
 }
 
-export async function uploadPreviewImages(files: File[], adminToken: string | null) {
+export async function uploadPreviewImages(
+  files: File[],
+  adminToken: string | null,
+) {
   if (!adminToken) {
     throw new Error("Admin token tidak tersedia.");
   }
@@ -859,7 +918,11 @@ export async function uploadPreviewImages(files: File[], adminToken: string | nu
   return data.images?.map((image) => image.url).filter(Boolean) ?? [];
 }
 
-export function reorderItems<Item>(items: Item[], fromIndex: number, toIndex: number) {
+export function reorderItems<Item>(
+  items: Item[],
+  fromIndex: number,
+  toIndex: number,
+) {
   const nextItems = [...items];
   const [movedItem] = nextItems.splice(fromIndex, 1);
 

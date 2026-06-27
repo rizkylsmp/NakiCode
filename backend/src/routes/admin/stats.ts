@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { pool } from '../../db';
-import { verifyAdminToken } from '../../auth';
+import { requireAdmin } from '../../auth';
 
 const router = Router();
 
@@ -32,7 +32,7 @@ type AdminStatsResponse = {
 };
 
 // GET /api/admin/stats - Get dashboard statistics
-router.get('/', verifyAdminToken, async (req: Request, res: Response) => {
+router.get('/', requireAdmin, async (req: Request, res: Response) => {
   try {
     // Total orders count
     const [totalOrdersResult] = await pool.query(
@@ -130,9 +130,8 @@ router.get('/', verifyAdminToken, async (req: Request, res: Response) => {
     res.json(stats);
   } catch (error) {
     console.error('Error fetching admin stats:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch statistics',
-      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

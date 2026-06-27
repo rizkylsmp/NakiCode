@@ -1,5 +1,7 @@
 import { ArrowRight, ExternalLink } from "lucide-react";
+import { useState } from "react";
 import type { PortfolioItem } from "../content";
+import { normalizeCoverIndex } from "../pages/admin/AdminTemplateWorkspace.shared";
 
 type PortfolioSectionProps = {
   items: PortfolioItem[];
@@ -33,25 +35,31 @@ export function PortfolioSection({ items }: PortfolioSectionProps) {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => {
-              const coverIndex = item.coverIndex ?? 0;
+              const [imageError, setImageError] = useState(false);
+              const coverIndex = normalizeCoverIndex(
+                item.coverIndex,
+                item.imageUrls ?? []
+              );
               const coverImage =
                 item.imageUrls && item.imageUrls.length > 0
-                  ? item.imageUrls[coverIndex] ?? item.imageUrls[0]
+                  ? item.imageUrls[coverIndex]
                   : item.imageUrl;
+
+              const showImage = coverImage && !imageError;
 
               return (
                 <article
                   key={item.id ?? item.title}
                   className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
                 >
-                  {/* Image */}
                   <div className="relative aspect-[16/10] overflow-hidden bg-naki-frost">
-                    {coverImage ? (
+                    {showImage ? (
                       <img
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                         src={coverImage}
                         alt={item.title}
                         loading="lazy"
+                        onError={() => setImageError(true)}
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/5 to-naki-secondary/5" />
@@ -61,7 +69,6 @@ export function PortfolioSection({ items }: PortfolioSectionProps) {
                     </span>
                   </div>
 
-                  {/* Content */}
                   <div className="p-5">
                     <h3 className="text-base font-semibold text-naki-primary">
                       {item.title}

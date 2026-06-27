@@ -28,7 +28,22 @@ const projectBodySchema = z.object({
   imageUrl: z.string().trim().max(500).optional(),
   imageUrls: z.array(z.string().trim().max(500)).max(12).optional(),
   coverIndex: z.number().int().min(0).optional(),
+})
+.superRefine((data, ctx) => {
+  if (
+    typeof data.coverIndex === 'number' &&
+    Array.isArray(data.imageUrls) &&
+    data.imageUrls.length > 0 &&
+    data.coverIndex >= data.imageUrls.length
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'coverIndex harus lebih kecil dari jumlah gambar',
+      path: ['coverIndex'],
+    });
+  }
 });
+
 
 projectsRouter.get("/", async (_request, response) => {
   try {

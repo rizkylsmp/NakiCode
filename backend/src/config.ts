@@ -24,7 +24,7 @@ const envSchema = z.object({
   MYSQL_DATABASE: z.string().min(1, 'MYSQL_DATABASE is required'),
 
   // Admin authentication - CRITICAL
-  ADMIN_USERNAME: z.string().min(1).default('admin'),
+  ADMIN_USERNAME: z.string().min(1, 'ADMIN_USERNAME is required — set a non-obvious username in .env'),
   ADMIN_EMAIL: z.string().email('ADMIN_EMAIL must be a valid email address'),
   ADMIN_PASSWORD: z
     .string()

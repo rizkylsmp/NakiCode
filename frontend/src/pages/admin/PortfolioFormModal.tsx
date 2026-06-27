@@ -25,6 +25,66 @@ type PortfolioFormModalProps = {
   ) => void;
 };
 
+type ThumbnailImageProps = {
+  imageUrl: string;
+  title: string;
+  index: number;
+  coverIndex: number;
+};
+
+function ThumbnailImage({ imageUrl, title, index, coverIndex }: ThumbnailImageProps) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div className="relative h-32 overflow-hidden bg-naki-frost">
+        {imageError ? (
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/10 to-naki-secondary/10 text-xs text-naki-smoke">
+            No image
+          </div>
+        ) : (
+          <img
+            className="h-full w-full object-cover"
+            src={imageUrl}
+            alt={`${title} ${index + 1}`}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+          />
+        )}
+        {index === coverIndex ? (
+          <span className="absolute left-2 top-2 rounded-lg bg-naki-primary px-2 py-1 text-xs font-medium text-white">
+            Cover
+          </span>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-2 border-t border-naki-steel">
+        <button
+          className="flex h-9 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
+          disabled={index === coverIndex}
+          onClick={() => {
+            // handled by parent via onUpdateField
+          }}
+          type="button"
+        >
+          <Check size={13} />
+          Cover
+        </button>
+        <button
+          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-medium text-naki-secondary transition hover:text-naki-primary"
+          onClick={() => {
+            // handled by parent
+          }}
+          type="button"
+        >
+          <X size={13} />
+          Hapus
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PortfolioFormModal({
   adminToken,
   form,
@@ -39,10 +99,12 @@ export function PortfolioFormModal({
   const [imageStatus, setImageStatus] = useState(
     "Upload, drop, atau paste satu foto portofolio.",
   );
+  const [previewImageError, setPreviewImageError] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setImageStatus("Upload, drop, atau paste satu foto portofolio.");
+      setPreviewImageError(false);
     }
   }, [form.id, isOpen]);
 
@@ -73,6 +135,24 @@ export function PortfolioFormModal({
     onUpdateField("imageUrls", imageUrls);
     onUpdateField("coverIndex", nextCoverIndex);
     onUpdateField("imageUrl", imageUrls[nextCoverIndex] ?? "");
+  }
+
+  function handleThumbnailDelete(imageIndex: number) {
+    const newImages = portfolioImages.filter((_, i) => i !== imageIndex);
+    const adjustedCoverIndex =
+      imageIndex === coverIndex
+        ? 0
+        : imageIndex < coverIndex
+          ? coverIndex - 1
+          : coverIndex;
+    updatePortfolioImages(newImages, adjustedCoverIndex);
+    setImageStatus(`Foto posisi ${imageIndex + 1} dihapus dari form.`);
+  }
+
+  function handleSetCover(imageIndex: number) {
+    onUpdateField("coverIndex", imageIndex);
+    onUpdateField("imageUrl", portfolioImages[imageIndex]);
+    setImageStatus(`Foto posisi ${imageIndex + 1} dijadikan cover.`);
   }
 
   return createPortal(
@@ -198,64 +278,15 @@ export function PortfolioFormModal({
                 </div>
                 <div className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
                   {portfolioImages.map((imageUrl, index) => (
-                    <div
-                      className="overflow-hidden rounded-xl bg-white shadow-sm"
+                    <ThumbnailImageWrapper
                       key={`${imageUrl}-${index}`}
-                    >
-                      <div className="relative h-32 overflow-hidden bg-naki-frost">
-                        <img
-                          className="h-full w-full object-cover"
-                          src={imageUrl}
-                          alt={`${previewTitle} ${index + 1}`}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        {index === coverIndex ? (
-                          <span className="absolute left-2 top-2 rounded-lg bg-naki-primary px-2 py-1 text-xs font-medium text-white">
-                            Cover
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="grid grid-cols-2 border-t border-naki-steel">
-                        <button
-                          className="flex h-9 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
-                          disabled={index === coverIndex}
-                          onClick={() => {
-                            onUpdateField("coverIndex", index);
-                            onUpdateField("imageUrl", imageUrl);
-                            setImageStatus(
-                              `Foto posisi ${index + 1} dijadikan cover.`,
-                            );
-                          }}
-                          type="button"
-                        >
-                          <Check size={13} />
-                          Cover
-                        </button>
-                        <button
-                          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-medium text-naki-secondary transition hover:text-naki-primary"
-                          onClick={() => {
-                            updatePortfolioImages(
-                              portfolioImages.filter(
-                                (_, imageIndex) => imageIndex !== index,
-                              ),
-                              index === coverIndex
-                                ? 0
-                                : index < coverIndex
-                                  ? coverIndex - 1
-                                  : coverIndex,
-                            );
-                            setImageStatus(
-                              `Foto posisi ${index + 1} dihapus dari form.`,
-                            );
-                          }}
-                          type="button"
-                        >
-                          <X size={13} />
-                          Hapus
-                        </button>
-                      </div>
-                    </div>
+                      imageUrl={imageUrl}
+                      title={previewTitle}
+                      index={index}
+                      coverIndex={coverIndex}
+                      onSetCover={() => handleSetCover(index)}
+                      onDelete={() => handleThumbnailDelete(index)}
+                    />
                   ))}
                 </div>
               </div>
@@ -265,7 +296,7 @@ export function PortfolioFormModal({
           <aside className="grid content-start gap-4">
             <div className="overflow-hidden rounded-xl bg-naki-frost shadow-sm">
               <div className="relative flex h-52 items-end overflow-hidden bg-naki-primary p-4 text-white">
-                {hasImage ? (
+                {hasImage && !previewImageError ? (
                   <>
                     <img
                       className="absolute inset-0 h-full w-full object-cover"
@@ -273,6 +304,7 @@ export function PortfolioFormModal({
                       alt={previewTitle}
                       loading="lazy"
                       decoding="async"
+                      onError={() => setPreviewImageError(true)}
                     />
                     <span className="absolute inset-0 bg-naki-primary/62" />
                   </>
@@ -330,5 +362,69 @@ export function PortfolioFormModal({
       </div>
     </div>,
     document.body,
+  );
+}
+
+// Wrapper component that accepts handler props
+function ThumbnailImageWrapper({
+  imageUrl,
+  title,
+  index,
+  coverIndex,
+  onSetCover,
+  onDelete,
+}: {
+  imageUrl: string;
+  title: string;
+  index: number;
+  coverIndex: number;
+  onSetCover: () => void;
+  onDelete: () => void;
+}) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div className="relative h-32 overflow-hidden bg-naki-frost">
+        {imageError ? (
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/10 to-naki-secondary/10 text-xs text-naki-smoke">
+            No image
+          </div>
+        ) : (
+          <img
+            className="h-full w-full object-cover"
+            src={imageUrl}
+            alt={`${title} ${index + 1}`}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+          />
+        )}
+        {index === coverIndex ? (
+          <span className="absolute left-2 top-2 rounded-lg bg-naki-primary px-2 py-1 text-xs font-medium text-white">
+            Cover
+          </span>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-2 border-t border-naki-steel">
+        <button
+          className="flex h-9 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
+          disabled={index === coverIndex}
+          onClick={onSetCover}
+          type="button"
+        >
+          <Check size={13} />
+          Cover
+        </button>
+        <button
+          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-medium text-naki-secondary transition hover:text-naki-primary"
+          onClick={onDelete}
+          type="button"
+        >
+          <X size={13} />
+          Hapus
+        </button>
+      </div>
+    </div>
   );
 }
