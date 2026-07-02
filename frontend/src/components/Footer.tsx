@@ -60,7 +60,7 @@ export function Footer() {
     <footer className="w-full bg-naki-primary text-white">
       <div className="px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
             {/* Brand + Socials */}
             <div className="sm:col-span-2 lg:col-span-1">
               <a className="flex items-center gap-2.5" href="/">

@@ -33,7 +33,7 @@ export function PortfolioSection({ items }: PortfolioSectionProps) {
             </a>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
             {items.map((item) => {
               const [imageError, setImageError] = useState(false);
               const coverIndex = normalizeCoverIndex(
@@ -50,12 +50,12 @@ export function PortfolioSection({ items }: PortfolioSectionProps) {
               return (
                 <article
                   key={item.id ?? item.title}
-                  className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
+                  className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-naki-frost">
                     {showImage ? (
                       <img
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        className="h-full w-full object-cover transition duration-300"
                         src={coverImage}
                         alt={item.title}
                         loading="lazy"

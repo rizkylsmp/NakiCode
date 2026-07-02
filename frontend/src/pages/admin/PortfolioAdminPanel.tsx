@@ -1,26 +1,46 @@
-import { Edit3, ExternalLink, Globe2, Plus, Trash2 } from "lucide-react";
+import { Edit3, ExternalLink, Globe2, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { type PortfolioItem } from "../../content";
 import { normalizeCoverIndex, type PortfolioFormState } from "./AdminTemplateWorkspace.shared";
+import { PortfolioFormModal } from "./PortfolioFormModal";
 
 type PortfolioAdminPanelProps = {
   projects: PortfolioItem[];
   form: PortfolioFormState;
   status: string;
+  isSaving: boolean;
+  isModalOpen: boolean;
   deletingProjectId: number | null;
+  adminToken: string | null;
   onStartEdit: (project: PortfolioItem) => void;
   onReset: () => void;
   onDelete: (project: PortfolioItem) => void;
+  onOpenModal: () => void;
+  onCloseModal: () => void;
+  onUpdateField: <Key extends keyof PortfolioFormState>(key: Key, value: PortfolioFormState[Key]) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
 };
 
 export function PortfolioAdminPanel({
   projects,
   form,
   status,
+  isSaving,
+  isModalOpen,
   deletingProjectId,
+  adminToken,
   onStartEdit,
   onReset,
   onDelete,
+  onOpenModal,
+  onCloseModal,
+  onUpdateField,
+  onSubmit,
+  onConfirmDelete,
+  onCancelDelete,
 }: PortfolioAdminPanelProps) {
   return (
     <section className="py-8">
@@ -43,7 +63,10 @@ export function PortfolioAdminPanel({
           </span>
           <button
             className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90"
-            onClick={onReset}
+            onClick={() => {
+              onReset();
+              onOpenModal();
+            }}
             type="button"
           >
             <Plus size={16} />
@@ -63,7 +86,7 @@ export function PortfolioAdminPanel({
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           {projects.map((project) => {
             const [imageError, setImageError] = useState(false);
             const coverIndex = normalizeCoverIndex(
@@ -78,7 +101,7 @@ export function PortfolioAdminPanel({
             return (
               <article
                 key={project.id ?? project.title}
-                className={`overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-naki-soft ${
+                className={`overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-naki-soft ${
                   form.id === project.id
                     ? "ring-2 ring-naki-secondary"
                     : ""
@@ -159,6 +182,64 @@ export function PortfolioAdminPanel({
           })}
         </div>
       )}
+
+      <PortfolioFormModal
+        adminToken={adminToken}
+        form={form}
+        isOpen={isModalOpen}
+        isSaving={isSaving}
+        status={status}
+        onClose={onCloseModal}
+        onReset={onReset}
+        onSubmit={onSubmit}
+        onUpdateField={onUpdateField}
+      />
+
+      {deletingProjectId !== null ? createPortal(
+        <div
+          className="fixed inset-0 z-9999 flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full my-10 mx-4 max-w-md rounded-2xl bg-white shadow-sm">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white/95 p-5 backdrop-blur">
+              <h2 className="text-2xl font-bold leading-tight text-naki-primary">
+                Hapus Portofolio?
+              </h2>
+              <button
+                className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
+                onClick={onCancelDelete}
+                type="button"
+                aria-label="Tutup dialog"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-naki-smoke leading-relaxed">
+                Portofolio akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan.
+              </p>
+              <div className="mt-5 flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
+                <button
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
+                  onClick={onCancelDelete}
+                  type="button"
+                >
+                  Batal
+                </button>
+                <button
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition hover:bg-red-700"
+                  onClick={onConfirmDelete}
+                  type="button"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
     </section>
   );
 }

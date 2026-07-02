@@ -130,6 +130,10 @@ body {
   z-index: 300;
 }
 
+button {
+  cursor: pointer;
+}
+
 /* Utility: smooth hover transition for interactive elements */
 .transition-all {
   transition: all 0.2s ease;

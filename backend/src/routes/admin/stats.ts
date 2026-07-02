@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import * as Sentry from '@sentry/node';
 import { pool } from '../../db';
 import { requireAdmin } from '../../auth';
 
@@ -36,25 +37,20 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
   try {
     // Total orders count
     const [totalOrdersResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM orders WHERE deleted_at IS NULL'
+      'SELECT COUNT(*) as total FROM orders WHERE deleted_at IS NULL',
     );
     const totalOrders = (totalOrdersResult as any)[0]?.total || 0;
 
-    // Calculate total revenue (sum of paid orders)
+    // Calculate total revenue from actual payment_amount (not regex-parsed budgetRange)
     const [revenueResult] = await pool.query(`
-      SELECT budgetRange, status 
-      FROM orders 
-      WHERE deleted_at IS NULL AND status = 'paid'
+      SELECT payment_amount
+      FROM orders
+      WHERE deleted_at IS NULL AND payment_status = 'paid' AND payment_amount IS NOT NULL
     `);
-    
+
     let totalRevenue = 0;
     for (const order of revenueResult as any[]) {
-      const budgetStr = order.budgetRange;
-      const match = budgetStr.match(/Rp?(\d+)/);
-      if (match) {
-        const amount = parseInt(match[1]) * 1000;
-        totalRevenue += amount;
-      }
+      totalRevenue += Number(order.payment_amount) || 0;
     }
 
     // Orders by status
@@ -66,12 +62,12 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
       ORDER BY count DESC
     `);
 
-    // Top templates by order count
+    // Top templates by order count — use payment_amount for revenue
     const [topTemplatesResult] = await pool.query(`
-      SELECT 
+      SELECT
         templateTitle,
         COUNT(*) as orderCount,
-        SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paidCount
+        COALESCE(SUM(CASE WHEN payment_status = 'paid' AND payment_amount IS NOT NULL THEN payment_amount ELSE 0 END), 0) as revenue
       FROM orders
       WHERE deleted_at IS NULL AND templateTitle IS NOT NULL
       GROUP BY templateTitle
@@ -88,35 +84,25 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
       LIMIT 10
     `);
 
-    // Weekly revenue for last 8 weeks
+    // Weekly revenue for last 8 weeks — use actual payment_amount
     const [weeklyRevenueResult] = await pool.query(`
-      SELECT 
+      SELECT
+        YEARWEEK(createdAt, 1) as yearWeek,
         DATE_FORMAT(createdAt, '%Y-%W') as week,
-        COUNT(*) as orders,
-        status
+        SUM(CASE WHEN payment_status = 'paid' AND payment_amount IS NOT NULL THEN payment_amount ELSE 0 END) as revenue,
+        COUNT(*) as orders
       FROM orders
-      WHERE deleted_at IS NULL 
+      WHERE deleted_at IS NULL
         AND createdAt >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
-      GROUP BY week, status
-      ORDER BY week DESC
+      GROUP BY yearWeek, week
+      ORDER BY yearWeek DESC
     `);
 
-    // Process weekly data
-    const weeklyMap = new Map<string, { revenue: number; orders: number }>();
-    for (const row of weeklyRevenueResult as any[]) {
-      if (!weeklyMap.has(row.week)) {
-        weeklyMap.set(row.week, { revenue: 0, orders: 0 });
-      }
-      const weekData = weeklyMap.get(row.week)!;
-      weekData.orders += row.orders;
-      if (row.status === 'paid') {
-        weekData.revenue += row.orders * 500000;
-      }
-    }
-
-    const weeklyRevenue = Array.from(weeklyMap.entries())
-      .map(([week, data]) => ({ week, ...data }))
-      .sort((a, b) => b.week.localeCompare(a.week));
+    const weeklyRevenue = (weeklyRevenueResult as any[]).map((row) => ({
+      week: row.week,
+      revenue: Number(row.revenue) || 0,
+      orders: Number(row.orders) || 0,
+    }));
 
     const stats: AdminStatsResponse = {
       totalOrders,
@@ -129,9 +115,9 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
 
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching admin stats:', error);
+    Sentry.captureException(error);
     res.status(500).json({
-      error: 'Failed to fetch statistics',
+      message: 'Failed to fetch statistics',
     });
   }
 });

@@ -78,7 +78,7 @@ export function TemplateCatalog({
         </div>
 
         {/* Template grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {isLoading ? (
             Array.from({ length: 8 }).map((_, index) => (
               <TemplateCardSkeleton key={index} />
@@ -97,13 +97,13 @@ export function TemplateCatalog({
             templates.map((template) => (
               <article
                 key={template.id}
-                className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
+                className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
               >
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-naki-frost">
                   {template.preview?.[0]?.image ? (
                     <img
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover transition duration-300"
                       src={template.preview[0].image}
                       alt={template.title}
                       loading="lazy"
@@ -228,7 +228,7 @@ export function TemplateCatalog({
                 <X size={16} />
               </button>
             </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {compareTemplates.map((template) => (
                 <article
                   key={template.id}

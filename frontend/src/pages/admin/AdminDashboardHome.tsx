@@ -34,7 +34,7 @@ export function AdminDashboardHome({
   return (
     <section className="flex flex-col gap-8 py-8">
       {/* Stat Cards */}
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-4">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <p className="text-xs font-medium text-naki-smoke">Total Template</p>
           <p className="mt-2 text-3xl font-bold text-naki-primary">
@@ -66,7 +66,7 @@ export function AdminDashboardHome({
         <h2 className="text-lg font-bold leading-tight text-naki-primary">
           Quick Actions
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <button
             className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
             onClick={() => openView("templates")}

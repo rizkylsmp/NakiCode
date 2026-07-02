@@ -60,7 +60,7 @@ export function CategorySection({ categories }: CategorySectionProps) {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {realCategories.map((title) => {
               const Icon = iconMap[title] ?? Code2;
               const description = descriptions[title] ?? `Template kategori ${title}`;

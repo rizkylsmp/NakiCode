@@ -36,9 +36,11 @@ export type TemplateItem = {
   accentClass: string;
   preview: TemplatePreviewItem[];
   demoUrl: string;
+  lynkUrl?: string | null;
   buyerCount: number;
   features: string[];
   includedFiles: string[];
+  sourceCode: string[];
   suitableFor: string[];
   license: string;
   support: string;

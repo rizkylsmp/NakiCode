@@ -125,7 +125,7 @@ export function TemplatesPanel({
         </div>
 
         {/* Search & filter bar */}
-        <div className="mb-6 grid gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[1fr_240px]">
+        <div className="mb-6 grid gap-3 rounded-2xl bg-white p-4 shadow-sm md:grid-cols-[1fr_240px]">
           <label className="grid gap-1.5">
             <span className="text-xs font-medium text-naki-smoke">Search template</span>
             <input

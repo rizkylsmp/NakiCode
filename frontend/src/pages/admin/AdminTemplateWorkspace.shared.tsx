@@ -29,11 +29,38 @@ export type TemplateFormState = {
   accentClass: string;
   preview: TemplatePreviewItem[];
   demoUrl: string;
+  lynkUrl: string;
   features: string;
   includedFiles: string;
+  sourceCode: string;
   suitableFor: string;
   license: string;
   support: string;
+};
+
+export const defaultFormState: TemplateFormState = {
+  slug: "",
+  title: "",
+  category: "Portfolio",
+  description: "",
+  price: "Rp149K",
+  stack: "React, Tailwind",
+  level: "Pemula",
+  accentClass: "bg-naki-secondary",
+  preview: [
+    { image: "", caption: "Hero section" },
+    { image: "", caption: "Feature grid" },
+    { image: "", caption: "Contact CTA" },
+  ],
+  demoUrl: "#",
+  lynkUrl: "",
+  features: "Responsive layout\nClean components\nEasy customization",
+  includedFiles: "React components\nTailwind theme\nSetup guide",
+  sourceCode: "",
+  suitableFor: "Personal project\nClient project",
+  license:
+    "Boleh dipakai untuk satu personal/client project. Tidak untuk dijual ulang sebagai template mentah.",
+  support: "Support setup dasar setelah pembelian.",
 };
 
 export type TemplatesResponse = {
@@ -66,6 +93,52 @@ export type PortfolioFormState = {
   coverIndex: number;
 };
 
+export const defaultPortfolioFormState: PortfolioFormState = {
+  title: "",
+  category: "Company profile",
+  description: "",
+  result: "Website selesai",
+  websiteUrl: "#",
+  imageUrl: "",
+  imageUrls: [],
+  coverIndex: 0,
+};
+
+export type BlogPostFormState = {
+  id?: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  coverImage: string;
+  status: "draft" | "published";
+};
+
+export type BlogPostItem = {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  coverImage: string | null;
+  status: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const defaultBlogPostFormState: BlogPostFormState = {
+  slug: "",
+  title: "",
+  excerpt: "",
+  content: "",
+  author: "Naki Code",
+  coverImage: "",
+  status: "draft",
+};
+
 export type OrderStatus = "new" | "contacted" | "deal" | "closed";
 export type OrderStatusFilter = "all" | OrderStatus;
 export type PaymentStatusFilter =
@@ -74,7 +147,7 @@ export type PaymentStatusFilter =
   | "waiting_payment"
   | "paid"
   | "failed";
-export type DashboardView = "dashboard" | "templates" | "orders" | "portfolio";
+export type DashboardView = "dashboard" | "templates" | "orders" | "portfolio" | "blog";
 export type AdminOrderFilters = {
   status: OrderStatusFilter;
   paymentStatus: PaymentStatusFilter;
@@ -102,7 +175,8 @@ export function normalizeCoverIndex(
 export function normalizeAdminSection(section: string): DashboardView {
   return section === "templates" ||
     section === "orders" ||
-    section === "portfolio"
+    section === "portfolio" ||
+    section === "blog"
     ? section
     : "dashboard";
 }
@@ -110,7 +184,7 @@ export function normalizeAdminSection(section: string): DashboardView {
 export function legacyHashToAdminView(hash: string): DashboardView | null {
   const view = hash.replace("#", "");
 
-  return view === "templates" || view === "orders" || view === "portfolio"
+  return view === "templates" || view === "orders" || view === "portfolio" || view === "blog"
     ? view
     : null;
 }
@@ -137,6 +211,7 @@ export const paymentStatusFilters: Array<{
 ];
 export const adminOrdersPageSize = 8;
 export const adminTemplatesPageSize = 8;
+export const adminBlogPostsPageSize = 10;
 export const levelOptions = ["Pemula", "Menengah", "Lanjut"];
 export const stackOptions = [
   "React",
@@ -670,7 +745,7 @@ export function PreviewDropZone({
       />
 
       {value.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
           {value.map((item, index) => (
             <div
               key={`${item.image}-${index}`}
@@ -814,7 +889,7 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
           </span>
           <div>
             <p className="text-sm font-semibold text-naki-primary">
-              Source code
+              Upload Source Code
             </p>
             <p className="mt-1 text-sm text-naki-smoke">
               ZIP atau RAR codingan.
@@ -836,7 +911,6 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
           />
         </label>
       </div>
-      <TagInput label="Isi source code" value={value} onChange={onChange} />
     </section>
   );
 }
@@ -856,6 +930,7 @@ export function templateToForm(template: TemplateItem): TemplateFormState {
     demoUrl: template.demoUrl,
     features: template.features.join("\n"),
     includedFiles: template.includedFiles.join("\n"),
+    sourceCode: template.sourceCode.join("\n"),
     suitableFor: template.suitableFor.join("\n"),
     license: template.license,
     support: template.support,
@@ -878,6 +953,7 @@ export function formToPayload(
     demoUrl: form.demoUrl.trim() || "#",
     features: splitLines(form.features),
     includedFiles: splitLines(form.includedFiles),
+    sourceCode: splitLines(form.sourceCode),
     suitableFor: splitLines(form.suitableFor),
     license: form.license.trim(),
     support: form.support.trim(),

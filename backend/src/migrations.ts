@@ -109,6 +109,39 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: '004_blog_cover_image',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'blog_posts', 'cover_image'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('blog_posts')}
+          ADD COLUMN ${connection.escapeId('cover_image')} VARCHAR(500) NULL AFTER ${connection.escapeId('author')}`,
+        );
+      }
+    },
+  },
+  {
+    id: '005_template_lynk_url',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'templates', 'lynk_url'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('templates')}
+          ADD COLUMN ${connection.escapeId('lynk_url')} VARCHAR(500) NULL AFTER ${connection.escapeId('demo_url')}`,
+        );
+      }
+    },
+  },
+  {
+    id: '006_template_source_code',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'templates', 'source_code'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('templates')}
+          ADD COLUMN ${connection.escapeId('source_code')} JSON NOT NULL DEFAULT ('[]') AFTER ${connection.escapeId('included_files')}`,
+        );
+      }
+    },
+  },
 ];
 
 export async function runMigrations(connection: Connection) {

@@ -523,7 +523,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
           </Link>
 
           {/* Main content grid */}
-          <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_340px]">
+          <div className="mt-8 grid gap-10 md:grid-cols-[1fr_340px]">
             {/* Left: Preview + Details */}
             <div>
               {/* Preview images */}
@@ -730,11 +730,11 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                       Lihat katalog <ArrowRight size={14} className="ml-1" />
                     </Link>
                   </div>
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="mt-5 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
                     {relatedTemplates.map((item) => (
                       <Link
                         key={item.id}
-                        className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
+                        className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
                         to={`/templates/${item.slug}`}
                       >
                         {item.preview[0]?.image ? (
@@ -759,7 +759,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
             </div>
 
             {/* Right: Sidebar */}
-            <aside className="h-fit space-y-5 lg:sticky lg:top-24">
+            <aside className="h-fit space-y-5 md:sticky md:top-24">
               {/* Price + Checkout */}
               <div className="rounded-2xl bg-white p-6 shadow-sm">
                 <p className="text-xs font-medium text-naki-smoke">Harga template</p>
@@ -768,7 +768,27 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                   Pembelian berisi source code dan panduan setup.
                 </p>
 
-                {userToken ? (
+                {selectedTemplate.lynkUrl ? (
+                  <div className="mt-5 space-y-3">
+                    <a
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:shadow-xl"
+                      href={selectedTemplate.lynkUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      Checkout via Lynk
+                    </a>
+                    <div className="flex items-center justify-center gap-2 text-xs text-naki-smoke">
+                      <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                      </svg>
+                      <span>Pembayaran aman & instan via Lynk.id</span>
+                    </div>
+                  </div>
+                ) : userToken ? (
                   <div className="mt-5">
                     <button
                       className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:opacity-60"

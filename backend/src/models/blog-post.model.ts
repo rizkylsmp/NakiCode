@@ -8,6 +8,7 @@ type BlogPostRow = RowDataPacket & {
   excerpt: string;
   content: string;
   author: string;
+  cover_image?: string | null;
   status: string;
   published_at?: string | null;
   created_at?: string;
@@ -21,6 +22,7 @@ export type BlogPostItem = {
   excerpt: string;
   content: string;
   author: string;
+  coverImage: string | null;
   status: string;
   publishedAt: string | null;
   createdAt: string;
@@ -33,10 +35,11 @@ export type BlogPostPayload = {
   excerpt: string;
   content: string;
   author: string;
+  coverImage: string | null;
   status: string;
 };
 
-const blogSelect = `SELECT id, slug, title, excerpt, content, author, status, published_at, created_at, updated_at
+const blogSelect = `SELECT id, slug, title, excerpt, content, author, cover_image, status, published_at, created_at, updated_at
 FROM blog_posts
 WHERE deleted_at IS NULL`;
 
@@ -81,15 +84,17 @@ export async function createBlogPost(payload: BlogPostPayload) {
       excerpt,
       content,
       author,
+      cover_image,
       status,
       published_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.slug,
       payload.title,
       payload.excerpt,
       payload.content,
       payload.author,
+      payload.coverImage,
       payload.status,
       payload.status === 'published' ? new Date() : null,
     ],
@@ -106,6 +111,7 @@ export async function updateBlogPost(id: number, payload: BlogPostPayload) {
       excerpt = ?,
       content = ?,
       author = ?,
+      cover_image = ?,
       status = ?,
       published_at = CASE
         WHEN ? = 'published' AND published_at IS NULL THEN CURRENT_TIMESTAMP
@@ -119,6 +125,7 @@ export async function updateBlogPost(id: number, payload: BlogPostPayload) {
       payload.excerpt,
       payload.content,
       payload.author,
+      payload.coverImage,
       payload.status,
       payload.status,
       payload.status,
@@ -155,6 +162,7 @@ export function normalizeBlogPostPayload(
     excerpt: String(body.excerpt ?? '').trim(),
     content: String(body.content ?? '').trim(),
     author: String(body.author ?? 'Naki Code').trim() || 'Naki Code',
+    coverImage: String(body.coverImage ?? '').trim() || null,
     status: String(body.status ?? 'draft') === 'published' ? 'published' : 'draft',
   };
 }
@@ -167,6 +175,7 @@ function normalizeBlogRow(row: BlogPostRow): BlogPostItem {
     excerpt: row.excerpt,
     content: row.content,
     author: row.author,
+    coverImage: row.cover_image ?? null,
     status: row.status,
     publishedAt: row.published_at ?? null,
     createdAt: row.created_at ?? new Date().toISOString(),

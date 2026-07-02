@@ -354,7 +354,7 @@ export function UserProfilePage() {
 
       <section className="mx-auto max-w-7xl w-full px-5 py-8 md:px-8 xl:px-12 2xl:px-16">
         {/* Header bar */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <Link
             className="inline-flex w-fit items-center gap-2 text-sm font-medium text-naki-secondary transition hover:text-naki-primary"
             to="/"
@@ -385,7 +385,7 @@ export function UserProfilePage() {
         {isLoading ? (
           <ProfileSkeleton />
         ) : profile ? (
-          <div className="mt-8 grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
+          <div className="mt-8 grid gap-6 md:grid-cols-[0.86fr_1.14fr]">
             {/* Left column */}
             <aside className="grid gap-5">
               {/* Profile card */}

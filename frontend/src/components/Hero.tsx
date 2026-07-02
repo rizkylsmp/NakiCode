@@ -1,19 +1,26 @@
 import { ArrowRight, Check, Code2, Sparkles } from "lucide-react";
 
-export function Hero() {
+type HeroProps = {
+  totalTemplates: number;
+  totalDevelopers: number;
+  totalTransactions: number;
+  averageRating: number;
+};
+
+export function Hero({ totalTemplates, totalDevelopers, totalTransactions, averageRating }: HeroProps) {
   return (
     <section className="relative z-0 w-full overflow-hidden">
       {/* Subtle gradient glow at top */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-50/80 via-transparent to-transparent" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16 py-16 md:py-20 lg:py-24">
-        <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+        <div className="grid gap-16 md:grid-cols-2 md:items-center">
           {/* Left: Text content */}
           <div className="lg:pr-8">
             {/* Badge */}
             <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-600">
               <Sparkles size={14} />
-              120+ template berkualitas untuk developer
+              {totalTemplates}+ template berkualitas untuk developer
             </div>
 
             {/* Headline */}
@@ -59,7 +66,7 @@ export function Hero() {
                 ))}
               </div>
               <span className="font-medium">
-                Dipercaya <strong className="text-naki-primary">3.500+</strong>{" "}
+                Dipercaya <strong className="text-naki-primary">{totalDevelopers}+</strong>{" "}
                 developer
               </span>
             </div>
@@ -146,7 +153,7 @@ export function Hero() {
                   <Code2 size={18} />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold text-naki-primary">120+ Template</p>
+                  <p className="text-xs font-semibold text-naki-primary">{totalTemplates}+ Template</p>
                   <p className="text-[10px] text-naki-smoke">Siap digunakan</p>
                 </div>
               </div>
@@ -161,25 +168,25 @@ export function Hero() {
           <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
-                120+
+                {totalTemplates}+
               </div>
               <div className="mt-1 text-sm text-naki-smoke">Template Tersedia</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
-                3.500+
+                {totalDevelopers}+
               </div>
               <div className="mt-1 text-sm text-naki-smoke">Developer Aktif</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
-                12.000+
+                {totalTransactions}+
               </div>
               <div className="mt-1 text-sm text-naki-smoke">Transaksi Sukses</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
-                4.9/5
+                {averageRating.toFixed(1)}/5
               </div>
               <div className="mt-1 text-sm text-naki-smoke">Rating Puas</div>
             </div>

@@ -43,7 +43,7 @@ interface BlogCardSkeletonGridProps {
 
 export function BlogCardSkeletonGrid({ count = 6 }: BlogCardSkeletonGridProps) {
   return (
-    <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="mt-8 grid gap-4 md:grid-cols-3">
       {Array.from({ length: count }).map((_, index) => (
         <BlogCardSkeleton key={index} />
       ))}

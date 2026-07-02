@@ -74,7 +74,7 @@ export function BlogDetailPage() {
         ) : null}
       </Helmet>
       <Header />
-      <article className="mx-auto w-full max-w-6xl px-5 py-10 md:px-8">
+      <article className="mx-auto w-full max-w-6xl px-5 py-10 md:px-8 md:py-12 lg:px-12 xl:px-16">
         <Link
           className="inline-flex items-center gap-2 text-sm font-black text-naki-secondary"
           to="/blog"

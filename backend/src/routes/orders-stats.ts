@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import * as Sentry from '@sentry/node';
 import { pool } from '../db';
 import { requireAdmin } from '../auth';
 
@@ -52,9 +53,9 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
       pendingPayments: Number(row.pendingPayments),
     });
   } catch (error) {
-    console.error('Error fetching order stats:', error);
+    Sentry.captureException(error);
     res.status(500).json({
-      error: 'Failed to fetch order statistics',
+      message: 'Failed to fetch order statistics',
     });
   }
 });

@@ -88,7 +88,7 @@ export function TemplateFormModal({
         </div>
 
         <form className="grid gap-5 p-5" onSubmit={onSubmitTemplate}>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <Field
               label="Judul"
               value={form.title}
@@ -150,6 +150,12 @@ export function TemplateFormModal({
           />
 
           <SourceCodeUpload
+            value={form.sourceCode}
+            onChange={(value) => onUpdateField("sourceCode", value)}
+          />
+
+          <TagInput
+            label="Isi source code"
             value={form.includedFiles}
             onChange={(value) => onUpdateField("includedFiles", value)}
           />
@@ -160,7 +166,7 @@ export function TemplateFormModal({
             onChange={(value) => onUpdateField("suitableFor", value)}
           />
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <SelectField
               label="Lisensi"
               value={form.license}
@@ -174,6 +180,13 @@ export function TemplateFormModal({
               onChange={(value) => onUpdateField("support", value)}
             />
           </div>
+
+          <Field
+            label="Lynk Checkout URL"
+            value={form.lynkUrl}
+            onChange={(value) => onUpdateField("lynkUrl", value)}
+            placeholder="https://lynk.id/your-product-link"
+          />
 
           <div className="flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
             <button

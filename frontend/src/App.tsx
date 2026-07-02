@@ -147,6 +147,9 @@ function App() {
   } = useQuery({
     queryKey: ["app-bootstrap"],
     queryFn: fetchAppBootstrap,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {

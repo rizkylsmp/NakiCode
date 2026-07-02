@@ -11,6 +11,7 @@ import {
 } from "../api-client";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
+import { LoadingOverlay } from "../components/LoadingOverlay";
 import {
   type TemplateCategory,
   type TemplateItem,
@@ -25,8 +26,10 @@ import {
 } from "../user-session";
 import { AdminTemplateWorkspace } from "./admin/AdminTemplateWorkspace";
 import {
+  adminBlogPostsPageSize,
   adminOrdersPageSize,
   adminTemplatesPageSize,
+  defaultBlogPostFormState,
   defaultFormState,
   defaultPortfolioFormState,
   formToPayload,
@@ -37,6 +40,8 @@ import {
   templateToForm,
   type AdminOrderFilters,
   type AuthResponse,
+  type BlogPostFormState,
+  type BlogPostItem,
   type CategoryMutationResponse,
   type DashboardView,
   type OrderStatus,
@@ -48,6 +53,7 @@ import {
 } from "./admin/AdminTemplateWorkspace.shared";
 import { DeleteCategoryDialog } from "./admin/DeleteCategoryDialog";
 import { DeleteOrderDialog } from "./admin/DeleteOrderDialog";
+import { DeleteTemplateDialog } from "./admin/DeleteTemplateDialog";
 
 /** Parse order filter state from URL query params. */
 function readOrderFiltersFromUrl(search: string): {
@@ -131,6 +137,8 @@ export function AdminTemplatesPage({
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(
     null,
   );
+  const [deleteCandidatePortfolio, setDeleteCandidatePortfolio] =
+    useState<PortfolioItem | null>(null);
   const initialOrderState = useMemo(() => readOrderFiltersFromUrl(location.search), []);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [ordersPage, setOrdersPage] = useState(initialOrderState.page);
@@ -146,6 +154,7 @@ export function AdminTemplatesPage({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [updatingTemplateId, setUpdatingTemplateId] = useState<number | null>(null);
   const [status, setStatus] = useState("Siap mengelola katalog template.");
   const [categoryName, setCategoryName] = useState("");
   const [categoryStatus, setCategoryStatus] = useState(
@@ -156,6 +165,7 @@ export function AdminTemplatesPage({
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoriesWithIds, setCategoriesWithIds] = useState<Array<{ id: number; name: string }>>([]);
   const [ordersStatus, setOrdersStatus] = useState(
     "Login untuk melihat request konsultasi.",
   );
@@ -163,6 +173,17 @@ export function AdminTemplatesPage({
     useState<OrderItem | null>(null);
   const [deleteCandidateCategory, setDeleteCandidateCategory] =
     useState<string | null>(null);
+  const [deleteCandidateTemplate, setDeleteCandidateTemplate] =
+    useState<TemplateItem | null>(null);
+  const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
+  const [blogPostsPage, setBlogPostsPage] = useState(1);
+  const [blogSearch, setBlogSearch] = useState("");
+  const [blogForm, setBlogForm] = useState<BlogPostFormState>(defaultBlogPostFormState);
+  const [blogStatus, setBlogStatus] = useState("");
+  const [isSavingBlog, setIsSavingBlog] = useState(false);
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [deletingBlogId, setDeletingBlogId] = useState<number | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const adminTokenRef = useRef(adminToken);
   const isAdmin = Boolean(adminToken && adminRole === "admin");
 
@@ -401,6 +422,10 @@ export function AdminTemplatesPage({
     }
   }
 
+  function openPortfolioModal() {
+    setIsPortfolioModalOpen(true);
+  }
+
   function navigateAdminView(view: DashboardView) {
     setActiveAdminView(view);
     setIsTemplateModalOpen(false);
@@ -516,7 +541,7 @@ export function AdminTemplatesPage({
     }
 
     setUpdatingOrderId(orderId);
-    setOrdersStatus("Mengubah status order...");
+    setLoadingMessage(`Mengubah status order #${orderId}...`);
 
     try {
       await apiPatch(`/api/orders/${orderId}/status`, {
@@ -533,6 +558,7 @@ export function AdminTemplatesPage({
       setOrdersStatus("Gagal mengubah status order.");
     } finally {
       setUpdatingOrderId(null);
+      setLoadingMessage(null);
     }
   }
 
@@ -543,7 +569,7 @@ export function AdminTemplatesPage({
     }
 
     setUpdatingOrderId(order.id);
-    setOrdersStatus(`Menghapus order #${order.id}...`);
+    setLoadingMessage(`Menghapus order #${order.id}...`);
 
     try {
       await apiDelete(`/api/orders/${order.id}`);
@@ -561,6 +587,7 @@ export function AdminTemplatesPage({
       setOrdersStatus("Gagal menghapus order.");
     } finally {
       setUpdatingOrderId(null);
+      setLoadingMessage(null);
     }
   }
 
@@ -572,7 +599,7 @@ export function AdminTemplatesPage({
     }
 
     setIsSaving(true);
-    setStatus("Menyimpan template...");
+    setLoadingMessage("Menyimpan template...");
 
     const payload = formToPayload(form);
     const isEditing = selectedTemplate !== undefined;
@@ -599,6 +626,7 @@ export function AdminTemplatesPage({
       setStatus("Gagal menyimpan. Pastikan backend aktif.");
     } finally {
       setIsSaving(false);
+      setLoadingMessage(null);
     }
   }
 
@@ -608,7 +636,8 @@ export function AdminTemplatesPage({
       return;
     }
 
-    setStatus(`Menghapus ${template.title}...`);
+    setUpdatingTemplateId(template.id);
+    setLoadingMessage(`Menghapus ${template.title}...`);
 
     try {
       await apiDelete(`/api/templates/${template.id}`);
@@ -626,31 +655,41 @@ export function AdminTemplatesPage({
       setStatus(`Template ${template.title} dihapus.`);
     } catch {
       setStatus("Gagal menghapus. Pastikan backend aktif.");
+    } finally {
+      setDeleteCandidateTemplate(null);
+      setUpdatingTemplateId(null);
+      setLoadingMessage(null);
     }
   }
 
-  async function handleEditCategory(categoryName: string) {
+  function cancelDeleteTemplate() {
+    setDeleteCandidateTemplate(null);
+  }
+
+  async function refreshCategoriesWithIds() {
+    try {
+      const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
+      setCategoriesWithIds(response.categories ?? []);
+    } catch (error) {
+      console.error("Failed to refresh categories:", error);
+    }
+  }
+
+  function handleEditCategory(categoryName: string) {
     if (!adminToken) {
       setCategoryStatus("Login admin diperlukan untuk mengedit kategori.");
       return;
     }
 
-    // First, get the category ID from the API
-    try {
-      const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
-      const category = response.categories.find(c => c.name === categoryName);
-
-      if (!category) {
-        setCategoryStatus("Kategori tidak ditemukan.");
-        return;
-      }
-
-      setEditingCategory(categoryName);
-      setEditingCategoryId(category.id);
-      setEditingCategoryName(categoryName);
-    } catch (error) {
-      setCategoryStatus(getApiErrorMessage(error, "Gagal memuat data kategori."));
+    const category = categoriesWithIds.find(c => c.name === categoryName);
+    if (!category) {
+      setCategoryStatus("Kategori tidak ditemukan.");
+      return;
     }
+
+    setEditingCategory(categoryName);
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(categoryName);
   }
 
   async function handleUpdateCategory() {
@@ -667,7 +706,7 @@ export function AdminTemplatesPage({
     }
 
     setIsSavingCategory(true);
-    setCategoryStatus("Memperbarui kategori...");
+    setLoadingMessage("Memperbarui kategori...");
 
     try {
       const data = await apiPut<CategoryMutationResponse>(`/api/categories/${editingCategoryId}`, {
@@ -675,6 +714,7 @@ export function AdminTemplatesPage({
       });
 
       onCategoriesChange(data.categories);
+      await refreshCategoriesWithIds();
       setEditingCategory(null);
       setEditingCategoryId(null);
       setEditingCategoryName("");
@@ -683,6 +723,7 @@ export function AdminTemplatesPage({
       setCategoryStatus(getApiErrorMessage(error, "Gagal memperbarui kategori."));
     } finally {
       setIsSavingCategory(false);
+      setLoadingMessage(null);
     }
   }
 
@@ -706,7 +747,7 @@ export function AdminTemplatesPage({
     }
 
     setIsSavingCategory(true);
-    setCategoryStatus("Menyimpan kategori...");
+    setLoadingMessage("Menyimpan kategori...");
 
     try {
       const data = await apiPost<CategoryMutationResponse>("/api/categories", {
@@ -714,6 +755,7 @@ export function AdminTemplatesPage({
       });
 
       onCategoriesChange(data.categories);
+      await refreshCategoriesWithIds();
       setCategoryName("");
       setCategoryStatus(data.message ?? `Kategori "${name}" berhasil ditambahkan.`);
       setIsCategoryModalOpen(false);
@@ -721,6 +763,7 @@ export function AdminTemplatesPage({
       setCategoryStatus(getApiErrorMessage(error, "Gagal menambahkan kategori."));
     } finally {
       setIsSavingCategory(false);
+      setLoadingMessage(null);
     }
   }
 
@@ -736,32 +779,32 @@ export function AdminTemplatesPage({
   async function handleConfirmDeleteCategory(categoryName: string) {
     setDeleteCandidateCategory(null);
 
-    // First, get the category ID from the API
+    const category = categoriesWithIds.find(c => c.name === categoryName);
+    if (!category) {
+      setCategoryStatus("Kategori tidak ditemukan.");
+      return;
+    }
+
+    setIsSavingCategory(true);
+    setLoadingMessage("Menghapus kategori...");
+
     try {
-      const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
-      const category = response.categories.find(c => c.name === categoryName);
-
-      if (!category) {
-        setCategoryStatus("Kategori tidak ditemukan.");
-        return;
-      }
-
-      setIsSavingCategory(true);
-      setCategoryStatus("Menghapus kategori...");
-
       const data = await apiDelete<CategoryMutationResponse>(`/api/categories/${category.id}`);
 
       onCategoriesChange(data.categories);
+      await refreshCategoriesWithIds();
       setCategoryStatus(data.message ?? "Kategori berhasil dihapus.");
     } catch (error) {
       setCategoryStatus(getApiErrorMessage(error, "Gagal menghapus kategori."));
     } finally {
       setIsSavingCategory(false);
+      setLoadingMessage(null);
     }
   }
 
-  function openCategoryModal() {
+  async function openCategoryModal() {
     setIsCategoryModalOpen(true);
+    await refreshCategoriesWithIds();
   }
 
   function closeCategoryModal() {
@@ -780,7 +823,7 @@ export function AdminTemplatesPage({
     }
 
     setIsSavingPortfolio(true);
-    setPortfolioStatus("Menyimpan portofolio...");
+    setLoadingMessage("Menyimpan portofolio...");
 
     const coverIndex = normalizeCoverIndex(
       portfolioForm.coverIndex,
@@ -822,17 +865,25 @@ export function AdminTemplatesPage({
       setPortfolioStatus("Gagal menyimpan portofolio. Pastikan backend aktif.");
     } finally {
       setIsSavingPortfolio(false);
+      setLoadingMessage(null);
     }
   }
 
   async function deletePortfolio(project: PortfolioItem) {
+    setDeleteCandidatePortfolio(project);
+  }
+
+  async function confirmDeletePortfolio() {
+    if (!deleteCandidatePortfolio) return;
+
+    const project = deleteCandidatePortfolio;
     if (!adminToken || !project.id) {
       setPortfolioStatus("Login admin diperlukan untuk menghapus portofolio.");
       return;
     }
 
     setDeletingProjectId(project.id);
-    setPortfolioStatus(`Menghapus portofolio ${project.title}...`);
+    setLoadingMessage(`Menghapus portofolio ${project.title}...`);
 
     try {
       await apiDelete(`/api/projects/${project.id}`);
@@ -850,8 +901,161 @@ export function AdminTemplatesPage({
       setPortfolioStatus("Gagal menghapus portofolio.");
     } finally {
       setDeletingProjectId(null);
+      setDeleteCandidatePortfolio(null);
+      setLoadingMessage(null);
     }
   }
+
+  function cancelDeletePortfolio() {
+    if (!deletingProjectId) {
+      setDeleteCandidatePortfolio(null);
+    }
+  }
+
+  // Blog handlers
+  async function loadBlogPosts() {
+    try {
+      const res = await apiGet<{ source: string; posts: BlogPostItem[] }>("/api/blog/admin");
+      setBlogPosts(res.posts ?? []);
+    } catch {
+      setBlogStatus("Gagal memuat artikel.");
+    }
+  }
+
+  const filteredBlogPosts = useMemo(() => {
+    if (!blogSearch.trim()) return blogPosts;
+    const q = blogSearch.toLowerCase();
+    return blogPosts.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.excerpt.toLowerCase().includes(q) ||
+        p.content.toLowerCase().includes(q),
+    );
+  }, [blogPosts, blogSearch]);
+
+  const blogPostsTotalPages = Math.max(1, Math.ceil(filteredBlogPosts.length / adminBlogPostsPageSize));
+  const safeBlogPostsPage = Math.min(blogPostsPage, blogPostsTotalPages);
+  const paginatedBlogPosts = filteredBlogPosts.slice(
+    (safeBlogPostsPage - 1) * adminBlogPostsPageSize,
+    safeBlogPostsPage * adminBlogPostsPageSize,
+  );
+
+  function startCreateBlog() {
+    setBlogForm(defaultBlogPostFormState);
+  }
+
+  function startEditBlog(post: BlogPostItem) {
+    setBlogForm({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      author: post.author,
+      coverImage: post.coverImage ?? "",
+      status: post.status as "draft" | "published",
+    });
+    setIsBlogModalOpen(true);
+  }
+
+  function closeBlogModal() {
+    if (isSavingBlog) return;
+    setIsBlogModalOpen(false);
+  }
+
+  function openBlogModal() {
+    setIsBlogModalOpen(true);
+  }
+
+  function updateBlogField<Key extends keyof BlogPostFormState>(
+    key: Key,
+    value: BlogPostFormState[Key],
+  ) {
+    setBlogForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function submitBlog(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!adminToken) {
+      setBlogStatus("Login admin diperlukan.");
+      return;
+    }
+
+    setIsSavingBlog(true);
+    setLoadingMessage("Menyimpan artikel...");
+
+    try {
+      const payload = {
+        slug: blogForm.slug || slugify(blogForm.title),
+        title: blogForm.title.trim(),
+        excerpt: blogForm.excerpt.trim(),
+        content: blogForm.content.trim(),
+        author: blogForm.author.trim() || "Naki Code",
+        coverImage: blogForm.coverImage.trim() || null,
+        status: blogForm.status,
+      };
+
+      if (blogForm.id) {
+        const res = await apiPut<{ source: string; post: BlogPostItem }>(
+          `/api/blog/${blogForm.id}`,
+          payload,
+        );
+        setBlogPosts(
+          blogPosts.map((p) => (p.id === res.post.id ? res.post : p)),
+        );
+        setBlogStatus("Artikel berhasil diperbarui.");
+      } else {
+        const res = await apiPost<{ source: string; post: BlogPostItem }>(
+          "/api/blog",
+          payload,
+        );
+        setBlogPosts([res.post, ...blogPosts]);
+        setBlogStatus("Artikel berhasil dibuat.");
+      }
+
+      setBlogForm(defaultBlogPostFormState);
+      setIsBlogModalOpen(false);
+    } catch {
+      setBlogStatus("Gagal menyimpan artikel.");
+    } finally {
+      setIsSavingBlog(false);
+      setLoadingMessage(null);
+    }
+  }
+
+  function deleteBlog(post: BlogPostItem) {
+    setDeletingBlogId(post.id);
+  }
+
+  async function confirmDeleteBlog() {
+    if (!adminToken || deletingBlogId === null) return;
+
+    const id = deletingBlogId;
+    setDeletingBlogId(null);
+    setLoadingMessage("Menghapus artikel...");
+
+    try {
+      await apiDelete(`/api/blog/${id}`);
+      setBlogPosts(blogPosts.filter((p) => p.id !== id));
+      setBlogStatus("Artikel berhasil dihapus.");
+    } catch {
+      setBlogStatus("Gagal menghapus artikel.");
+    } finally {
+      setLoadingMessage(null);
+    }
+  }
+
+  function cancelDeleteBlog() {
+    setDeletingBlogId(null);
+  }
+
+  // Load blog posts when admin is logged in
+  useEffect(() => {
+    if (adminToken) {
+      void loadBlogPosts();
+    }
+  }, [adminToken]);
 
   return (
     <main className="bg-naki-page-bg min-h-screen text-naki-primary">
@@ -985,7 +1189,7 @@ export function AdminTemplatesPage({
           onStartCreate={startCreate}
           onStartEdit={startEdit}
           onCloseTemplateModal={closeTemplateModal}
-          onDeleteTemplate={deleteTemplate}
+          onDeleteTemplate={setDeleteCandidateTemplate}
           onSubmitTemplate={submitTemplate}
           onUpdateField={updateField}
           onCategoryNameChange={setCategoryName}
@@ -993,8 +1197,33 @@ export function AdminTemplatesPage({
           onSubmitPortfolio={submitPortfolio}
           onStartEditPortfolio={startEditPortfolio}
           onClosePortfolioModal={closePortfolioModal}
+          onOpenPortfolioModal={openPortfolioModal}
           onResetPortfolioForm={resetPortfolioForm}
           onDeletePortfolio={deletePortfolio}
+          onConfirmDeletePortfolio={confirmDeletePortfolio}
+          onCancelDeletePortfolio={cancelDeletePortfolio}
+          blogPosts={blogPosts}
+          paginatedBlogPosts={paginatedBlogPosts}
+          totalBlogPosts={filteredBlogPosts.length}
+          blogPostsPage={safeBlogPostsPage}
+          blogPostsTotalPages={blogPostsTotalPages}
+          blogSearch={blogSearch}
+          blogForm={blogForm}
+          blogStatus={blogStatus}
+          isSavingBlog={isSavingBlog}
+          isBlogModalOpen={isBlogModalOpen}
+          deletingBlogId={deletingBlogId}
+          onBlogSearchChange={setBlogSearch}
+          onBlogPostsPageChange={setBlogPostsPage}
+          onStartCreateBlog={startCreateBlog}
+          onStartEditBlog={startEditBlog}
+          onCloseBlogModal={closeBlogModal}
+          onOpenBlogModal={openBlogModal}
+          onDeleteBlog={deleteBlog}
+          onSubmitBlog={submitBlog}
+          onUpdateBlogField={updateBlogField}
+          onConfirmDeleteBlog={confirmDeleteBlog}
+          onCancelDeleteBlog={cancelDeleteBlog}
         />
       )}
 
@@ -1027,7 +1256,30 @@ export function AdminTemplatesPage({
         onConfirm={(order) => void deleteOrder(order)}
       />
 
+      <DeleteTemplateDialog
+        template={deleteCandidateTemplate}
+        isDeleting={
+          deleteCandidateTemplate
+            ? updatingTemplateId === deleteCandidateTemplate.id
+            : false
+        }
+        onClose={() => {
+          if (
+            !deleteCandidateTemplate ||
+            updatingTemplateId !== deleteCandidateTemplate.id
+          ) {
+            setDeleteCandidateTemplate(null);
+          }
+        }}
+        onConfirm={(template) => void deleteTemplate(template)}
+      />
+
       <Footer />
+
+      <LoadingOverlay
+        isLoading={loadingMessage !== null}
+        message={loadingMessage ?? ""}
+      />
     </main>
   );
 }

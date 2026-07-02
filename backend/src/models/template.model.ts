@@ -21,11 +21,15 @@ type TemplateRow = RowDataPacket & {
   preview: string | TemplatePreviewItem[];
   demo_url?: string;
   demoUrl?: string;
+  lynk_url?: string | null;
+  lynkUrl?: string | null;
   buyer_count?: number;
   buyerCount?: number;
   features?: string | string[];
   included_files?: string | string[];
   includedFiles?: string[];
+  source_code?: string | string[];
+  sourceCode?: string[];
   suitable_for?: string | string[];
   suitableFor?: string[];
   license?: string;
@@ -51,9 +55,11 @@ export type TemplateItem = {
   accentClass: string;
   preview: TemplatePreviewItem[];
   demoUrl: string;
+  lynkUrl?: string | null;
   buyerCount: number;
   features: string[];
   includedFiles: string[];
+  sourceCode: string[];
   suitableFor: string[];
   license: string;
   support: string;
@@ -78,9 +84,11 @@ const templateSelect = `SELECT
   templates.accent_class,
   templates.preview,
   templates.demo_url,
+  templates.lynk_url,
   COALESCE(order_stats.buyer_count, 0) AS buyer_count,
   templates.features,
   templates.included_files,
+  templates.source_code,
   templates.suitable_for,
   templates.license,
   templates.support
@@ -139,12 +147,14 @@ export async function createTemplate(payload: TemplatePayload) {
       accent_class,
       preview,
       demo_url,
+      lynk_url,
       features,
       included_files,
+      source_code,
       suitable_for,
       license,
       support
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     serializeTemplatePayload(payload, category),
   );
 
@@ -166,8 +176,10 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
       accent_class = ?,
       preview = ?,
       demo_url = ?,
+      lynk_url = ?,
       features = ?,
       included_files = ?,
+      source_code = ?,
       suitable_for = ?,
       license = ?,
       support = ?
@@ -207,8 +219,10 @@ export function normalizeTemplatePayload(
     accentClass: String(body.accentClass ?? 'bg-naki-secondary').trim(),
     preview: normalizePreviewArray(body.preview),
     demoUrl: String(body.demoUrl ?? '#').trim(),
+    lynkUrl: body.lynkUrl ? String(body.lynkUrl).trim() : null,
     features: normalizeArray(body.features),
     includedFiles: normalizeArray(body.includedFiles),
+    sourceCode: normalizeArray(body.sourceCode),
     suitableFor: normalizeArray(body.suitableFor),
     license: String(
       body.license ?? 'Boleh dipakai sesuai lisensi pembelian.',
@@ -234,9 +248,11 @@ function normalizeTemplateRow(row: TemplateRow): TemplateItem {
     accentClass: row.accent_class ?? row.accentClass ?? 'bg-naki-secondary',
     preview: parsePreviewArray(row.preview),
     demoUrl: row.demo_url ?? row.demoUrl ?? '#',
+    lynkUrl: row.lynk_url ?? row.lynkUrl ?? null,
     buyerCount: row.buyer_count ?? row.buyerCount ?? 0,
     features: parseStringArray(row.features ?? []),
     includedFiles: parseStringArray(row.included_files ?? row.includedFiles ?? []),
+    sourceCode: parseStringArray(row.source_code ?? row.sourceCode ?? []),
     suitableFor: parseStringArray(row.suitable_for ?? row.suitableFor ?? []),
     license: row.license ?? 'Boleh dipakai sesuai lisensi pembelian.',
     support: row.support ?? 'Support setup dasar setelah pembelian.',
@@ -271,8 +287,10 @@ function serializeTemplatePayload(
     payload.accentClass,
     JSON.stringify(payload.preview),
     payload.demoUrl,
+    payload.lynkUrl,
     JSON.stringify(payload.features),
     JSON.stringify(payload.includedFiles),
+    JSON.stringify(payload.sourceCode),
     JSON.stringify(payload.suitableFor),
     payload.license,
     payload.support,

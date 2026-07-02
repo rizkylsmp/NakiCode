@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { CategorySection } from "../components/CategorySection";
 import { CTASection } from "../components/CTASection";
 import { FaqSection } from "../components/FaqSection";
@@ -8,10 +9,9 @@ import { LearningSection } from "../components/LearningSection";
 import { PortfolioSection } from "../components/PortfolioSection";
 import { TemplateCatalog } from "../components/TemplateCatalog";
 import { TestimonialSection } from "../components/TestimonialSection";
+import { apiGet } from "../api-client";
 import {
-  articles,
   faqs,
-  portfolioItems as defaultPortfolioItems,
   type HealthState,
   type PortfolioItem,
   type TemplateCategory,
@@ -31,6 +31,19 @@ type HomePageProps = {
   onQueryChange: (value: string) => void;
 };
 
+type BlogPostsResponse = {
+  posts: Array<{
+    id: number;
+    slug: string;
+    title: string;
+    excerpt: string;
+    author: string;
+    status: string;
+    publishedAt: string | null;
+    createdAt: string;
+  }>;
+};
+
 export function HomePage({
   health,
   templates,
@@ -43,10 +56,31 @@ export function HomePage({
   onCategoryChange,
   onQueryChange: _onQueryChange,
 }: HomePageProps) {
+  const { data: blogData } = useQuery({
+    queryKey: ["home-blog-posts"],
+    queryFn: () => apiGet<BlogPostsResponse>("/api/blog"),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const blogPosts = blogData?.posts ?? [];
+
+  // Calculate real stats from templates data
+  const totalTemplates = templates.length;
+  const totalDevelopers = templates.reduce((sum, t) => sum + (t.buyerCount || 0), 0);
+  const totalTransactions = templates.reduce((sum, t) => sum + (t.buyerCount || 0), 0);
+  const averageRating = templates.length > 0
+    ? templates.reduce((sum, t) => sum + (t.rating || 0), 0) / templates.length
+    : 0;
+
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Header />
-      <Hero />
+      <Hero
+        totalTemplates={totalTemplates}
+        totalDevelopers={totalDevelopers}
+        totalTransactions={totalTransactions}
+        averageRating={averageRating}
+      />
       <TemplateCatalog
         templates={filteredTemplates}
         allTemplates={templates}
@@ -57,9 +91,9 @@ export function HomePage({
       <CategorySection categories={categories} />
       <TestimonialSection />
       <PortfolioSection
-        items={portfolioItems.length > 0 ? portfolioItems : defaultPortfolioItems}
+        items={portfolioItems.length > 0 ? portfolioItems : []}
       />
-      <LearningSection articles={articles} />
+      <LearningSection blogPosts={blogPosts} />
       <FaqSection faqs={faqs} />
       <CTASection />
       <Footer />

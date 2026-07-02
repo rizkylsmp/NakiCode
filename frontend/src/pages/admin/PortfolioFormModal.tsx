@@ -197,7 +197,7 @@ export function PortfolioFormModal({
         </div>
 
         <form
-          className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_360px]"
+          className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_360px]"
           onSubmit={onSubmit}
         >
           <div className="grid gap-4">
@@ -206,7 +206,7 @@ export function PortfolioFormModal({
               {status}
             </span>
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <Field
                 label="Nama website"
                 value={form.title}
@@ -276,7 +276,7 @@ export function PortfolioFormModal({
                     Hapus semua
                   </button>
                 </div>
-                <div className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 p-3 sm:grid-cols-2 md:grid-cols-3">
                   {portfolioImages.map((imageUrl, index) => (
                     <ThumbnailImageWrapper
                       key={`${imageUrl}-${index}`}

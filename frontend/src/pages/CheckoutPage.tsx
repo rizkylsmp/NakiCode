@@ -220,7 +220,7 @@ export function CheckoutPage() {
           Kembali
         </button>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="mt-6 grid gap-6 md:grid-cols-[1fr_380px]">
           {/* Main checkout column */}
           <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
             <p className="text-xs font-medium uppercase text-naki-smoke tracking-wide">
@@ -434,7 +434,7 @@ export function CheckoutPage() {
           </div>
 
           {/* Order summary sidebar */}
-          <aside className="h-fit bg-white rounded-2xl shadow-sm p-6 lg:sticky lg:top-24">
+          <aside className="h-fit bg-white rounded-2xl shadow-sm p-6 md:sticky md:top-24">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
               Ringkasan order
             </p>

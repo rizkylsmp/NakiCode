@@ -17,7 +17,8 @@
       "Bash(powershell -Command \"Stop-Process -Name node -Force\")",
       "Bash(curl --max-time 10 -s http://localhost:3001/api/admin/stats)",
       "Bash(timeout 5)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(npx tsx *)"
     ]
   },
   "hooks": {

@@ -280,7 +280,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
           Kembali ke storefront
         </Link>
 
-        <div className="mt-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+        <div className="mt-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-xs font-medium uppercase text-naki-smoke">
               Akun {userUsername || "user"}
@@ -391,7 +391,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                       key={order.id}
                       className="rounded-2xl bg-white p-5 shadow-sm"
                     >
-                      <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-start">
+                      <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-start">
                         <div className="min-w-0">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <span className="w-fit rounded-lg bg-naki-frost px-2.5 py-1 text-xs font-semibold text-naki-smoke">

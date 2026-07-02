@@ -1,10 +1,12 @@
-import { ArrowLeft, ClipboardList, Globe2, Inbox, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, ClipboardList, FileText, Globe2, Inbox, LayoutDashboard } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { type PortfolioItem, type TemplateItem } from "../../content";
 import { type OrderItem } from "../../order-types";
 import {
   type AdminOrderFilters,
+  type BlogPostFormState,
+  type BlogPostItem,
   type DashboardView,
   type OrderStatus,
   type PortfolioFormState,
@@ -13,6 +15,7 @@ import {
 
 // Lazy-loaded admin panels
 const AdminDashboardHome = lazy(() => import("./AdminDashboardHome").then((m) => ({ default: m.AdminDashboardHome })));
+const BlogAdminPanel = lazy(() => import("./BlogAdminPanel").then((m) => ({ default: m.BlogAdminPanel })));
 const OrdersPanel = lazy(() => import("./OrdersPanel").then((m) => ({ default: m.OrdersPanel })));
 const PortfolioAdminPanel = lazy(() => import("./PortfolioAdminPanel").then((m) => ({ default: m.PortfolioAdminPanel })));
 const TemplatesPanel = lazy(() => import("./TemplatesPanel").then((m) => ({ default: m.TemplatesPanel })));
@@ -86,8 +89,33 @@ type AdminTemplateWorkspaceProps = {
   onSubmitPortfolio: (event: React.FormEvent<HTMLFormElement>) => void;
   onStartEditPortfolio: (project: PortfolioItem) => void;
   onClosePortfolioModal: () => void;
+  onOpenPortfolioModal: () => void;
   onResetPortfolioForm: () => void;
   onDeletePortfolio: (project: PortfolioItem) => void;
+  onConfirmDeletePortfolio: () => void;
+  onCancelDeletePortfolio: () => void;
+  blogPosts: BlogPostItem[];
+  paginatedBlogPosts: BlogPostItem[];
+  totalBlogPosts: number;
+  blogPostsPage: number;
+  blogPostsTotalPages: number;
+  blogSearch: string;
+  blogForm: BlogPostFormState;
+  blogStatus: string;
+  isSavingBlog: boolean;
+  isBlogModalOpen: boolean;
+  deletingBlogId: number | null;
+  onBlogSearchChange: (value: string) => void;
+  onBlogPostsPageChange: (page: number) => void;
+  onStartCreateBlog: () => void;
+  onStartEditBlog: (post: BlogPostItem) => void;
+  onCloseBlogModal: () => void;
+  onOpenBlogModal: () => void;
+  onDeleteBlog: (post: BlogPostItem) => void;
+  onSubmitBlog: (event: React.FormEvent<HTMLFormElement>) => void;
+  onUpdateBlogField: <Key extends keyof BlogPostFormState>(key: Key, value: BlogPostFormState[Key]) => void;
+  onConfirmDeleteBlog: () => void;
+  onCancelDeleteBlog: () => void;
 };
 
 function PanelLoader() {
@@ -164,8 +192,33 @@ export function AdminTemplateWorkspace({
   onSubmitPortfolio,
   onStartEditPortfolio,
   onClosePortfolioModal,
+  onOpenPortfolioModal,
   onResetPortfolioForm,
   onDeletePortfolio,
+  onConfirmDeletePortfolio,
+  onCancelDeletePortfolio,
+  blogPosts,
+  paginatedBlogPosts,
+  totalBlogPosts,
+  blogPostsPage,
+  blogPostsTotalPages,
+  blogSearch,
+  blogForm,
+  blogStatus,
+  isSavingBlog,
+  isBlogModalOpen,
+  deletingBlogId,
+  onBlogSearchChange,
+  onBlogPostsPageChange,
+  onStartCreateBlog,
+  onStartEditBlog,
+  onCloseBlogModal,
+  onOpenBlogModal,
+  onDeleteBlog,
+  onSubmitBlog,
+  onUpdateBlogField,
+  onConfirmDeleteBlog,
+  onCancelDeleteBlog,
 }: AdminTemplateWorkspaceProps) {
   return (
     <section className="min-h-screen bg-naki-page-bg">
@@ -191,25 +244,25 @@ export function AdminTemplateWorkspace({
 
       {/* Pill tab navigation */}
       <div className="w-full px-5 md:px-8 xl:px-12 2xl:px-16">
-        <div className="inline-flex gap-1 rounded-xl border border-naki-steel bg-white p-1.5 shadow-sm">
+        <div className="flex gap-1 overflow-x-auto rounded-xl border border-naki-steel bg-white p-1.5 shadow-sm md:overflow-visible">
           <button
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition ${activeAdminView === "dashboard" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "dashboard" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
             onClick={() => onActiveAdminViewChange("dashboard")}
             type="button"
           >
             <LayoutDashboard size={16} />
-            Dashboard
+            <span className="hidden sm:inline">Dashboard</span>
           </button>
           <button
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition ${activeAdminView === "templates" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "templates" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
             onClick={() => onActiveAdminViewChange("templates")}
             type="button"
           >
             <ClipboardList size={16} />
-            Template
+            <span className="hidden sm:inline">Template</span>
           </button>
           <button
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition ${activeAdminView === "orders" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "orders" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
             onClick={() => {
               onActiveAdminViewChange("orders");
               onRefreshOrders();
@@ -217,15 +270,23 @@ export function AdminTemplateWorkspace({
             type="button"
           >
             <Inbox size={16} />
-            Order
+            <span className="hidden sm:inline">Order</span>
           </button>
           <button
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition ${activeAdminView === "portfolio" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "portfolio" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
             onClick={() => onActiveAdminViewChange("portfolio")}
             type="button"
           >
             <Globe2 size={16} />
-            Portofolio
+            <span className="hidden sm:inline">Portofolio</span>
+          </button>
+          <button
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "blog" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            onClick={() => onActiveAdminViewChange("blog")}
+            type="button"
+          >
+            <FileText size={16} />
+            <span className="hidden sm:inline">Blog</span>
           </button>
         </div>
       </div>
@@ -242,7 +303,11 @@ export function AdminTemplateWorkspace({
           </Suspense>
         ) : activeAdminView === "portfolio" ? (
           <Suspense fallback={<PanelLoader />}>
-            <PortfolioAdminPanel projects={projects} form={portfolioForm} status={portfolioStatus} deletingProjectId={deletingProjectId} onStartEdit={onStartEditPortfolio} onReset={onResetPortfolioForm} onDelete={onDeletePortfolio} />
+            <PortfolioAdminPanel projects={projects} form={portfolioForm} status={portfolioStatus} isSaving={isSavingPortfolio} isModalOpen={isPortfolioModalOpen} deletingProjectId={deletingProjectId} adminToken={adminToken} onStartEdit={onStartEditPortfolio} onReset={onResetPortfolioForm} onDelete={onDeletePortfolio} onOpenModal={onOpenPortfolioModal} onCloseModal={onClosePortfolioModal} onUpdateField={onUpdatePortfolioField} onSubmit={onSubmitPortfolio} onConfirmDelete={onConfirmDeletePortfolio} onCancelDelete={onCancelDeletePortfolio} />
+          </Suspense>
+        ) : activeAdminView === "blog" ? (
+          <Suspense fallback={<PanelLoader />}>
+            <BlogAdminPanel posts={blogPosts} paginatedPosts={paginatedBlogPosts} totalPosts={totalBlogPosts} page={blogPostsPage} totalPages={blogPostsTotalPages} search={blogSearch} selectedId={null} status={blogStatus} isSaving={isSavingBlog} isModalOpen={isBlogModalOpen} deletingId={deletingBlogId} form={blogForm} adminToken={adminToken} onSearchChange={onBlogSearchChange} onPageChange={onBlogPostsPageChange} onStartCreate={onStartCreateBlog} onStartEdit={onStartEditBlog} onDelete={onDeleteBlog} onOpenModal={onOpenBlogModal} onCloseModal={onCloseBlogModal} onFormChange={onUpdateBlogField} onSubmit={onSubmitBlog} onConfirmDelete={onConfirmDeleteBlog} onCancelDelete={onCancelDeleteBlog} />
           </Suspense>
         ) : (
           <Suspense fallback={<PanelLoader />}>

@@ -137,7 +137,7 @@ export function Header() {
         <Logo />
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => (
             <Link
               key={item.label}
@@ -449,7 +449,7 @@ export function Header() {
 
         {/* Mobile hamburger */}
         <button
-          className="grid size-10 place-items-center rounded-lg text-naki-primary lg:hidden"
+          className="grid size-10 place-items-center rounded-lg text-naki-primary md:hidden"
           aria-expanded={isMobileMenuOpen}
           aria-label="Buka menu"
           onClick={() => setIsMobileMenuOpen((current) => !current)}

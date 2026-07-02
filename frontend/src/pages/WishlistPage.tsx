@@ -22,7 +22,7 @@ export function WishlistPage({ templates }: WishlistPageProps) {
     <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <Header />
       <section className="w-full px-5 py-10 md:px-8 xl:px-12 2xl:px-16">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold text-naki-secondary">
               Wishlist

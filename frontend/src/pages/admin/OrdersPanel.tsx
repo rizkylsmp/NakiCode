@@ -87,7 +87,7 @@ export function OrdersPanel({
   return (
     <section className="min-h-screen bg-naki-page-bg py-8">
       {ordersStats ? (
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <StatCard
             label="Total order"
             value={String(ordersStats.totalOrders)}
@@ -159,7 +159,7 @@ export function OrdersPanel({
             </button>
           ) : null}
         </div>
-        <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
           <FilterButtonGroup
             label="Status order"
             filters={orderStatusFilters}
@@ -196,7 +196,7 @@ export function OrdersPanel({
               key={order.id}
               className="rounded-2xl bg-white p-5 shadow-sm"
             >
-              <div className="grid gap-4 xl:grid-cols-[1fr_170px] xl:items-start">
+              <div className="grid gap-4 md:grid-cols-[1fr_170px] md:items-start">
                 <div className="min-w-0">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <p className="w-fit rounded-lg bg-naki-frost px-2.5 py-1 text-xs font-semibold text-naki-primary">

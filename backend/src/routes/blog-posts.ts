@@ -27,6 +27,7 @@ const blogBodySchema = z.object({
   excerpt: z.string().trim().min(1).max(2000),
   content: z.string().trim().min(1),
   author: z.string().trim().max(120).optional(),
+  coverImage: z.string().trim().max(500).nullable().optional(),
   status: z.enum(['draft', 'published']).optional(),
 });
 

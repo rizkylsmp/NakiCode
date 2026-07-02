@@ -67,11 +67,11 @@ export function BlogListPage() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-3">
               {posts.map((post) => (
                 <Link
                   key={post.id}
-                  className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
+                  className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
                   to={`/blog/${post.slug}`}
                 >
                   {/* Image placeholder */}
