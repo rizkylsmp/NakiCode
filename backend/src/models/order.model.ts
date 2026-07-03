@@ -18,6 +18,10 @@ type OrderRow = RowDataPacket & {
   payment_reference?: string | null;
   payment_url?: string | null;
   payment_amount?: number | null;
+  payment_failure_code?: string | null;
+  payment_failure_reason?: string | null;
+  payment_last_webhook_status?: string | null;
+  payment_last_webhook_at?: string | null;
   paid_at?: string | null;
   created_at?: string;
   template_price?: string | null;
@@ -44,6 +48,10 @@ export type OrderItem = {
   paymentReference: string | null;
   paymentUrl: string | null;
   paymentAmount: number | null;
+  paymentFailureCode: string | null;
+  paymentFailureReason: string | null;
+  paymentLastWebhookStatus: string | null;
+  paymentLastWebhookAt: string | null;
   paidAt: string | null;
   templatePrice: string | null;
   deliveryStatus: 'locked' | 'available';
@@ -87,6 +95,10 @@ const orderSelect = `SELECT
   orders.payment_reference,
   orders.payment_url,
   orders.payment_amount,
+  orders.payment_failure_code,
+  orders.payment_failure_reason,
+  orders.payment_last_webhook_status,
+  orders.payment_last_webhook_at,
   orders.paid_at,
   orders.created_at,
   templates.price AS template_price,
@@ -177,8 +189,12 @@ export async function createOrder(payload: OrderPayload) {
       payment_reference,
       payment_url,
       payment_amount,
+      payment_failure_code,
+      payment_failure_reason,
+      payment_last_webhook_status,
+      payment_last_webhook_at,
       paid_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.userId,
       payload.templateId,
@@ -195,6 +211,10 @@ export async function createOrder(payload: OrderPayload) {
       payload.paymentReference,
       payload.paymentUrl,
       payload.paymentAmount,
+      payload.paymentFailureCode,
+      payload.paymentFailureReason,
+      payload.paymentLastWebhookStatus,
+      payload.paymentLastWebhookAt,
       payload.paidAt,
     ],
   );
@@ -269,7 +289,11 @@ export async function startOrderPayment(
       payment_method = ?,
       payment_reference = ?,
       payment_url = ?,
-      payment_amount = ?
+      payment_amount = ?,
+      payment_failure_code = NULL,
+      payment_failure_reason = NULL,
+      payment_last_webhook_status = NULL,
+      payment_last_webhook_at = NULL
     WHERE id = ? AND user_id = ? AND payment_status <> ? AND deleted_at IS NULL`,
     [
       'waiting_payment',
@@ -311,24 +335,59 @@ export async function markOrderPaidByPaymentReference(paymentReference: string) 
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE orders
     SET payment_status = ?,
+      payment_failure_code = NULL,
+      payment_failure_reason = NULL,
+      payment_last_webhook_status = ?,
+      payment_last_webhook_at = CURRENT_TIMESTAMP,
       paid_at = CURRENT_TIMESTAMP,
       status = CASE WHEN status = 'new' THEN 'deal' ELSE status END
     WHERE payment_reference = ? AND payment_status <> ? AND deleted_at IS NULL`,
-    ['paid', paymentReference, 'paid'],
+    ['paid', 'paid', paymentReference, 'paid'],
   );
 
   return result.affectedRows > 0;
 }
 
-export async function markOrderPaymentFailedByReference(paymentReference: string) {
+export async function markOrderPaymentFailedByReference(
+  paymentReference: string,
+  failure: {
+    code?: string | null;
+    reason?: string | null;
+    transactionStatus?: string | null;
+  } = {},
+) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE orders
-    SET payment_status = ?
+    SET payment_status = ?,
+      payment_failure_code = ?,
+      payment_failure_reason = ?,
+      payment_last_webhook_status = ?,
+      payment_last_webhook_at = CURRENT_TIMESTAMP
     WHERE payment_reference = ? AND payment_status <> ? AND deleted_at IS NULL`,
-    ['failed', paymentReference, 'paid'],
+    [
+      'failed',
+      failure.code ?? null,
+      failure.reason ?? null,
+      failure.transactionStatus ?? 'failed',
+      paymentReference,
+      'paid',
+    ],
   );
 
   return result.affectedRows > 0;
+}
+
+export async function recordOrderPaymentWebhookStatus(
+  paymentReference: string,
+  transactionStatus: string,
+) {
+  await pool.query(
+    `UPDATE orders
+    SET payment_last_webhook_status = ?,
+      payment_last_webhook_at = CURRENT_TIMESTAMP
+    WHERE payment_reference = ? AND deleted_at IS NULL`,
+    [transactionStatus, paymentReference],
+  );
 }
 
 export async function hasSuccessfulTemplateOrder(userId: number, templateId: number) {
@@ -417,6 +476,10 @@ export function normalizeOrderPayload(
     paymentReference: null,
     paymentUrl: null,
     paymentAmount: null,
+    paymentFailureCode: null,
+    paymentFailureReason: null,
+    paymentLastWebhookStatus: null,
+    paymentLastWebhookAt: null,
     paidAt: null,
     templatePrice: null,
     deliveryStatus: 'locked',
@@ -448,6 +511,10 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     paymentReference: row.payment_reference ?? null,
     paymentUrl: row.payment_url ?? null,
     paymentAmount: row.payment_amount ?? null,
+    paymentFailureCode: row.payment_failure_code ?? null,
+    paymentFailureReason: row.payment_failure_reason ?? null,
+    paymentLastWebhookStatus: row.payment_last_webhook_status ?? null,
+    paymentLastWebhookAt: row.payment_last_webhook_at ?? null,
     paidAt: row.paid_at ?? null,
     templatePrice: row.template_price ?? null,
     deliveryStatus: isPaid ? 'available' : 'locked',

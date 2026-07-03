@@ -16,6 +16,11 @@ export type OrderItem = {
   paymentMethod: string | null;
   paymentReference: string | null;
   paymentUrl: string | null;
+  paymentAmount: number | null;
+  paymentFailureCode: string | null;
+  paymentFailureReason: string | null;
+  paymentLastWebhookStatus: string | null;
+  paymentLastWebhookAt: string | null;
   paidAt: string | null;
   templatePrice: string | null;
   deliveryStatus: "locked" | "available";

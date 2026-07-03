@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --pool=forks --maxWorkers=1",
     "start": "node dist/server.js",
     "backup:db": "tsx src/scripts/backup-database.ts",
     "backup:list": "tsx src/scripts/backup-database.ts --list",
+    "payment:webhook:sandbox": "tsx src/scripts/midtrans-webhook-sandbox.ts",
     "migrate": "tsx src/scripts/migrate.ts",
     "migrate:status": "tsx src/scripts/migrate.ts status",
     "migrate:create": "tsx src/scripts/migrate.ts create"
@@ -41,6 +42,7 @@
     "@types/nodemailer": "^8.0.1",
     "@types/supertest": "^7.2.0",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/zxcvbn": "^4.4.5",
     "supertest": "^7.2.2",
     "tsx": "latest",
     "typescript": "latest",

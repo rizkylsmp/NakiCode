@@ -1,5 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import * as Sentry from "@sentry/react";
 
 type ErrorBoundaryState = {
   hasError: boolean;
@@ -34,14 +33,17 @@ export class ErrorBoundary extends Component<
       }
     }
 
-    // Send error to Sentry with component stack
-    Sentry.captureException(error, {
-      contexts: {
-        react: {
-          componentStack: errorInfo.componentStack,
-        },
-      },
-    });
+    if (import.meta.env.VITE_SENTRY_DSN) {
+      void import("@sentry/react").then((Sentry) => {
+        Sentry.captureException(error, {
+          contexts: {
+            react: {
+              componentStack: errorInfo.componentStack,
+            },
+          },
+        });
+      });
+    }
   }
 
   render() {

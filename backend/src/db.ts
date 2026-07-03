@@ -76,8 +76,32 @@ export async function initializeDatabase() {
     await ensureColumn(
       connection,
       "orders",
+      "payment_failure_code",
+      "VARCHAR(80) NULL AFTER payment_amount",
+    );
+    await ensureColumn(
+      connection,
+      "orders",
+      "payment_failure_reason",
+      "VARCHAR(255) NULL AFTER payment_failure_code",
+    );
+    await ensureColumn(
+      connection,
+      "orders",
+      "payment_last_webhook_status",
+      "VARCHAR(80) NULL AFTER payment_failure_reason",
+    );
+    await ensureColumn(
+      connection,
+      "orders",
+      "payment_last_webhook_at",
+      "TIMESTAMP NULL AFTER payment_last_webhook_status",
+    );
+    await ensureColumn(
+      connection,
+      "orders",
       "paid_at",
-      "TIMESTAMP NULL AFTER payment_amount",
+      "TIMESTAMP NULL AFTER payment_last_webhook_at",
     );
     await ensureColumn(
       connection,

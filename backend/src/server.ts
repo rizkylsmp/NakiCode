@@ -27,6 +27,7 @@ import {
   apiRateLimit,
   authRateLimit,
   corsMiddleware,
+  permissionsPolicyHeaders,
   securityHeaders,
 } from './security';
 
@@ -48,6 +49,7 @@ export const app = express();
 
 app.disable('x-powered-by');
 app.use(securityHeaders);
+app.use(permissionsPolicyHeaders);
 app.use(corsMiddleware);
 app.use(apiRateLimit);
 app.use(express.json({ limit: '1mb' }));

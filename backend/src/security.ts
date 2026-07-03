@@ -2,25 +2,26 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import helmet from 'helmet';
+import type { RequestHandler } from 'express';
 import { config } from './config';
 import { getRedisClient } from './redis-cache';
 
 export const securityHeaders = helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  permissionsPolicy: {
-    // Deny unnecessary browser features for API
-    camera: [],
-    microphone: [],
-    geolocation: [],
-    payment: [],
-    usb: [],
-  },
   crossOriginEmbedderPolicy: false,
   // Don't set a strict CSP here — API endpoints are consumed by the frontend
   // which sets its own CSP. Leave content-security-policy to the frontend.
   contentSecurityPolicy: false,
 });
+
+export const permissionsPolicyHeaders: RequestHandler = (_request, response, next) => {
+  response.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+  );
+  next();
+};
 
 export const corsMiddleware = cors({
   credentials: true,

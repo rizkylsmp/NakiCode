@@ -175,6 +175,60 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: '009_payment_webhook_events',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'orders', 'payment_failure_code'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('orders')}
+          ADD COLUMN ${connection.escapeId('payment_failure_code')} VARCHAR(80) NULL AFTER ${connection.escapeId('payment_amount')}`,
+        );
+      }
+
+      if (!(await hasColumn(connection, 'orders', 'payment_failure_reason'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('orders')}
+          ADD COLUMN ${connection.escapeId('payment_failure_reason')} VARCHAR(255) NULL AFTER ${connection.escapeId('payment_failure_code')}`,
+        );
+      }
+
+      if (!(await hasColumn(connection, 'orders', 'payment_last_webhook_status'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('orders')}
+          ADD COLUMN ${connection.escapeId('payment_last_webhook_status')} VARCHAR(80) NULL AFTER ${connection.escapeId('payment_failure_reason')}`,
+        );
+      }
+
+      if (!(await hasColumn(connection, 'orders', 'payment_last_webhook_at'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('orders')}
+          ADD COLUMN ${connection.escapeId('payment_last_webhook_at')} TIMESTAMP NULL AFTER ${connection.escapeId('payment_last_webhook_status')}`,
+        );
+      }
+
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS payment_webhook_events (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          provider VARCHAR(40) NOT NULL,
+          event_key VARCHAR(255) NOT NULL,
+          payment_reference VARCHAR(120) NOT NULL,
+          transaction_status VARCHAR(80) NOT NULL,
+          fraud_status VARCHAR(80) NULL,
+          status_code VARCHAR(40) NULL,
+          gross_amount VARCHAR(40) NULL,
+          processing_status VARCHAR(40) NOT NULL DEFAULT 'received',
+          processed_action VARCHAR(40) NULL,
+          failure_reason VARCHAR(255) NULL,
+          payload JSON NOT NULL,
+          received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          processed_at TIMESTAMP NULL,
+          UNIQUE KEY uniq_payment_webhook_event_key (provider, event_key),
+          KEY idx_payment_webhook_reference (payment_reference),
+          KEY idx_payment_webhook_status (processing_status)
+        )
+      `);
+    },
+  },
 ];
 
 export async function runMigrations(connection: Connection) {

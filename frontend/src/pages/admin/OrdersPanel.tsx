@@ -1,4 +1,4 @@
-import { BadgeCheck, Inbox, MessageSquareText, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, Inbox, MessageSquareText, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiGet } from "../../api-client";
 import { PaginationControls } from "../../components/PaginationControls";
@@ -21,6 +21,7 @@ type OrdersStats = {
   avgOrderValue: number;
   newOrders: number;
   pendingPayments: number;
+  failedPayments: number;
 };
 
 type OrdersPanelProps = {
@@ -44,7 +45,7 @@ type OrdersPanelProps = {
 
 export function OrdersPanel({
   orders,
-  ordersStatus,
+  ordersStatus: _ordersStatus,
   ordersPage,
   orderFilters,
   ordersMeta,
@@ -59,6 +60,9 @@ export function OrdersPanel({
   const hasActiveFilters =
     orderFilters.status !== "all" || orderFilters.paymentStatus !== "all";
   const [ordersStats, setOrdersStats] = useState<OrdersStats | null>(null);
+  const failedOrders = orders.filter(
+    (order) => order.paymentStatus === "failed" && order.paymentFailureReason,
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -105,6 +109,10 @@ export function OrdersPanel({
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">New</p>
             <p className="mt-2 text-2xl font-bold text-naki-secondary">{ordersStats.newOrders}</p>
           </div>
+          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Failed Payments</p>
+            <p className="mt-2 text-2xl font-bold text-naki-secondary">{ordersStats.failedPayments}</p>
+          </div>
         </div>
       )}
 
@@ -126,6 +134,32 @@ export function OrdersPanel({
           {isLoadingOrders ? "Loading..." : "Refresh"}
         </button>
       </div>
+
+      {failedOrders.length > 0 && (
+        <div className="rounded-xl border border-naki-secondary/25 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="text-naki-secondary" size={18} />
+            <div>
+              <p className="text-sm font-semibold text-naki-primary">Payment issues</p>
+              <p className="text-xs text-naki-smoke">
+                Alasan gagal dari webhook gateway untuk order di halaman ini.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {failedOrders.slice(0, 4).map((order) => (
+              <div key={order.id} className="rounded-lg bg-naki-frost p-3">
+                <p className="text-xs font-semibold text-naki-primary">
+                  #{order.id} - {order.customerName}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-naki-smoke">
+                  {order.paymentFailureReason}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="rounded-xl border border-naki-steel bg-white p-5 shadow-sm">
@@ -212,6 +246,27 @@ export function OrdersPanel({
                       value={formatOrderDate(order.createdAt)}
                     />
                   </div>
+                  {order.paymentStatus === "failed" && order.paymentFailureReason && (
+                    <div className="mt-3 rounded-lg border border-naki-secondary/20 bg-naki-frost p-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-naki-secondary">
+                        <AlertTriangle size={14} />
+                        Payment failure reason
+                      </div>
+                      <p className="mt-1.5 text-sm leading-relaxed text-naki-smoke">
+                        {order.paymentFailureReason}
+                      </p>
+                      <p className="mt-1 text-xs text-naki-smoke">
+                        {[
+                          order.paymentFailureCode ? `Code ${order.paymentFailureCode}` : null,
+                          order.paymentLastWebhookStatus
+                            ? `Webhook ${order.paymentLastWebhookStatus}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" - ")}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <label className="grid w-full gap-1.5">
@@ -339,21 +394,4 @@ function formatRupiah(amount: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-type StatCardProps = {
-  label: string;
-  value: string;
-  color?: string;
-};
-
-function StatCard({ label, value, color = "text-naki-primary" }: StatCardProps) {
-  return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
-        {label}
-      </p>
-      <p className={`mt-1 text-xl font-bold ${color}`}>{value}</p>
-    </div>
-  );
 }

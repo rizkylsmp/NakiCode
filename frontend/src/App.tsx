@@ -11,11 +11,7 @@ import {
   type TemplateCategory,
   type TemplateItem,
 } from "./content";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { UserLoginPage } from "./pages/UserLoginPage";
-import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { RequireAdmin, RequireAuth } from "./route-guards";
-import { NotFoundPage } from "./pages/NotFoundPage";
 import { ToastProvider } from "./components/Toast";
 
 /**
@@ -27,6 +23,10 @@ import { ToastProvider } from "./components/Toast";
  */
 const STALE_CHUNK_KEY = "naki-stale-chunk-reloaded";
 
+// React.lazy needs to preserve each page component's own props.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LazyComponent = ComponentType<any>;
+
 function isChunkLoadError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const msg = error.message;
@@ -37,7 +37,7 @@ function isChunkLoadError(error: unknown): boolean {
   );
 }
 
-function lazyWithReload<T extends ComponentType<any>>(
+function lazyWithReload<T extends LazyComponent>(
   factory: () => Promise<{ default: T }>,
 ) {
   return lazy(() =>
@@ -115,6 +115,26 @@ const WishlistPage = lazyWithReload(() =>
 const ComparePage = lazyWithReload(() =>
   import("./pages/ComparePage").then((module) => ({
     default: module.ComparePage,
+  })),
+);
+const UserLoginPage = lazyWithReload(() =>
+  import("./pages/UserLoginPage").then((module) => ({
+    default: module.UserLoginPage,
+  })),
+);
+const ForgotPasswordPage = lazyWithReload(() =>
+  import("./pages/ForgotPasswordPage").then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const VerifyEmailPage = lazyWithReload(() =>
+  import("./pages/VerifyEmailPage").then((module) => ({
+    default: module.VerifyEmailPage,
+  })),
+);
+const NotFoundPage = lazyWithReload(() =>
+  import("./pages/NotFoundPage").then((module) => ({
+    default: module.NotFoundPage,
   })),
 );
 

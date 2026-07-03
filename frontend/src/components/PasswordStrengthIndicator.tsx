@@ -1,5 +1,4 @@
 import { AlertTriangle } from 'lucide-react';
-import zxcvbn from 'zxcvbn';
 
 type PasswordStrength = {
   score: number; // 0-4
@@ -18,8 +17,8 @@ function calculateStrength(password: string): PasswordStrength {
     };
   }
 
-  const result = zxcvbn(password);
-  
+  const score = getPasswordScore(password);
+
   const labels = [
     'Terlalu lemah',
     'Lemah',
@@ -36,28 +35,57 @@ function calculateStrength(password: string): PasswordStrength {
     'bg-green-600',
   ];
   
-  // Extract feedback messages
-  const feedback: string[] = [];
-  
-  if (result.feedback.warning) {
-    feedback.push(result.feedback.warning);
-  }
-  
-  if (result.feedback.suggestions && result.feedback.suggestions.length > 0) {
-    feedback.push(...result.feedback.suggestions);
-  }
-  
-  // Add helpful suggestions if score is low
-  if (result.score < 2 && feedback.length === 0) {
-    feedback.push('Coba tambahkan angka, simbol, atau kombinasi huruf besar-kecil');
-  }
-  
   return {
-    score: result.score,
-    label: labels[result.score],
-    color: colors[result.score],
-    feedback,
+    score,
+    label: labels[score],
+    color: colors[score],
+    feedback: getPasswordFeedback(password, score),
   };
+}
+
+function getPasswordScore(password: string): number {
+  let score = 0;
+
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (/(.)\1{2,}/.test(password)) score -= 1;
+  if (/password|qwerty|admin|123456|naki/i.test(password)) score -= 1;
+
+  return Math.max(0, Math.min(4, score));
+}
+
+function getPasswordFeedback(password: string, score: number): string[] {
+  const feedback: string[] = [];
+
+  if (password.length < 8) {
+    feedback.push('Gunakan minimal 8 karakter.');
+  }
+
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+    feedback.push('Campur huruf besar dan kecil.');
+  }
+
+  if (!/\d/.test(password)) {
+    feedback.push('Tambahkan angka.');
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    feedback.push('Tambahkan simbol untuk memperkuat password.');
+  }
+
+  if (/(.)\1{2,}/.test(password)) {
+    feedback.push('Hindari karakter berulang terlalu banyak.');
+  }
+
+  if (/password|qwerty|admin|123456|naki/i.test(password)) {
+    feedback.push('Hindari kata umum atau nama brand.');
+  }
+
+  return score < 3 ? feedback.slice(0, 3) : [];
 }
 
 type PasswordStrengthIndicatorProps = {
@@ -120,6 +148,5 @@ export function PasswordStrengthIndicator({ password }: PasswordStrengthIndicato
  * Check if password meets minimum strength requirement
  */
 export function isPasswordStrong(password: string): boolean {
-  const result = zxcvbn(password);
-  return result.score >= 2; // Minimum "Cukup" (somewhat guessable)
+  return getPasswordScore(password) >= 2;
 }

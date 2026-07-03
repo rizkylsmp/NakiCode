@@ -5,6 +5,8 @@ import { afterEach, vi } from "vitest";
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
+  vi.clearAllMocks();
 });
 
 // Mock window.matchMedia
@@ -23,13 +25,22 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock localStorage
+const localStorageStore = new Map<string, string>();
 const localStorageMock: Storage = {
-  length: 0,
-  getItem: vi.fn(),
-  key: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  get length() {
+    return localStorageStore.size;
+  },
+  getItem: vi.fn((key: string) => localStorageStore.get(key) ?? null),
+  key: vi.fn((index: number) => Array.from(localStorageStore.keys())[index] ?? null),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageStore.set(key, value);
+  }),
+  removeItem: vi.fn((key: string) => {
+    localStorageStore.delete(key);
+  }),
+  clear: vi.fn(() => {
+    localStorageStore.clear();
+  }),
 };
 Object.defineProperty(globalThis, "localStorage", {
   configurable: true,

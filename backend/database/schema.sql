@@ -72,10 +72,34 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_reference VARCHAR(120) NULL,
   payment_url VARCHAR(500) NULL,
   payment_amount INT NULL,
+  payment_failure_code VARCHAR(80) NULL,
+  payment_failure_reason VARCHAR(255) NULL,
+  payment_last_webhook_status VARCHAR(80) NULL,
+  payment_last_webhook_at TIMESTAMP NULL,
   paid_at TIMESTAMP NULL,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payment_webhook_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  provider VARCHAR(40) NOT NULL,
+  event_key VARCHAR(255) NOT NULL,
+  payment_reference VARCHAR(120) NOT NULL,
+  transaction_status VARCHAR(80) NOT NULL,
+  fraud_status VARCHAR(80) NULL,
+  status_code VARCHAR(40) NULL,
+  gross_amount VARCHAR(40) NULL,
+  processing_status VARCHAR(40) NOT NULL DEFAULT 'received',
+  processed_action VARCHAR(40) NULL,
+  failure_reason VARCHAR(255) NULL,
+  payload JSON NOT NULL,
+  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  processed_at TIMESTAMP NULL,
+  UNIQUE KEY uniq_payment_webhook_event_key (provider, event_key),
+  KEY idx_payment_webhook_reference (payment_reference),
+  KEY idx_payment_webhook_status (processing_status)
 );
 
 CREATE TABLE IF NOT EXISTS template_ratings (

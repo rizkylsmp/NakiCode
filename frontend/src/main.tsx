@@ -1,5 +1,4 @@
 import { StrictMode } from 'react';
-import * as Sentry from '@sentry/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
@@ -16,12 +15,14 @@ import './styles.css';
 
 // Initialize Sentry (must be first)
 if (import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.MODE || 'development',
-    tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
+  void import('@sentry/react').then((Sentry) => {
+    Sentry.init({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      environment: import.meta.env.MODE || 'development',
+      tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
+    });
+    console.log('Sentry error monitoring enabled');
   });
-  console.log('Sentry error monitoring enabled');
 }
 
 // Setup global 401 handler - auto logout when session expires

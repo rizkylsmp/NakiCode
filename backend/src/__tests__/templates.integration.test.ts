@@ -1,12 +1,89 @@
+import express from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createUserToken } from '../auth';
-import { app } from '../server';
+import { templatesRouter } from '../routes/templates';
+
+vi.mock('../redis-cache', () => ({
+  getJsonCache: vi.fn(async () => null),
+  setJsonCache: vi.fn(async () => undefined),
+  deleteCacheKeys: vi.fn(async () => undefined),
+}));
+
+vi.mock('../models/template.model', async () => {
+  const actual = await vi.importActual<typeof import('../models/template.model')>(
+    '../models/template.model',
+  );
+
+  const template = {
+    id: 1,
+    slug: 'test-template',
+    title: 'Test Template',
+    category: 'portfolio',
+    description: 'Test template',
+    price: 'Rp150K',
+    stack: ['React'],
+    level: 'Pemula',
+    rating: 0,
+    accentClass: 'bg-naki-secondary',
+    preview: [],
+    demoUrl: '#',
+    lynkUrl: null,
+    buyerCount: 0,
+    features: [],
+    includedFiles: [],
+    sourceCode: [],
+    suitableFor: [],
+    license: 'single',
+    support: '3 months',
+    reviews: [],
+  };
+
+  return {
+    ...actual,
+    findTemplates: vi.fn(async () => [template]),
+    findTemplateBySlugOrId: vi.fn(async () => null),
+    createTemplate: vi.fn(async () => template),
+    updateTemplate: vi.fn(async () => null),
+    deleteTemplate: vi.fn(async () => false),
+  };
+});
+
+vi.mock('../models/audit-log.model', () => ({
+  createAdminAuditLog: vi.fn(async () => 1),
+}));
+
+vi.mock('../models/order.model', async () => {
+  const actual = await vi.importActual<typeof import('../models/order.model')>(
+    '../models/order.model',
+  );
+
+  return {
+    ...actual,
+    hasSuccessfulTemplateOrder: vi.fn(async () => false),
+  };
+});
+
+vi.mock('../models/template-rating.model', async () => {
+  const actual = await vi.importActual<
+    typeof import('../models/template-rating.model')
+  >('../models/template-rating.model');
+
+  return {
+    ...actual,
+    createTemplateRating: vi.fn(async () => 1),
+    hasUserRatedTemplate: vi.fn(async () => false),
+  };
+});
+
+const templatesApp = express();
+templatesApp.use(express.json({ limit: '1mb' }));
+templatesApp.use('/api/templates', templatesRouter);
 
 describe('Templates API Integration', () => {
   describe('GET /api/templates', () => {
     it('fetches all templates successfully', async () => {
-      const response = await request(app).get('/api/templates');
+      const response = await request(templatesApp).get('/api/templates');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('templates');
@@ -14,7 +91,7 @@ describe('Templates API Integration', () => {
     });
 
     it('filters templates by category', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .get('/api/templates')
         .query({ category: 'portfolio' });
 
@@ -24,7 +101,7 @@ describe('Templates API Integration', () => {
     });
 
     it('searches templates by keyword', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .get('/api/templates')
         .query({ search: 'portfolio' });
 
@@ -34,7 +111,7 @@ describe('Templates API Integration', () => {
     });
 
     it('sorts templates by price', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .get('/api/templates')
         .query({ sort: 'price_asc' });
 
@@ -48,7 +125,7 @@ describe('Templates API Integration', () => {
     it('fetches single template by slug', async () => {
       // Note: This test assumes at least one template exists in DB
       // In a real test, you'd seed test data first
-      const response = await request(app).get('/api/templates/test-template');
+      const response = await request(templatesApp).get('/api/templates/test-template');
 
       // Accepts both 200 (found) and 404 (not found in test DB)
       expect([200, 404]).toContain(response.status);
@@ -61,7 +138,7 @@ describe('Templates API Integration', () => {
     });
 
     it('returns 404 for non-existent template', async () => {
-      const response = await request(app).get('/api/templates/non-existent-slug-12345');
+      const response = await request(templatesApp).get('/api/templates/non-existent-slug-12345');
 
       expect(response.status).toBe(404);
       expect(response.body).toHaveProperty('message');
@@ -82,7 +159,7 @@ describe('Templates API Integration', () => {
     });
 
     it('rejects template creation without auth token', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .post('/api/templates')
         .send({
           title: 'Test Template',
@@ -95,7 +172,7 @@ describe('Templates API Integration', () => {
     });
 
     it('rejects template creation from non-admin user', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .post('/api/templates')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
@@ -109,7 +186,7 @@ describe('Templates API Integration', () => {
     });
 
     it('validates required fields for template creation', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .post('/api/templates')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -125,7 +202,7 @@ describe('Templates API Integration', () => {
     it('allows admin to create template with valid data', async () => {
       const uniqueSlug = `test-template-${Date.now()}`;
       
-      const response = await request(app)
+      const response = await request(templatesApp)
         .post('/api/templates')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -162,7 +239,7 @@ describe('Templates API Integration', () => {
     });
 
     it('rejects template update without auth token', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .put('/api/templates/test-template')
         .send({
           title: 'Updated Title',
@@ -173,7 +250,7 @@ describe('Templates API Integration', () => {
     });
 
     it('rejects template update from non-admin user', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .put('/api/templates/test-template')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
@@ -185,7 +262,7 @@ describe('Templates API Integration', () => {
     });
 
     it('returns 404 for updating non-existent template', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .put('/api/templates/non-existent-slug-12345')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -197,7 +274,7 @@ describe('Templates API Integration', () => {
 
     it('allows admin to update template', async () => {
       // Note: This test requires a template to exist
-      const response = await request(app)
+      const response = await request(templatesApp)
         .put('/api/templates/test-template')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -224,14 +301,14 @@ describe('Templates API Integration', () => {
     });
 
     it('rejects template deletion without auth token', async () => {
-      const response = await request(app).delete('/api/templates/test-template');
+      const response = await request(templatesApp).delete('/api/templates/test-template');
 
       expect(response.status).toBe(401);
       expect(response.body.message).toBe('Admin authorization required');
     });
 
     it('rejects template deletion from non-admin user', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .delete('/api/templates/test-template')
         .set('Authorization', `Bearer ${userToken}`);
 
@@ -240,7 +317,7 @@ describe('Templates API Integration', () => {
     });
 
     it('returns 404 for deleting non-existent template', async () => {
-      const response = await request(app)
+      const response = await request(templatesApp)
         .delete('/api/templates/non-existent-slug-12345')
         .set('Authorization', `Bearer ${adminToken}`);
 
@@ -249,7 +326,7 @@ describe('Templates API Integration', () => {
 
     it('allows admin to soft delete template', async () => {
       // Note: This test requires a template to exist
-      const response = await request(app)
+      const response = await request(templatesApp)
         .delete('/api/templates/test-template')
         .set('Authorization', `Bearer ${adminToken}`);
 

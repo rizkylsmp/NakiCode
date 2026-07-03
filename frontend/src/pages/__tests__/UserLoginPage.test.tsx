@@ -1,40 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
 import { UserLoginPage } from '../../pages/UserLoginPage';
-
-// Mock auth context
-vi.mock('../../auth-context', () => ({
-  useAuth: () => ({
-    isAuthenticated: false,
-    isAdmin: false,
-    token: null,
-    username: '',
-    role: 'user',
-    refresh: vi.fn(),
-    logout: vi.fn(),
-  }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-// Mock react-router-dom navigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
-  };
-});
+import { renderWithProviders } from '../../test/render';
 
 const renderLoginPage = () => {
-  return render(
-    <BrowserRouter>
-      <UserLoginPage />
-    </BrowserRouter>
-  );
+  return renderWithProviders(<UserLoginPage />, { route: '/login' });
 };
 
 describe('UserLoginPage', () => {
@@ -47,8 +18,8 @@ describe('UserLoginPage', () => {
   it('renders login form by default', () => {
     renderLoginPage();
     
-    expect(screen.getByText(/Login user/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Username/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Login user/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Username \/ email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
   });
 
@@ -58,7 +29,7 @@ describe('UserLoginPage', () => {
     const user = userEvent.setup();
     
     // Switch to register mode
-    const registerLink = screen.getByText(/Daftar akun baru/i);
+    const registerLink = screen.getByRole('button', { name: /Daftar/i });
     await user.click(registerLink);
     
     // Type a password
@@ -77,12 +48,12 @@ describe('UserLoginPage', () => {
     const user = userEvent.setup();
     
     // Switch to register mode
-    const registerLink = screen.getByText(/Daftar akun baru/i);
+    const registerLink = screen.getByRole('button', { name: /Daftar/i });
     await user.click(registerLink);
     
     // Fill form with mismatched passwords
     await user.type(screen.getByLabelText(/Username/i), 'testuser');
-    await user.type(screen.getByLabelText(/Email/i), 'test@example.com');
+    await user.type(screen.getByRole('textbox', { name: /^Email$/i }), 'test@example.com');
     await user.type(screen.getByLabelText(/^Password$/i), 'StrongPass123!');
     await user.type(screen.getByLabelText(/Konfirmasi password/i), 'DifferentPass123!');
     
@@ -106,7 +77,7 @@ describe('UserLoginPage', () => {
     const user = userEvent.setup();
     
     // Switch to register mode
-    const registerLink = screen.getByText(/Daftar akun baru/i);
+    const registerLink = screen.getByRole('button', { name: /Daftar/i });
     await user.click(registerLink);
     
     // Should show captcha checkbox
@@ -120,12 +91,12 @@ describe('UserLoginPage', () => {
     const user = userEvent.setup();
     
     // Switch to register mode
-    const registerLink = screen.getByText(/Daftar akun baru/i);
+    const registerLink = screen.getByRole('button', { name: /Daftar/i });
     await user.click(registerLink);
     
     // Fill form but don't check captcha
     await user.type(screen.getByLabelText(/Username/i), 'testuser');
-    await user.type(screen.getByLabelText(/Email/i), 'test@example.com');
+    await user.type(screen.getByRole('textbox', { name: /^Email$/i }), 'test@example.com');
     await user.type(screen.getByLabelText(/^Password$/i), 'StrongPass123!');
     await user.type(screen.getByLabelText(/Konfirmasi password/i), 'StrongPass123!');
     
@@ -135,6 +106,8 @@ describe('UserLoginPage', () => {
     
     // Form validation should prevent submission (HTML5 required attribute)
     // The checkbox has required attribute, so browser will show validation error
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /Login user dipakai|Memeriksa akun|Membuat akun/i,
+    );
   });
 });

@@ -12,6 +12,7 @@ type OrdersStatsResponse = {
   avgOrderValue: number;
   newOrders: number;
   pendingPayments: number;
+  failedPayments: number;
 };
 
 router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
@@ -30,7 +31,8 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
           )
         END AS avgOrderValue,
         SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) AS newOrders,
-        SUM(CASE WHEN payment_status = 'waiting_payment' THEN 1 ELSE 0 END) AS pendingPayments
+        SUM(CASE WHEN payment_status = 'waiting_payment' THEN 1 ELSE 0 END) AS pendingPayments,
+        SUM(CASE WHEN payment_status = 'failed' THEN 1 ELSE 0 END) AS failedPayments
       FROM orders
       WHERE deleted_at IS NULL
     `);
@@ -42,6 +44,7 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
       avgOrderValue: 0,
       newOrders: 0,
       pendingPayments: 0,
+      failedPayments: 0,
     };
 
     res.json({
@@ -51,6 +54,7 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
       avgOrderValue: Number(row.avgOrderValue),
       newOrders: Number(row.newOrders),
       pendingPayments: Number(row.pendingPayments),
+      failedPayments: Number(row.failedPayments),
     });
   } catch (error) {
     Sentry.captureException(error);

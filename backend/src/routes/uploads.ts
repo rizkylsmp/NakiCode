@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as Sentry from '@sentry/node';
 import multer from 'multer';
 import sharp from 'sharp';
-import { requireAdmin } from '../auth';
+import { requireAdmin, type UserTokenPayload } from '../auth';
 import { createAdminAuditLog } from '../models/audit-log.model';
 import { storePreviewImage } from '../storage/image-storage';
 
@@ -98,7 +98,7 @@ uploadsRouter.post(
       const images = await Promise.all(files.map((file) => storePreviewImage(file)));
 
       await createAdminAuditLog({
-        admin: (response.locals as { admin?: { userId: number; sub: string } }).admin,
+        admin: response.locals.admin as UserTokenPayload | null | undefined,
         action: 'upload_images',
         entityType: 'upload',
         metadata: {

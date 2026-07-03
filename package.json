@@ -13,7 +13,7 @@
     "lint": "npm run lint --workspace frontend",
     "lint-staged": "lint-staged",
     "prepare": "husky || true",
-    "test": "npm run test --workspace backend",
+    "test": "npm run test --workspace frontend && npm run test --workspace backend",
     "start": "npm run start --workspace backend"
   },
   "devDependencies": {

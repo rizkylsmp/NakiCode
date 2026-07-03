@@ -1,4 +1,4 @@
-import { ClipboardList, Globe2, Inbox, Tag } from "lucide-react";
+import { AlertTriangle, ClipboardList, Globe2, Inbox, Tag } from "lucide-react";
 import type React from "react";
 import { type PortfolioItem, type TemplateItem } from "../../content";
 import { type OrderItem } from "../../order-types";
@@ -30,6 +30,9 @@ export function AdminDashboardHome({
   const paidOrders = orders.filter(
     (order) => order.paymentStatus === "paid"
   ).length;
+  const failedOrders = orders.filter(
+    (order) => order.paymentStatus === "failed"
+  );
 
   return (
     <section className="flex flex-col gap-8 py-8">
@@ -60,6 +63,29 @@ export function AdminDashboardHome({
           </p>
         </div>
       </div>
+
+      {failedOrders.length > 0 && (
+        <button
+          className="rounded-2xl border border-naki-secondary/25 bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
+          onClick={() => openView("orders")}
+          type="button"
+        >
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary">
+              <AlertTriangle size={20} />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-naki-primary">
+                {failedOrders.length} pembayaran gagal
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
+                {failedOrders[0]?.paymentFailureReason ??
+                  "Buka Orders untuk melihat detail webhook gateway."}
+              </p>
+            </div>
+          </div>
+        </button>
+      )}
 
       {/* Shortcut Cards */}
       <div>

@@ -58,6 +58,11 @@ jobs:
       - name: Type check backend
         run: npx tsc -b --workspace backend
         continue-on-error: false
+
+      - name: Test backend
+        run: npm test --workspace backend
+        env:
+          CI: true
       
       - name: Lint backend
         run: |

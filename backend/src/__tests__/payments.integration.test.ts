@@ -1,7 +1,73 @@
+import crypto from 'node:crypto';
+import express from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserToken } from '../auth';
-import { app } from '../server';
+import { config } from '../config';
+import { createPaymentWebhookEvent } from '../models/payment-webhook-event.model';
+import { ordersRouter } from '../routes/orders';
+import { paymentsRouter } from '../routes/payments';
+
+vi.mock('../models/order.model', async () => {
+  const actual = await vi.importActual<typeof import('../models/order.model')>(
+    '../models/order.model',
+  );
+
+  return {
+    ...actual,
+    findOrderByPaymentReference: vi.fn(async () => null),
+    findOrderByIdForUser: vi.fn(async () => null),
+    markOrderPaidByPaymentReference: vi.fn(async () => undefined),
+    markOrderPaymentFailedByReference: vi.fn(async () => undefined),
+    recordOrderPaymentWebhookStatus: vi.fn(async () => undefined),
+  };
+});
+
+vi.mock('../models/payment-webhook-event.model', () => ({
+  createPaymentWebhookEvent: vi.fn(async () => ({ inserted: true, id: 1 })),
+  finishPaymentWebhookEvent: vi.fn(async () => undefined),
+}));
+
+vi.mock('../models/notification.model', async () => {
+  const actual = await vi.importActual<
+    typeof import('../models/notification.model')
+  >('../models/notification.model');
+
+  return {
+    ...actual,
+    createNotification: vi.fn(async () => undefined),
+  };
+});
+
+const webhookApp = express();
+webhookApp.use(express.json({ limit: '1mb' }));
+webhookApp.use('/api/payments', paymentsRouter);
+
+const orderPaymentApp = express();
+orderPaymentApp.use(express.json({ limit: '1mb' }));
+orderPaymentApp.use('/api/orders', ordersRouter);
+
+function webhookPayload(transactionStatus: string) {
+  const orderId = 'ORDER-000001';
+  const statusCode = '200';
+  const grossAmount = '150000';
+  const signatureKey = config.payment.midtransServerKey
+    ? crypto
+        .createHash('sha512')
+        .update(`${orderId}${statusCode}${grossAmount}${config.payment.midtransServerKey}`)
+        .digest('hex')
+    : 'dev-signature';
+
+  return {
+    transaction_status: transactionStatus,
+    order_id: orderId,
+    status_code: statusCode,
+    gross_amount: grossAmount,
+    signature_key: signatureKey,
+    payment_type: 'bank_transfer',
+    transaction_time: '2026-06-16 10:00:00',
+  };
+}
 
 describe('Payments API Integration', () => {
   const userToken = createUserToken({
@@ -10,67 +76,65 @@ describe('Payments API Integration', () => {
     role: 'user',
   });
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createPaymentWebhookEvent).mockResolvedValue({
+      inserted: true,
+      id: 1,
+    });
+  });
+
   describe('POST /api/payments/midtrans/webhook', () => {
     it('accepts webhook without authentication', async () => {
       // Midtrans webhooks don't use Bearer auth
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'settlement',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('settlement'));
 
-      // Accepts 200 (processed) or 400 (invalid signature/data)
+      expect(response.status).not.toBe(401);
       expect([200, 400, 404]).toContain(response.status);
     });
 
     it('handles settlement status', async () => {
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'settlement',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('settlement'));
 
       expect([200, 400, 404]).toContain(response.status);
     });
 
     it('handles pending status', async () => {
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'pending',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('pending'));
 
       expect([200, 400, 404]).toContain(response.status);
     });
 
     it('handles failure status', async () => {
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'deny',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('deny'));
 
       expect([200, 400, 404]).toContain(response.status);
     });
 
+    it('ignores duplicate webhook events idempotently', async () => {
+      vi.mocked(createPaymentWebhookEvent).mockResolvedValueOnce({
+        inserted: false,
+        id: null,
+      });
+
+      const response = await request(webhookApp)
+        .post('/api/payments/midtrans/webhook')
+        .send(webhookPayload('settlement'));
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ duplicate: true });
+    });
+
     it('validates webhook payload structure', async () => {
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
         .send({
           // Missing required fields
@@ -83,7 +147,7 @@ describe('Payments API Integration', () => {
 
   describe('POST /api/orders/:id/payment', () => {
     it('rejects payment without auth', async () => {
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .send({ method: 'transfer' });
 
@@ -91,7 +155,7 @@ describe('Payments API Integration', () => {
     });
 
     it('validates payment method', async () => {
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ method: 'crypto' });
@@ -101,7 +165,7 @@ describe('Payments API Integration', () => {
     });
 
     it('accepts transfer payment method', async () => {
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ method: 'transfer' });
@@ -111,7 +175,7 @@ describe('Payments API Integration', () => {
     });
 
     it('accepts ewallet payment method', async () => {
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ method: 'ewallet' });
@@ -120,7 +184,7 @@ describe('Payments API Integration', () => {
     });
 
     it('accepts qris payment method', async () => {
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ method: 'qris' });
@@ -130,7 +194,7 @@ describe('Payments API Integration', () => {
 
     it('prevents duplicate payment for already paid order', async () => {
       // Note: This test requires a paid order to exist
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ method: 'transfer' });
@@ -144,7 +208,7 @@ describe('Payments API Integration', () => {
     });
 
     it('returns payment URL or instructions', async () => {
-      const response = await request(app)
+      const response = await request(orderPaymentApp)
         .post('/api/orders/1/payment')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ method: 'transfer' });
@@ -159,43 +223,25 @@ describe('Payments API Integration', () => {
   describe('Payment Status Updates', () => {
     it('updates order status on successful payment', async () => {
       // This is tested via webhook endpoint
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'settlement',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('settlement'));
 
       expect([200, 400, 404]).toContain(response.status);
     });
 
     it('does not update order status on pending payment', async () => {
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'pending',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('pending'));
 
       expect([200, 400, 404]).toContain(response.status);
     });
 
     it('handles expired payment', async () => {
-      const response = await request(app)
+      const response = await request(webhookApp)
         .post('/api/payments/midtrans/webhook')
-        .send({
-          transaction_status: 'expire',
-          order_id: 'ORDER-000001',
-          gross_amount: '150000',
-          payment_type: 'bank_transfer',
-          transaction_time: '2026-06-16 10:00:00',
-        });
+        .send(webhookPayload('expire'));
 
       expect([200, 400, 404]).toContain(response.status);
     });
