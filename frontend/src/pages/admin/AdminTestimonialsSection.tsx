@@ -312,7 +312,7 @@ export function AdminTestimonialsSection({
         </div>
         <button
           onClick={handleOpenSourceDialog}
-          className="flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white hover:bg-naki-primary/90 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors"
         >
           <Plus className="h-4 w-4" />
           Tambah Testimonial
@@ -320,7 +320,7 @@ export function AdminTestimonialsSection({
       </div>
 
       {testimonials.length === 0 ? (
-        <div className="rounded-lg border border-naki-steel bg-naki-bg p-12 text-center">
+        <div className="rounded-lg border border-naki-steel bg-naki-page-bg p-12 text-center">
           <MessageSquareQuote className="mx-auto h-12 w-12 text-naki-smoke mb-4" />
           <p className="text-naki-smoke">Belum ada testimonial</p>
           <p className="text-sm text-naki-smoke/70 mt-1">
@@ -332,7 +332,7 @@ export function AdminTestimonialsSection({
           {testimonials.map((testimonial) => (
             <div
               key={testimonial.id}
-              className={`rounded-lg border bg-naki-bg p-6 space-y-3 transition-all ${
+              className={`rounded-lg border bg-naki-page-bg p-6 space-y-3 transition-all ${
                 dragOverId === testimonial.id
                   ? 'border-naki-primary border-2 shadow-lg'
                   : draggedId === testimonial.id
@@ -366,8 +366,8 @@ export function AdminTestimonialsSection({
                       <span
                         className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
                           testimonial.source_type === "rating"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-green-100 text-green-700"
+                            ? "bg-naki-frost text-naki-primary"
+                            : "bg-naki-frost text-naki-primary"
                         }`}
                       >
                         {testimonial.source_type === "rating" ? "Dari Rating" : "Manual"}
@@ -382,7 +382,7 @@ export function AdminTestimonialsSection({
                           key={i}
                           className={`h-4 w-4 ${
                             i < testimonial.rating
-                              ? "fill-yellow-400 text-yellow-400"
+                              ? "fill-amber-400 text-amber-400"
                               : "text-naki-steel"
                           }`}
                         />
@@ -395,7 +395,7 @@ export function AdminTestimonialsSection({
                     onClick={() => handleToggleFeatured(testimonial)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                       testimonial.is_featured
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        ? "bg-naki-frost text-naki-primary hover:bg-naki-frost"
                         : "bg-naki-steel text-naki-smoke hover:bg-naki-steel/80"
                     }`}
                     title={testimonial.is_featured ? "Ditampilkan" : "Tidak ditampilkan"}
@@ -404,21 +404,21 @@ export function AdminTestimonialsSection({
                   </button>
                   <button
                     onClick={() => handlePreview(testimonial)}
-                    className="rounded-lg p-2 text-naki-smoke hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                    className="rounded-lg p-2 text-naki-smoke hover:bg-naki-frost hover:text-naki-primary transition-colors"
                     title="Preview"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleOpenModal(testimonial)}
-                    className="rounded-lg p-2 text-naki-smoke hover:bg-naki-steel hover:text-naki-primary transition-colors"
+                    className="rounded-lg p-2 text-naki-smoke hover:bg-naki-frost hover:text-naki-primary transition-colors"
                     title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(testimonial)}
-                    className="rounded-lg p-2 text-naki-smoke hover:bg-red-100 hover:text-red-600 transition-colors"
+                    className="rounded-lg p-2 text-naki-smoke hover:bg-naki-frost hover:text-naki-secondary transition-colors"
                     title="Hapus"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -461,7 +461,7 @@ export function AdminTestimonialsSection({
                 onClick={handleSelectManual}
                 className="w-full flex items-start gap-4 p-4 rounded-xl border-2 border-naki-steel bg-white hover:border-naki-primary hover:bg-naki-frost transition-all group"
               >
-                <div className="shrink-0 grid size-12 place-items-center rounded-xl bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                <div className="shrink-0 grid size-12 place-items-center rounded-xl bg-naki-frost text-naki-primary group-hover:bg-naki-primary group-hover:text-white transition-colors">
                   <PenLine size={24} />
                 </div>
                 <div className="flex-1 text-left">
@@ -478,7 +478,7 @@ export function AdminTestimonialsSection({
                 onClick={handleSelectFromRating}
                 className="w-full flex items-start gap-4 p-4 rounded-xl border-2 border-naki-steel bg-white hover:border-naki-primary hover:bg-naki-frost transition-all group"
               >
-                <div className="shrink-0 grid size-12 place-items-center rounded-xl bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                <div className="shrink-0 grid size-12 place-items-center rounded-xl bg-naki-frost text-naki-secondary group-hover:bg-naki-secondary group-hover:text-white transition-colors">
                   <MessageCircle size={24} />
                 </div>
                 <div className="flex-1 text-left">
@@ -523,7 +523,7 @@ export function AdminTestimonialsSection({
 
             <div className="p-5">
               {ratingError && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="mb-4 rounded-lg border border-naki-steel bg-naki-frost p-3 text-sm text-naki-secondary">
                   {ratingError}
                 </div>
               )}
@@ -657,7 +657,7 @@ export function AdminTestimonialsSection({
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <label className="text-sm font-medium text-naki-smoke">
-                    Nama Customer <span className="text-red-500">*</span>
+                    Nama Customer <span className="text-naki-secondary">*</span>
                   </label>
                   <input
                     type="text"
@@ -665,7 +665,7 @@ export function AdminTestimonialsSection({
                     onChange={(e) =>
                       setFormData({ ...formData, customer_name: e.target.value })
                     }
-                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
+                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
                     placeholder="Contoh: John Doe"
                     required
                   />
@@ -681,7 +681,7 @@ export function AdminTestimonialsSection({
                     onChange={(e) =>
                       setFormData({ ...formData, customer_role: e.target.value })
                     }
-                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
+                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
                     placeholder="Contoh: Frontend Developer"
                   />
                 </div>
@@ -689,12 +689,12 @@ export function AdminTestimonialsSection({
 
               <div className="grid gap-1.5">
                 <label className="text-sm font-medium text-naki-smoke">
-                  Testimonial <span className="text-red-500">*</span>
+                  Testimonial <span className="text-naki-secondary">*</span>
                 </label>
                 <textarea
                   value={formData.quote}
                   onChange={(e) => setFormData({ ...formData, quote: e.target.value })}
-                  className="w-full resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-blue-400"
+                  className="w-full resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-naki-primary"
                   rows={4}
                   placeholder="Tulis testimonial dari customer di sini..."
                   required
@@ -754,7 +754,7 @@ export function AdminTestimonialsSection({
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="rounded-lg border border-naki-steel bg-naki-frost p-3 text-sm text-naki-secondary">
                   {error}
                 </div>
               )}
@@ -825,7 +825,7 @@ export function AdminTestimonialsSection({
                   Batal
                 </button>
                 <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={confirmDelete}
                   type="button"
                   disabled={isLoading}
@@ -887,7 +887,7 @@ export function AdminTestimonialsSection({
                   "{previewData.quote}"
                 </p>
                 <div className="mt-5 flex items-center gap-3">
-                  <span className="grid size-10 place-items-center rounded-full bg-blue-500/10 text-sm font-semibold text-blue-500">
+                  <span className="grid size-10 place-items-center rounded-full bg-naki-frost text-sm font-semibold text-naki-primary">
                     {previewData.customer_name.charAt(0)}
                   </span>
                   <div>

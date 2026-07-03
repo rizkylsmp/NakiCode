@@ -47,18 +47,18 @@ export function PortfolioAdminPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portfolio</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-naki-primary">Portfolio</h1>
+          <p className="mt-1 text-sm text-naki-smoke">
             {projects.length} items displayed on the storefront portfolio section.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-600">
+          <span className="inline-flex items-center gap-2 rounded-lg bg-naki-frost px-3 py-2 text-sm font-semibold text-naki-primary">
             <Globe2 size={16} />
             {projects.length} live
           </span>
           <button
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
             onClick={() => {
               onReset();
               onOpenModal();
@@ -72,12 +72,12 @@ export function PortfolioAdminPanel({
       </div>
 
       {projects.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-          <span className="mx-auto grid size-14 place-items-center rounded-xl bg-gray-100 text-gray-400">
+        <div className="rounded-xl border border-naki-steel bg-white p-12 text-center shadow-sm">
+          <span className="mx-auto grid size-14 place-items-center rounded-xl bg-naki-frost text-naki-smoke">
             <Globe2 size={28} />
           </span>
-          <h3 className="mt-5 text-xl font-bold text-gray-900">No portfolio yet.</h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <h3 className="mt-5 text-xl font-bold text-naki-primary">No portfolio yet.</h3>
+          <p className="mt-2 text-sm text-naki-smoke">
             Add completed websites to display on the homepage.
           </p>
         </div>
@@ -162,7 +162,7 @@ export function PortfolioAdminPanel({
                         <Edit3 size={15} />
                       </button>
                       <button
-                        className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:text-naki-smoke"
+                        className="grid size-9 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:border-naki-steel hover:text-naki-secondary disabled:cursor-not-allowed disabled:text-naki-smoke"
                         disabled={deletingProjectId === project.id}
                         onClick={() => onDelete(project)}
                         type="button"
@@ -224,7 +224,7 @@ export function PortfolioAdminPanel({
                   Batal
                 </button>
                 <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition hover:bg-red-700"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-medium text-white transition hover:opacity-90"
                   onClick={onConfirmDelete}
                   type="button"
                 >
@@ -239,4 +239,3 @@ export function PortfolioAdminPanel({
     </div>
   );
 }
-

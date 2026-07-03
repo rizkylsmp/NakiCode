@@ -1,5 +1,6 @@
 import type React from "react";
 import { AdminSidebar } from "./AdminSidebar";
+import { Header } from "../Header";
 import { type DashboardView } from "../../pages/admin/AdminTemplateWorkspace.shared";
 
 type AdminLayoutProps = {
@@ -18,15 +19,16 @@ export function AdminLayout({
   onLogout,
 }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-naki-page-bg">
+      <Header />
       <AdminSidebar
         activeView={activeView}
         onNavigate={onNavigate}
         adminUsername={adminUsername}
         onLogout={onLogout}
       />
-      <main className="ml-60 min-h-screen">
-        <div className="p-8">{children}</div>
+      <main className="ml-60">
+        <div className="p-6">{children}</div>
       </main>
     </div>
   );

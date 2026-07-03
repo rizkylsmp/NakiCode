@@ -73,16 +73,16 @@ export function BlogAdminPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Blog</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-naki-primary">Blog</h1>
+          <p className="mt-1 text-sm text-naki-smoke">
             {totalPosts} article{totalPosts !== 1 ? "s" : ""}
           </p>
           {status && (
-            <p className="mt-1 text-sm font-medium text-blue-600">{status}</p>
+            <p className="mt-1 text-sm font-medium text-naki-primary">{status}</p>
           )}
         </div>
         <button
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
           onClick={() => {
             onStartCreate();
             onOpenModal();
@@ -95,11 +95,11 @@ export function BlogAdminPanel({
       </div>
 
       {/* Search */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm">
         <label className="grid gap-1.5">
-          <span className="text-xs font-medium text-gray-500">Search articles</span>
+          <span className="text-xs font-medium text-naki-smoke">Search articles</span>
           <input
-            className="h-10 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
             placeholder="Search by title or content..."
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
@@ -110,26 +110,26 @@ export function BlogAdminPanel({
 
       {/* Posts list */}
       {paginatedPosts.length === 0 ? (
-        <div className="grid min-h-48 place-items-center rounded-xl border-2 border-dashed border-gray-200 bg-white">
+        <div className="grid min-h-48 place-items-center rounded-xl border-2 border-dashed border-naki-steel bg-white">
           <div className="text-center">
-            <FileText size={32} className="mx-auto text-gray-300" />
-            <p className="mt-2 text-sm font-medium text-gray-500">
+            <FileText size={32} className="mx-auto text-naki-steel" />
+            <p className="mt-2 text-sm font-medium text-naki-smoke">
               No articles yet
             </p>
           </div>
         </div>
       ) : (
         <>
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-naki-steel bg-white shadow-sm overflow-hidden">
             {paginatedPosts.map((post, index) => (
               <article
                 key={post.id}
                 className={`flex items-center gap-4 px-6 py-4 transition ${
-                  index !== paginatedPosts.length - 1 ? "border-b border-gray-100" : ""
+                  index !== paginatedPosts.length - 1 ? "border-b border-naki-steel" : ""
                 } ${
                   selectedId === post.id
-                    ? "bg-blue-50"
-                    : "hover:bg-gray-50"
+                    ? "bg-naki-frost"
+                    : "hover:bg-naki-frost"
                 }`}
               >
                 {post.coverImage && (
@@ -143,29 +143,29 @@ export function BlogAdminPanel({
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-gray-900">
+                    <p className="truncate text-sm font-medium text-naki-primary">
                       {post.title}
                     </p>
                     <span
                       className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${
                         post.status === "published"
-                          ? "bg-green-50 text-green-700"
-                          : "bg-amber-50 text-amber-700"
+                          ? "bg-naki-frost text-naki-primary"
+                          : "bg-naki-frost text-naki-secondary"
                       }`}
                     >
                       {post.status === "published" ? "Published" : "Draft"}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-gray-400">
+                  <p className="mt-0.5 truncate text-xs text-naki-smoke">
                     /blog/{post.slug}
                   </p>
-                  <p className="mt-1 line-clamp-1 text-xs text-gray-500">
+                  <p className="mt-1 line-clamp-1 text-xs text-naki-smoke">
                     {post.excerpt}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+                    className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
                     onClick={() => setPreviewPost(post)}
                     type="button"
                     aria-label={`Preview ${post.title}`}
@@ -173,7 +173,7 @@ export function BlogAdminPanel({
                     <Eye size={15} />
                   </button>
                   <button
-                    className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+                    className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
                     onClick={() => onStartEdit(post)}
                     type="button"
                     aria-label={`Edit ${post.title}`}
@@ -181,7 +181,7 @@ export function BlogAdminPanel({
                     <Edit2 size={15} />
                   </button>
                   <button
-                    className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+                    className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-secondary"
                     onClick={() => onDelete(post)}
                     type="button"
                     aria-label={`Hapus ${post.title}`}
@@ -206,24 +206,24 @@ export function BlogAdminPanel({
 
       {isModalOpen ? createPortal(
         <div
-          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
           aria-labelledby="blog-form-title"
         >
-          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-lg">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-5">
+          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-naki-card">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white p-5">
               <div>
-                <h2 id="blog-form-title" className="text-xl font-bold text-gray-900">
+                <h2 id="blog-form-title" className="text-xl font-bold text-naki-primary">
                   {form.id ? "Edit Article" : "New Article"}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-naki-smoke">
                   Write and publish blog articles.
                 </p>
               </div>
               <div className="flex gap-2">
                 <button
-                  className="grid size-9 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100"
+                  className="grid size-9 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost"
                   onClick={onStartCreate}
                   type="button"
                   aria-label="Reset form"
@@ -231,7 +231,7 @@ export function BlogAdminPanel({
                   <RefreshCw size={16} />
                 </button>
                 <button
-                  className="grid size-9 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100"
+                  className="grid size-9 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost"
                   onClick={onCloseModal}
                   type="button"
                   aria-label="Close form"
@@ -243,9 +243,9 @@ export function BlogAdminPanel({
 
             <form className="p-5 space-y-5" onSubmit={onSubmit}>
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-gray-700">Title *</span>
+                <span className="text-sm font-medium text-naki-primary">Title *</span>
                 <input
-                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
                   value={form.title}
                   onChange={(event) => onFormChange("title", event.target.value)}
                   placeholder="Article title"
@@ -256,9 +256,9 @@ export function BlogAdminPanel({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5">
-                  <span className="text-sm font-medium text-gray-700">Slug</span>
+                  <span className="text-sm font-medium text-naki-primary">Slug</span>
                   <input
-                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
                     value={form.slug}
                     onChange={(event) => onFormChange("slug", event.target.value)}
                     placeholder="auto-from-title"
@@ -266,9 +266,9 @@ export function BlogAdminPanel({
                   />
                 </label>
                 <label className="grid gap-1.5">
-                  <span className="text-sm font-medium text-gray-700">Status</span>
+                  <span className="text-sm font-medium text-naki-primary">Status</span>
                   <select
-                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
                     value={form.status}
                     onChange={(event) => onFormChange("status", event.target.value)}
                   >
@@ -279,9 +279,9 @@ export function BlogAdminPanel({
               </div>
 
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-gray-700">Author</span>
+                <span className="text-sm font-medium text-naki-primary">Author</span>
                 <input
-                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
                   value={form.author}
                   onChange={(event) => onFormChange("author", event.target.value)}
                   type="text"
@@ -289,7 +289,7 @@ export function BlogAdminPanel({
               </label>
 
               <div className="grid gap-1.5">
-                <span className="text-sm font-medium text-gray-700">Cover Image</span>
+                <span className="text-sm font-medium text-naki-primary">Cover Image</span>
                 <ImageUploadDropZone
                   title="Upload cover image"
                   description="Select an image for the article cover (max 5MB, min 200x200px)"
@@ -305,17 +305,17 @@ export function BlogAdminPanel({
                   successMessage={(urls) => `Successfully uploaded ${urls.length} image`}
                 />
                 {form.coverImage && (
-                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-naki-steel bg-naki-frost p-3">
                     <img
                       src={form.coverImage}
                       alt="Cover preview"
                       className="h-20 w-20 rounded-lg object-cover"
                     />
                     <div className="flex-1">
-                      <p className="text-xs text-gray-500 truncate">{form.coverImage}</p>
+                      <p className="text-xs text-naki-smoke truncate">{form.coverImage}</p>
                       <button
                         type="button"
-                        className="mt-1 text-xs text-red-500 hover:text-red-600"
+                        className="mt-1 text-xs text-naki-secondary hover:opacity-80"
                         onClick={() => onFormChange("coverImage", "")}
                       >
                         Remove image
@@ -326,9 +326,9 @@ export function BlogAdminPanel({
               </div>
 
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-gray-700">Excerpt *</span>
+                <span className="text-sm font-medium text-naki-primary">Excerpt *</span>
                 <textarea
-                  className="resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 leading-relaxed outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-naki-primary"
                   value={form.excerpt}
                   onChange={(event) => onFormChange("excerpt", event.target.value)}
                   placeholder="Brief summary of the article..."
@@ -338,9 +338,9 @@ export function BlogAdminPanel({
               </label>
 
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-gray-700">Content *</span>
+                <span className="text-sm font-medium text-naki-primary">Content *</span>
                 <textarea
-                  className="resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 leading-relaxed outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-naki-primary"
                   value={form.content}
                   onChange={(event) => onFormChange("content", event.target.value)}
                   placeholder="Write article content. Markdown supported."
@@ -349,16 +349,16 @@ export function BlogAdminPanel({
                 />
               </label>
 
-              <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
+              <div className="flex justify-end gap-3 border-t border-naki-steel pt-5">
                 <button
-                  className="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  className="inline-flex h-10 items-center rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
                   onClick={onCloseModal}
                   type="button"
                 >
                   Cancel
                 </button>
                 <button
-                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
                   disabled={isSaving}
                   type="submit"
                 >
@@ -375,17 +375,17 @@ export function BlogAdminPanel({
       {/* Preview modal */}
       {previewPost ? createPortal(
         <div
-          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-lg">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-5">
-              <h2 className="text-xl font-bold text-gray-900">
+          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-naki-card">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white p-5">
+              <h2 className="text-xl font-bold text-naki-primary">
                 Article Preview
               </h2>
               <button
-                className="grid size-9 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100"
+                className="grid size-9 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost"
                 onClick={() => setPreviewPost(null)}
                 type="button"
                 aria-label="Close preview"
@@ -401,10 +401,10 @@ export function BlogAdminPanel({
                   className="mb-6 h-64 w-full rounded-xl object-cover"
                 />
               )}
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-naki-primary mb-2">
                 {previewPost.title}
               </h1>
-              <div className="flex items-center gap-3 text-sm text-gray-500 mb-6">
+              <div className="flex items-center gap-3 text-sm text-naki-smoke mb-6">
                 <span>by {previewPost.author}</span>
                 <span>•</span>
                 <span>
@@ -415,10 +415,10 @@ export function BlogAdminPanel({
                   })}
                 </span>
               </div>
-              <p className="text-lg text-gray-600 leading-relaxed mb-6 italic">
+              <p className="text-lg text-naki-smoke leading-relaxed mb-6 italic">
                 {previewPost.excerpt}
               </p>
-              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <div className="prose prose-sm max-w-none text-naki-primary leading-relaxed whitespace-pre-wrap">
                 {previewPost.content}
               </div>
             </div>

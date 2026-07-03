@@ -38,6 +38,16 @@ const APP_MENU: MenuItem[] = [
   { key: "categories", label: "Categories", icon: Tag },
 ];
 
+type NavSection = {
+  label: string;
+  items: MenuItem[];
+};
+
+const NAV_SECTIONS: NavSection[] = [
+  { label: "Main", items: MAIN_MENU },
+  { label: "App", items: APP_MENU },
+];
+
 export function AdminSidebar({
   activeView,
   onNavigate,
@@ -45,92 +55,60 @@ export function AdminSidebar({
   onLogout,
 }: AdminSidebarProps) {
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-6">
-        <div className="grid size-8 place-items-center rounded-lg bg-linear-to-br from-blue-500 to-purple-600 text-white">
-          <LayoutDashboard size={18} />
-        </div>
-        <span className="text-lg font-bold text-gray-900">Naki Code</span>
-      </div>
-
+    <aside className="fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-60 flex-col border-r border-naki-steel bg-white">
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-6">
-        {/* Main */}
-        <div className="mb-6">
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Main
-          </p>
-          <ul className="space-y-1">
-            {MAIN_MENU.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeView === item.key;
-              return (
-                <li key={item.key}>
-                  <button
-                    onClick={() => onNavigate(item.key)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                      isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
-                    <Icon size={18} className={isActive ? "text-blue-600" : "text-gray-400"} />
-                    {item.label}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        {/* App */}
-        <div className="mb-6">
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-            App
-          </p>
-          <ul className="space-y-1">
-            {APP_MENU.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeView === item.key;
-              return (
-                <li key={item.key}>
-                  <button
-                    onClick={() => onNavigate(item.key)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                      isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
-                    <Icon size={18} className={isActive ? "text-blue-600" : "text-gray-400"} />
-                    {item.label}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label} className="mb-5">
+            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-naki-smoke">
+              {section.label}
+            </p>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeView === item.key;
+                return (
+                  <li key={item.key}>
+                    <button
+                      onClick={() => onNavigate(item.key)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition ${
+                        isActive
+                          ? "bg-naki-frost text-naki-primary"
+                          : "text-naki-smoke hover:bg-naki-frost/60 hover:text-naki-primary"
+                      }`}
+                    >
+                      <Icon
+                        size={16}
+                        className={isActive ? "text-naki-primary" : "text-naki-smoke"}
+                      />
+                      {item.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       {/* User Profile */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white">
+      <div className="border-t border-naki-steel p-3">
+        <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-naki-primary text-xs font-semibold text-white">
             {adminUsername.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-[13px] font-medium text-naki-primary truncate">
               {adminUsername}
             </p>
-            <p className="text-xs text-gray-500">Admin</p>
+            <p className="text-[11px] text-naki-smoke">Administrator</p>
           </div>
           <button
             onClick={onLogout}
-            className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="grid size-7 shrink-0 place-items-center rounded-md text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
             title="Logout"
           >
-            <LogOut size={16} />
+            <LogOut size={14} />
           </button>
         </div>
       </div>

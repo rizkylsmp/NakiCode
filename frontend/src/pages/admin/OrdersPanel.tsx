@@ -89,21 +89,21 @@ export function OrdersPanel({
       {/* Stats */}
       {ordersStats && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Orders</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{ordersStats.totalOrders}</p>
+          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Total Orders</p>
+            <p className="mt-2 text-2xl font-bold text-naki-primary">{ordersStats.totalOrders}</p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Revenue</p>
-            <p className="mt-2 text-2xl font-bold text-green-600">{formatRupiah(ordersStats.totalRevenue)}</p>
+          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Revenue</p>
+            <p className="mt-2 text-2xl font-bold text-naki-primary">{formatRupiah(ordersStats.totalRevenue)}</p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Paid</p>
-            <p className="mt-2 text-2xl font-bold text-green-600">{ordersStats.paidOrders}</p>
+          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Paid</p>
+            <p className="mt-2 text-2xl font-bold text-naki-primary">{ordersStats.paidOrders}</p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">New</p>
-            <p className="mt-2 text-2xl font-bold text-amber-600">{ordersStats.newOrders}</p>
+          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">New</p>
+            <p className="mt-2 text-2xl font-bold text-naki-secondary">{ordersStats.newOrders}</p>
           </div>
         </div>
       )}
@@ -111,13 +111,13 @@ export function OrdersPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-naki-primary">Orders</h1>
+          <p className="mt-1 text-sm text-naki-smoke">
             Consultation requests from template detail pages.
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-naki-steel bg-white px-4 py-2 text-sm font-medium text-naki-smoke transition hover:bg-naki-frost disabled:opacity-50"
           disabled={isLoadingOrders}
           onClick={onRefreshOrders}
           type="button"
@@ -128,17 +128,17 @@ export function OrdersPanel({
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-naki-steel bg-white p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <p className="text-sm font-semibold text-gray-900">Filter orders</p>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="text-sm font-semibold text-naki-primary">Filter orders</p>
+            <p className="mt-0.5 text-xs text-naki-smoke">
               {ordersMeta.total} orders match current filters.
             </p>
           </div>
           {hasActiveFilters && (
             <button
-              className="inline-flex h-8 items-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
+              className="inline-flex h-8 items-center rounded-lg border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:bg-naki-frost"
               onClick={() =>
                 onOrderFiltersChange({ status: "all", paymentStatus: "all" })
               }
@@ -168,12 +168,12 @@ export function OrdersPanel({
       {isLoadingOrders ? (
         <OrderCardSkeletonGrid count={3} />
       ) : orders.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-          <Inbox className="mx-auto text-gray-300" size={40} />
-          <h3 className="mt-4 text-lg font-bold text-gray-900">
+        <div className="rounded-xl border border-naki-steel bg-white p-12 text-center shadow-sm">
+          <Inbox className="mx-auto text-naki-steel" size={40} />
+          <h3 className="mt-4 text-lg font-bold text-naki-primary">
             {hasActiveFilters ? "No orders match this filter." : "No orders yet."}
           </h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-naki-smoke">
             {hasActiveFilters
               ? "Try selecting a different status or reset filters."
               : "When users submit consultation forms, requests will appear here."}
@@ -184,18 +184,18 @@ export function OrdersPanel({
           {orders.map((order) => (
             <article
               key={order.id}
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="rounded-xl border border-naki-steel bg-white p-5 shadow-sm"
             >
               <div className="grid gap-4 md:grid-cols-[1fr_170px] md:items-start">
                 <div className="min-w-0">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <p className="w-fit rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                    <p className="w-fit rounded-md bg-naki-frost px-2.5 py-1 text-xs font-semibold text-naki-primary">
                       #{order.id}
                     </p>
-                    <h3 className="min-w-0 flex-1 truncate text-base font-bold text-gray-900">
+                    <h3 className="min-w-0 flex-1 truncate text-base font-bold text-naki-primary">
                       {order.customerName}
                     </h3>
-                    <span className="inline-flex h-7 w-fit items-center rounded-md bg-gray-100 px-2.5 text-xs font-medium text-gray-600">
+                    <span className="inline-flex h-7 w-fit items-center rounded-md bg-naki-frost px-2.5 text-xs font-medium text-naki-smoke">
                       {order.projectType}
                     </span>
                   </div>
@@ -215,11 +215,11 @@ export function OrdersPanel({
                 </div>
                 <div className="grid gap-2">
                   <label className="grid w-full gap-1.5">
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium text-naki-smoke">
                       Status
                     </span>
                     <select
-                      className="h-10 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                      className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
                       disabled={updatingOrderId === order.id}
                       value={order.status}
                       onChange={(event) =>
@@ -236,7 +236,7 @@ export function OrdersPanel({
                     </select>
                   </label>
                   <button
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-xs font-medium text-gray-600 transition hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white text-xs font-medium text-naki-smoke transition hover:border-naki-steel hover:text-naki-secondary disabled:cursor-not-allowed disabled:text-naki-smoke"
                     disabled={updatingOrderId === order.id}
                     onClick={() => onDeleteOrder(order)}
                     type="button"
@@ -247,12 +247,12 @@ export function OrdersPanel({
                 </div>
               </div>
 
-              <div className="mt-4 rounded-lg bg-gray-50 p-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
+              <div className="mt-4 rounded-lg bg-naki-frost p-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-naki-smoke">
                   <MessageSquareText size={14} />
                   Brief
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-gray-600">
+                <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-naki-smoke">
                   {order.message}
                 </p>
               </div>

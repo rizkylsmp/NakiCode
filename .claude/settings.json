@@ -18,7 +18,8 @@
       "Bash(curl --max-time 10 -s http://localhost:3001/api/admin/stats)",
       "Bash(timeout 5)",
       "Bash(npm test *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(npm install *)"
     ]
   },
   "hooks": {
