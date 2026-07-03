@@ -9,9 +9,8 @@ import {
   apiPut,
   getApiErrorMessage,
 } from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
 import { LoadingOverlay } from "../components/LoadingOverlay";
+import { AdminLayout } from "../components/admin/AdminLayout";
 import {
   type TemplateCategory,
   type TemplateItem,
@@ -24,7 +23,13 @@ import {
   userTokenKey,
   userUsernameKey,
 } from "../user-session";
-import { AdminTemplateWorkspace } from "./admin/AdminTemplateWorkspace";
+import { AdminDashboardPage } from "./admin/AdminDashboardPage";
+import { TemplatesPanel } from "./admin/TemplatesPanel";
+import { OrdersPanel } from "./admin/OrdersPanel";
+import { PortfolioAdminPanel } from "./admin/PortfolioAdminPanel";
+import { BlogAdminPanel } from "./admin/BlogAdminPanel";
+import { AdminTestimonialsSection } from "./admin/AdminTestimonialsSection";
+import { AdminCategoriesSection } from "./admin/AdminCategoriesSection";
 import {
   adminBlogPostsPageSize,
   adminOrdersPageSize,
@@ -50,6 +55,7 @@ import {
   type TemplateFormState,
   type TemplateMutationResponse,
   type TemplatesResponse,
+  type TestimonialItem,
 } from "./admin/AdminTemplateWorkspace.shared";
 import { DeleteCategoryDialog } from "./admin/DeleteCategoryDialog";
 import { DeleteOrderDialog } from "./admin/DeleteOrderDialog";
@@ -183,6 +189,7 @@ export function AdminTemplatesPage({
   const [isSavingBlog, setIsSavingBlog] = useState(false);
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [deletingBlogId, setDeletingBlogId] = useState<number | null>(null);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const adminTokenRef = useRef(adminToken);
   const isAdmin = Boolean(adminToken && adminRole === "admin");
@@ -669,9 +676,12 @@ export function AdminTemplatesPage({
   async function refreshCategoriesWithIds() {
     try {
       const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
-      setCategoriesWithIds(response.categories ?? []);
+      const categories = response.categories ?? [];
+      setCategoriesWithIds(categories);
+      return categories;
     } catch (error) {
       console.error("Failed to refresh categories:", error);
+      return [];
     }
   }
 
@@ -779,23 +789,37 @@ export function AdminTemplatesPage({
   async function handleConfirmDeleteCategory(categoryName: string) {
     setDeleteCandidateCategory(null);
 
-    const category = categoriesWithIds.find(c => c.name === categoryName);
+    // Refresh categoriesWithIds to ensure we have the latest data
+    const refreshedCategories = await refreshCategoriesWithIds();
+
+    // Find category from refreshed data
+    const category = refreshedCategories.find((c) => c.name === categoryName);
     if (!category) {
-      setCategoryStatus("Kategori tidak ditemukan.");
+      setCategoryStatus(`Kategori "${categoryName}" tidak ditemukan.`);
       return;
     }
 
     setIsSavingCategory(true);
-    setLoadingMessage("Menghapus kategori...");
+    setLoadingMessage(`Menghapus kategori ${categoryName}...`);
 
     try {
-      const data = await apiDelete<CategoryMutationResponse>(`/api/categories/${category.id}`);
+      const data = await apiDelete<CategoryMutationResponse>(
+        `/api/categories/${category.id}`,
+      );
 
       onCategoriesChange(data.categories);
       await refreshCategoriesWithIds();
-      setCategoryStatus(data.message ?? "Kategori berhasil dihapus.");
+      setCategoryStatus(data.message ?? `Kategori "${categoryName}" berhasil dihapus.`);
     } catch (error) {
-      setCategoryStatus(getApiErrorMessage(error, "Gagal menghapus kategori."));
+      const errorMessage = getApiErrorMessage(error, "Gagal menghapus kategori.");
+      // Provide more specific error messages
+      if (errorMessage.includes("409") || errorMessage.includes("masih digunakan")) {
+        setCategoryStatus(
+          `Kategori "${categoryName}" masih digunakan oleh template. Pindahkan template ke kategori lain terlebih dahulu.`,
+        );
+      } else {
+        setCategoryStatus(errorMessage);
+      }
     } finally {
       setIsSavingCategory(false);
       setLoadingMessage(null);
@@ -1054,15 +1078,23 @@ export function AdminTemplatesPage({
   useEffect(() => {
     if (adminToken) {
       void loadBlogPosts();
+      void loadTestimonials();
     }
   }, [adminToken]);
 
-  return (
-    <main className="bg-naki-page-bg min-h-screen text-naki-primary">
-      <Header />
+  async function loadTestimonials() {
+    try {
+      const data = await apiGet<{ testimonials: TestimonialItem[] }>("/api/testimonials/admin");
+      setTestimonials(data.testimonials);
+    } catch (error) {
+      console.error("Failed to load testimonials:", error);
+    }
+  }
 
+  return (
+    <>
       {!adminToken ? (
-        <section className="grid min-h-[76vh] w-full place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
+        <section className="grid min-h-screen w-full place-items-center px-5 py-12">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
             <span className="grid size-12 place-items-center rounded-xl bg-naki-primary text-white">
               <LockKeyhole size={22} />
@@ -1087,7 +1119,7 @@ export function AdminTemplatesPage({
           </div>
         </section>
       ) : !isAdmin ? (
-        <section className="grid min-h-[76vh] w-full place-items-center px-5 py-12 text-center md:px-8 xl:px-12 2xl:px-16">
+        <section className="grid min-h-screen w-full place-items-center px-5 py-12 text-center">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
             <span className="mx-auto grid size-12 place-items-center rounded-xl bg-naki-primary text-white">
               <LockKeyhole size={22} />
@@ -1120,111 +1152,161 @@ export function AdminTemplatesPage({
           </div>
         </section>
       ) : (
-        <AdminTemplateWorkspace
-          templates={templates}
-          paginatedTemplates={paginatedAdminTemplates}
-          filteredTemplatesCount={filteredAdminTemplates.length}
-          templatesPage={safeTemplatesPage}
-          templatesTotalPages={templateTotalPages}
-          templateSearch={templateSearch}
-          templateCategoryFilter={templateCategoryFilter}
-          projects={projects}
-          categoryOptions={categoryOptions}
-          selectedId={selectedId}
-          selectedTemplate={selectedTemplate}
-          form={form}
-          status={status}
-          isSaving={isSaving}
-          isTemplateModalOpen={isTemplateModalOpen}
-          adminToken={adminToken}
-          activeAdminView={activeAdminView}
-          categoryName={categoryName}
-          categoryStatus={categoryStatus}
-          isSavingCategory={isSavingCategory}
-          isCategoryModalOpen={isCategoryModalOpen}
-          editingCategory={editingCategory}
-          editingCategoryName={editingCategoryName}
-          onEditCategoryNameChange={setEditingCategoryName}
-          onEditCategory={handleEditCategory}
-          onSaveEditCategory={handleUpdateCategory}
-          onCancelEditCategory={handleCancelEdit}
-          onDeleteCategory={handleDeleteCategory}
-          isDeletingCategory={isSavingCategory}
-          onOpenCategoryModal={openCategoryModal}
-          onCloseCategoryModal={closeCategoryModal}
-          onSubmitCategory={handleSubmitCategory}
-          portfolioForm={portfolioForm}
-          isPortfolioModalOpen={isPortfolioModalOpen}
-          portfolioStatus={portfolioStatus}
-          isSavingPortfolio={isSavingPortfolio}
-          deletingProjectId={deletingProjectId}
-          orders={orders}
-          ordersStatus={ordersStatus}
-          ordersPage={ordersPage}
-          orderFilters={orderFilters}
-          ordersMeta={ordersMeta}
-          isLoadingOrders={isLoadingOrders}
-          updatingOrderId={updatingOrderId}
-          onActiveAdminViewChange={navigateAdminView}
-          onTemplateSearchChange={(value) => {
-            setTemplateSearch(value);
-            setTemplatesPage(1);
-          }}
-          onTemplateCategoryFilterChange={(value) => {
-            setTemplateCategoryFilter(value);
-            setTemplatesPage(1);
-          }}
-          onTemplatesPageChange={setTemplatesPage}
-          onRefreshOrders={() => loadOrders(adminToken, ordersPage, orderFilters)}
-          onOrderFiltersChange={updateOrderFilters}
-          onOrdersPageChange={(page) => {
-            setOrdersPage(page);
-            void loadOrders(adminToken, page, orderFilters);
-            const params = new URLSearchParams(location.search);
-            params.set("ordersPage", String(page));
-            navigate({ search: params.toString() }, { replace: true });
-          }}
-          onUpdateOrderStatus={updateOrderStatus}
-          onDeleteOrder={setDeleteCandidateOrder}
-          onStartCreate={startCreate}
-          onStartEdit={startEdit}
-          onCloseTemplateModal={closeTemplateModal}
-          onDeleteTemplate={setDeleteCandidateTemplate}
-          onSubmitTemplate={submitTemplate}
-          onUpdateField={updateField}
-          onCategoryNameChange={setCategoryName}
-          onUpdatePortfolioField={updatePortfolioField}
-          onSubmitPortfolio={submitPortfolio}
-          onStartEditPortfolio={startEditPortfolio}
-          onClosePortfolioModal={closePortfolioModal}
-          onOpenPortfolioModal={openPortfolioModal}
-          onResetPortfolioForm={resetPortfolioForm}
-          onDeletePortfolio={deletePortfolio}
-          onConfirmDeletePortfolio={confirmDeletePortfolio}
-          onCancelDeletePortfolio={cancelDeletePortfolio}
-          blogPosts={blogPosts}
-          paginatedBlogPosts={paginatedBlogPosts}
-          totalBlogPosts={filteredBlogPosts.length}
-          blogPostsPage={safeBlogPostsPage}
-          blogPostsTotalPages={blogPostsTotalPages}
-          blogSearch={blogSearch}
-          blogForm={blogForm}
-          blogStatus={blogStatus}
-          isSavingBlog={isSavingBlog}
-          isBlogModalOpen={isBlogModalOpen}
-          deletingBlogId={deletingBlogId}
-          onBlogSearchChange={setBlogSearch}
-          onBlogPostsPageChange={setBlogPostsPage}
-          onStartCreateBlog={startCreateBlog}
-          onStartEditBlog={startEditBlog}
-          onCloseBlogModal={closeBlogModal}
-          onOpenBlogModal={openBlogModal}
-          onDeleteBlog={deleteBlog}
-          onSubmitBlog={submitBlog}
-          onUpdateBlogField={updateBlogField}
-          onConfirmDeleteBlog={confirmDeleteBlog}
-          onCancelDeleteBlog={cancelDeleteBlog}
-        />
+        <AdminLayout
+          activeView={activeAdminView}
+          onNavigate={navigateAdminView}
+          adminUsername={adminUsername}
+          onLogout={logout}
+        >
+          {activeAdminView === "dashboard" && (
+            <AdminDashboardPage
+              templates={templates}
+              projects={projects}
+              orders={orders}
+              onNavigate={navigateAdminView}
+              onRefreshOrders={() => loadOrders(adminToken, ordersPage, orderFilters)}
+            />
+          )}
+
+          {activeAdminView === "templates" && (
+            <TemplatesPanel
+              templates={templates}
+              paginatedTemplates={paginatedAdminTemplates}
+              filteredTemplatesCount={filteredAdminTemplates.length}
+              templatesPage={safeTemplatesPage}
+              templatesTotalPages={templateTotalPages}
+              templateSearch={templateSearch}
+              templateCategoryFilter={templateCategoryFilter}
+              categoryOptions={categoryOptions}
+              selectedId={selectedId}
+              selectedTemplate={selectedTemplate}
+              form={form}
+              status={status}
+              isSaving={isSaving}
+              isTemplateModalOpen={isTemplateModalOpen}
+              adminToken={adminToken}
+              categoryName={categoryName}
+              isSavingCategory={isSavingCategory}
+              isCategoryModalOpen={isCategoryModalOpen}
+              editingCategory={editingCategory}
+              editingCategoryName={editingCategoryName}
+              onTemplateSearchChange={(value) => {
+                setTemplateSearch(value);
+                setTemplatesPage(1);
+              }}
+              onTemplateCategoryFilterChange={(value) => {
+                setTemplateCategoryFilter(value);
+                setTemplatesPage(1);
+              }}
+              onTemplatesPageChange={setTemplatesPage}
+              onStartCreate={startCreate}
+              onStartEdit={startEdit}
+              onCloseTemplateModal={closeTemplateModal}
+              onDeleteTemplate={setDeleteCandidateTemplate}
+              onSubmitTemplate={submitTemplate}
+              onUpdateField={updateField}
+              onOpenCategoryModal={openCategoryModal}
+              onCloseCategoryModal={closeCategoryModal}
+              onSubmitCategory={handleSubmitCategory}
+              onCategoryNameChange={setCategoryName}
+              onEditCategoryNameChange={setEditingCategoryName}
+              onEditCategory={handleEditCategory}
+              onSaveEditCategory={handleUpdateCategory}
+              onCancelEditCategory={handleCancelEdit}
+              onDeleteCategory={handleDeleteCategory}
+              isDeletingCategory={isSavingCategory}
+            />
+          )}
+
+          {activeAdminView === "orders" && (
+            <OrdersPanel
+              orders={orders}
+              ordersStatus={ordersStatus}
+              ordersPage={ordersPage}
+              orderFilters={orderFilters}
+              ordersMeta={ordersMeta}
+              isLoadingOrders={isLoadingOrders}
+              updatingOrderId={updatingOrderId}
+              onRefreshOrders={() => loadOrders(adminToken, ordersPage, orderFilters)}
+              onOrderFiltersChange={updateOrderFilters}
+              onOrdersPageChange={(page) => {
+                setOrdersPage(page);
+                void loadOrders(adminToken, page, orderFilters);
+                const params = new URLSearchParams(location.search);
+                params.set("ordersPage", String(page));
+                navigate({ search: params.toString() }, { replace: true });
+              }}
+              onUpdateOrderStatus={updateOrderStatus}
+              onDeleteOrder={setDeleteCandidateOrder}
+            />
+          )}
+
+          {activeAdminView === "portfolio" && (
+            <PortfolioAdminPanel
+              projects={projects}
+              form={portfolioForm}
+              status={portfolioStatus}
+              isSaving={isSavingPortfolio}
+              isModalOpen={isPortfolioModalOpen}
+              deletingProjectId={deletingProjectId}
+              adminToken={adminToken}
+              onStartEdit={startEditPortfolio}
+              onReset={resetPortfolioForm}
+              onDelete={deletePortfolio}
+              onOpenModal={openPortfolioModal}
+              onCloseModal={closePortfolioModal}
+              onUpdateField={updatePortfolioField}
+              onSubmit={submitPortfolio}
+              onConfirmDelete={confirmDeletePortfolio}
+              onCancelDelete={cancelDeletePortfolio}
+            />
+          )}
+
+          {activeAdminView === "blog" && (
+            <BlogAdminPanel
+              posts={blogPosts}
+              paginatedPosts={paginatedBlogPosts}
+              totalPosts={filteredBlogPosts.length}
+              page={safeBlogPostsPage}
+              totalPages={blogPostsTotalPages}
+              search={blogSearch}
+              selectedId={null}
+              status={blogStatus}
+              isSaving={isSavingBlog}
+              isModalOpen={isBlogModalOpen}
+              deletingId={deletingBlogId}
+              form={blogForm}
+              adminToken={adminToken}
+              onSearchChange={setBlogSearch}
+              onPageChange={setBlogPostsPage}
+              onStartCreate={startCreateBlog}
+              onStartEdit={startEditBlog}
+              onDelete={deleteBlog}
+              onOpenModal={openBlogModal}
+              onCloseModal={closeBlogModal}
+              onFormChange={updateBlogField}
+              onSubmit={submitBlog}
+              onConfirmDelete={confirmDeleteBlog}
+              onCancelDelete={cancelDeleteBlog}
+            />
+          )}
+
+          {activeAdminView === "testimonials" && (
+            <AdminTestimonialsSection
+              adminToken={adminToken}
+              testimonials={testimonials}
+              onTestimonialsChange={setTestimonials}
+            />
+          )}
+
+          {activeAdminView === "categories" && (
+            <AdminCategoriesSection
+              adminToken={adminToken}
+              categories={categoriesWithIds}
+              onCategoriesChange={setCategoriesWithIds}
+            />
+          )}
+        </AdminLayout>
       )}
 
       <DeleteCategoryDialog
@@ -1274,13 +1356,11 @@ export function AdminTemplatesPage({
         onConfirm={(template) => void deleteTemplate(template)}
       />
 
-      <Footer />
-
       <LoadingOverlay
         isLoading={loadingMessage !== null}
         message={loadingMessage ?? ""}
       />
-    </main>
+    </>
   );
 }
 

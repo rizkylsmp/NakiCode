@@ -6,6 +6,7 @@ const publicCacheRoutes = [
   /^\/api(?:\/v1)?\/projects$/,
   /^\/api(?:\/v1)?\/blog(?:\/[^/]+)?$/,
   /^\/api(?:\/v1)?\/business\/bundles$/,
+  /^\/api(?:\/v1)?\/testimonials$/,
 ];
 
 export function cacheHeaders(

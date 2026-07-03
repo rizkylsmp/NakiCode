@@ -421,21 +421,3 @@ npm run migrate:status --workspace backend
 npm run backup:db --workspace backend
 npm run backup:list --workspace backend
 ```
-
----
-
-## AI Task Checklist / Changelog
-
-- [x] 2026-06-19 — Consolidated project documentation into single summary file and marked old roadmap/checklist docs as obsolete — files: docs/PROJECT_SUMMARY.md
-- [x] 2026-06-20 — Security fix: tolak self-checkout untuk pesanan custom tanpa harga template (cegah manipulasi nominal via budget_range yang diisi user); amount kini hanya dari templates.price. Bugfix: endpoint invoice cek payment_status (sebelumnya cek status yang tidak pernah 'paid') — files: backend/src/routes/orders.ts
-- [x] 2026-06-21 — Error monitoring: tambah Sentry.captureException() ke semua catch blocks di orders.ts, auth.ts, dan webhook Midtrans di payments.ts untuk pelacakan error di production — files: backend/src/routes/orders.ts, backend/src/routes/auth.ts, backend/src/routes/payments.ts
-- [x] 2026-06-21 — Performance improvements: scryptSync → scrypt async (tidak blokir event loop saat hashing password), requireAdmin verifikasi token 1× (sebelumnya 3×), express.json limit 15MB → 1MB (cegah DoS) — files: backend/src/auth.ts, backend/src/routes/auth.ts, backend/src/models/user.model.ts, backend/src/server.ts
-- [x] 2026-06-21 — Admin dashboard: buat halaman dashboard admin dengan statistik real-time (total orders, revenue, top templates, recent orders), auto-refresh setiap 30 detik, responsive design dengan Tailwind CSS — files: frontend/src/components/AdminDashboard.tsx, frontend/src/pages/AdminTemplatesPage.tsx
-- [x] 2026-06-21 — Error monitoring (lanjutan): tambah Sentry.captureException() ke semua catch blocks di templates.ts, blog-posts.ts, business.ts, categories.ts, favorites.ts, notifications.ts, projects.ts, uploads.ts — files: backend/src/routes/*.ts
-- [x] 2026-06-21 — Payment amount tracking: tambah kolom payment_amount ke orders table untuk webhook verification, migration berhasil dijalankan — files: backend/database/migrations/20260621-084842-add-payment-amount-column.sql, backend/src/models/order.model.ts
-- [x] 2026-06-21 — Bugfix: auth token verify crash saat token bukan string (TypeError: token.split). Tambah type guard di verifyToken() — files: backend/src/auth.ts
-- [x] 2026-06-21 — Fix Vercel serverless: disable express-rate-limit forwarded header validation yang bikin crash 503 di Vercel proxy — files: backend/src/security.ts
-- [x] 2026-06-21 — Fix dropdown header admin: link Dashboard admin diarahkan ke /admin/dashboard dan tambah link Kelola template ke /admin/dashboard#templates di desktop/mobile — files: frontend/src/components/Header.tsx, frontend/src/components/__tests__/Header.test.tsx
-- [x] 2026-06-21 — Admin dashboard route cleanup: hapus halaman wrapper dashboard duplikat dan jadikan AdminTemplatesPage sebagai halaman tunggal di /admin/dashboard — files: frontend/src/App.tsx, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/pages/AdminDashboardPage.tsx, frontend/src/components/Header.tsx
-- [x] 2026-06-21 — Admin dashboard page: tambah tab Dashboard di /admin/dashboard dengan shortcut Kelola Template, Order Masuk, Kategori, Portofolio plus statistik ringkas tanpa loading API tambahan — files: frontend/src/pages/AdminTemplatesPage.tsx
-- [x] 2026-06-24 — Admin improvement backlog #3: normalisasi kategori template dengan templates.category_id foreign key sambil mempertahankan API category string untuk kompatibilitas frontend — files: backend/database/schema.sql, backend/src/db.ts, backend/src/migrations.ts, backend/src/models/template.model.ts, backend/src/models/category.model.ts, backend/src/__tests__/category.model.test.ts, docs/PROJECT_SUMMARY.md

@@ -4,6 +4,7 @@ import {
   FileArchive,
   GripVertical,
   ImagePlus,
+  Loader2,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -24,7 +25,9 @@ export type TemplateFormState = {
   category: TemplateItem["category"];
   description: string;
   price: string;
-  stack: string;
+  frontendStack: string;
+  backendStack: string;
+  databaseStack: string;
   level: string;
   accentClass: string;
   preview: TemplatePreviewItem[];
@@ -44,20 +47,18 @@ export const defaultFormState: TemplateFormState = {
   category: "Portfolio",
   description: "",
   price: "Rp149K",
-  stack: "React, Tailwind",
+  frontendStack: "",
+  backendStack: "",
+  databaseStack: "",
   level: "Pemula",
   accentClass: "bg-naki-secondary",
-  preview: [
-    { image: "", caption: "Hero section" },
-    { image: "", caption: "Feature grid" },
-    { image: "", caption: "Contact CTA" },
-  ],
+  preview: [],
   demoUrl: "#",
   lynkUrl: "",
-  features: "Responsive layout\nClean components\nEasy customization",
-  includedFiles: "React components\nTailwind theme\nSetup guide",
+  features: "",
+  includedFiles: "",
   sourceCode: "",
-  suitableFor: "Personal project\nClient project",
+  suitableFor: "",
   license:
     "Boleh dipakai untuk satu personal/client project. Tidak untuk dijual ulang sebagai template mentah.",
   support: "Support setup dasar setelah pembelian.",
@@ -139,6 +140,40 @@ export const defaultBlogPostFormState: BlogPostFormState = {
   status: "draft",
 };
 
+export type TestimonialItem = {
+  id: number;
+  source_type: "manual" | "rating";
+  rating_id: number | null;
+  customer_name: string;
+  customer_role: string | null;
+  quote: string;
+  rating: number;
+  template_id: number | null;
+  is_featured: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TestimonialFormState = {
+  id?: number;
+  customer_name: string;
+  customer_role: string;
+  quote: string;
+  rating: number;
+  is_featured: boolean;
+  sort_order: number;
+};
+
+export const defaultTestimonialFormState: TestimonialFormState = {
+  customer_name: "",
+  customer_role: "",
+  quote: "",
+  rating: 5,
+  is_featured: true,
+  sort_order: 0,
+};
+
 export type OrderStatus = "new" | "contacted" | "deal" | "closed";
 export type OrderStatusFilter = "all" | OrderStatus;
 export type PaymentStatusFilter =
@@ -147,7 +182,7 @@ export type PaymentStatusFilter =
   | "waiting_payment"
   | "paid"
   | "failed";
-export type DashboardView = "dashboard" | "templates" | "orders" | "portfolio" | "blog";
+export type DashboardView = "dashboard" | "templates" | "orders" | "portfolio" | "blog" | "testimonials" | "categories";
 export type AdminOrderFilters = {
   status: OrderStatusFilter;
   paymentStatus: PaymentStatusFilter;
@@ -176,7 +211,9 @@ export function normalizeAdminSection(section: string): DashboardView {
   return section === "templates" ||
     section === "orders" ||
     section === "portfolio" ||
-    section === "blog"
+    section === "blog" ||
+    section === "testimonials" ||
+    section === "categories"
     ? section
     : "dashboard";
 }
@@ -184,7 +221,7 @@ export function normalizeAdminSection(section: string): DashboardView {
 export function legacyHashToAdminView(hash: string): DashboardView | null {
   const view = hash.replace("#", "");
 
-  return view === "templates" || view === "orders" || view === "portfolio" || view === "blog"
+  return view === "templates" || view === "orders" || view === "portfolio" || view === "blog" || view === "testimonials" || view === "categories"
     ? view
     : null;
 }
@@ -213,16 +250,68 @@ export const adminOrdersPageSize = 8;
 export const adminTemplatesPageSize = 8;
 export const adminBlogPostsPageSize = 10;
 export const levelOptions = ["Pemula", "Menengah", "Lanjut"];
-export const stackOptions = [
+
+export const frontendStackOptions = [
   "React",
+  "Vue",
+  "Angular",
+  "Svelte",
+  "Next.js",
+  "Nuxt",
   "Vite",
-  "Tailwind",
+  "Tailwind CSS",
+  "Bootstrap",
+  "Material UI",
   "TypeScript",
+  "JavaScript",
+  "HTML",
+  "CSS",
+  "SCSS",
+  "Framer Motion",
+  "GSAP",
+  "Three.js",
+  "Chart.js",
+  "D3.js",
+];
+
+export const backendStackOptions = [
+  "Node.js",
   "Express",
+  "Fastify",
+  "NestJS",
+  "Django",
+  "Flask",
+  "Laravel",
+  "Spring Boot",
+  "Ruby on Rails",
+  "Go",
+  "Rust",
+  "Python",
+  "PHP",
+  "Java",
+  "REST API",
+  "GraphQL",
+  "WebSocket",
+  "JWT",
+  "OAuth",
+  "Redis",
+];
+
+export const databaseStackOptions = [
   "MySQL",
-  "API",
-  "Motion",
-  "Chart",
+  "PostgreSQL",
+  "MongoDB",
+  "SQLite",
+  "Supabase",
+  "Firebase",
+  "Prisma",
+  "Sequelize",
+  "Mongoose",
+  "TypeORM",
+  "Drizzle",
+  "PlanetScale",
+  "Neon",
+  "Vercel Postgres",
 ];
 export const licenseOptions = [
   "Boleh dipakai untuk satu personal/client project. Tidak untuk dijual ulang sebagai template mentah.",
@@ -243,6 +332,7 @@ export type FieldProps = {
   required?: boolean;
   type?: string;
   step?: string;
+  placeholder?: string;
 };
 
 export function Field({
@@ -252,6 +342,7 @@ export function Field({
   required = false,
   type = "text",
   step,
+  placeholder,
 }: FieldProps) {
   return (
     <label className="grid gap-1.5">
@@ -262,6 +353,7 @@ export function Field({
         onChange={(event) => onChange(event.target.value)}
         required={required}
         type={type}
+        placeholder={placeholder}
         step={step}
       />
     </label>
@@ -646,9 +738,93 @@ export function PreviewDropZone({
   const [dragOverPreviewIndex, setDragOverPreviewIndex] = useState<
     number | null
   >(null);
-  const [uploadStatus, setUploadStatus] = useState(
-    "Upload foto, lalu isi caption untuk tiap foto.",
-  );
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  function getImageDimensions(
+    file: File,
+  ): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () =>
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () =>
+        reject(new Error(`Gagal membaca dimensi gambar: ${file.name}`));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function handleUpload(files: File[]) {
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (!imageFiles.length) {
+      setUploadStatus("File yang dipilih bukan gambar.");
+      return;
+    }
+
+    if (imageFiles.length > 12) {
+      setUploadStatus("Maksimal 12 gambar.");
+      return;
+    }
+
+    const oversizedFile = imageFiles.find(
+      (file) => file.size > 5 * 1024 * 1024,
+    );
+    if (oversizedFile) {
+      setUploadStatus(
+        `Ukuran file "${oversizedFile.name}" terlalu besar (maks 5MB).`,
+      );
+      return;
+    }
+
+    const minDim = 200;
+    const maxDim = 4000;
+
+    for (const file of imageFiles) {
+      try {
+        const dims = await getImageDimensions(file);
+        if (dims.width < minDim || dims.height < minDim) {
+          setUploadStatus(
+            `Gambar "${file.name}" terlalu kecil. Minimum ${minDim}x${minDim} piksel.`,
+          );
+          return;
+        }
+        if (dims.width > maxDim || dims.height > maxDim) {
+          setUploadStatus(
+            `Gambar "${file.name}" terlalu besar. Maksimum ${maxDim}x${maxDim} piksel.`,
+          );
+          return;
+        }
+      } catch {
+        setUploadStatus(`Gagal membaca dimensi gambar "${file.name}".`);
+        return;
+      }
+    }
+
+    setIsUploading(true);
+    setUploadStatus("Mengupload gambar...");
+
+    try {
+      const imageUrls = await uploadPreviewImages(imageFiles, adminToken);
+
+      if (imageUrls.length) {
+        onChange([
+          ...value,
+          ...imageUrls.map((image, index) => ({
+            image,
+            caption: `Preview ${value.length + index + 1}`,
+          })),
+        ]);
+        setUploadStatus(
+          `${imageUrls.length} foto berhasil diupload. Lengkapi caption-nya.`,
+        );
+      }
+    } catch {
+      setUploadStatus("Gagal memproses gambar. Coba file gambar lain.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   function updateCaption(index: number, caption: string) {
     onChange(
@@ -674,9 +850,6 @@ export function PreviewDropZone({
     }
 
     onChange(reorderItems(value, fromIndex, toIndex));
-    setUploadStatus(
-      `Preview ${fromIndex + 1} dipindah ke posisi ${toIndex + 1}.`,
-    );
   }
 
   function handlePreviewDragStart(
@@ -708,156 +881,161 @@ export function PreviewDropZone({
     setDragOverPreviewIndex(null);
   }
 
-  function canMovePreviewItem(index: number, direction: -1 | 1) {
-    const nextIndex = index + direction;
-
-    return nextIndex >= 0 && nextIndex < value.length;
-  }
-
   function handlePreviewDragEnd() {
     setDraggedPreviewIndex(null);
     setDragOverPreviewIndex(null);
   }
 
   return (
-    <section className="grid gap-3">
-      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
-        Preview
-      </p>
-      <ImageUploadDropZone
-        adminToken={adminToken}
-        title="Upload / drop / paste foto preview"
-        description="Bisa lebih dari satu gambar. File disimpan sebagai URL, bukan base64."
-        status={uploadStatus}
-        onStatusChange={setUploadStatus}
-        onUploaded={(imageUrls) => {
-          onChange([
-            ...value,
-            ...imageUrls.map((image, index) => ({
-              image,
-              caption: `Preview ${value.length + index + 1}`,
-            })),
-          ]);
+    <section className="grid gap-4">
+      {/* Drop Zone */}
+      <div
+        className="rounded-xl border-2 border-dashed border-naki-steel bg-naki-frost/50 p-8 text-center outline-none transition focus:border-blue-400"
+        onDrop={(event) => {
+          event.preventDefault();
+          const files = Array.from(event.dataTransfer.files);
+          if (files.length) {
+            void handleUpload(files);
+          }
         }}
-        successMessage={(imageUrls) =>
-          `${imageUrls.length} foto berhasil diupload. Lengkapi caption-nya.`
-        }
-      />
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }}
+        onPaste={(event) => {
+          void handleUpload(Array.from(event.clipboardData.files));
+        }}
+        tabIndex={0}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <span className="grid size-14 place-items-center rounded-xl bg-white text-naki-secondary shadow-sm">
+            <UploadCloud size={24} />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-naki-primary">
+              Drag & Drop foto preview di sini
+            </p>
+            <p className="mt-1 text-sm text-naki-smoke">
+              atau{" "}
+              <label className="cursor-pointer font-medium text-naki-primary underline hover:text-naki-secondary">
+                browse files
+                <input
+                  className="sr-only"
+                  accept="image/*"
+                  disabled={isUploading}
+                  multiple
+                  onChange={(event) => {
+                    void handleUpload(Array.from(event.target.files ?? []));
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+            </p>
+            <p className="mt-1 text-xs text-naki-smoke">
+              Hanya format JPEG dan PNG yang didukung. Maksimal 5MB per file.
+            </p>
+          </div>
+          {isUploading && (
+            <div className="flex items-center gap-2 text-sm text-naki-smoke">
+              <Loader2 size={16} className="animate-spin" />
+              Mengupload...
+            </div>
+          )}
+        </div>
+      </div>
 
-      {value.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-          {value.map((item, index) => (
-            <div
-              key={`${item.image}-${index}`}
-              className={`overflow-hidden rounded-xl border bg-white transition ${
-                dragOverPreviewIndex === index &&
-                draggedPreviewIndex !== null &&
-                draggedPreviewIndex !== index
-                  ? "border-naki-secondary shadow-naki-card"
-                  : "border-naki-steel"
-              } ${
-                draggedPreviewIndex === index ? "opacity-70" : "opacity-100"
-              }`}
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                event.dataTransfer.dropEffect = "move";
-                setDragOverPreviewIndex(index);
-              }}
-              onDrop={(event) => handlePreviewDrop(event, index)}
-            >
+      {/* Uploaded Files List */}
+      {value.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-naki-primary">
+              Uploaded Files
+            </p>
+            <p className="text-xs text-naki-smoke">
+              {value.length} file{value.length > 1 ? "s" : ""}
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            {value.map((item, index) => (
               <div
-                className="flex cursor-grab items-center justify-between gap-2 border-b border-naki-steel bg-naki-steel px-3 py-2 active:cursor-grabbing"
+                key={`${item.image}-${index}`}
+                className={`flex items-center gap-3 rounded-xl border bg-white p-3 transition ${
+                  dragOverPreviewIndex === index &&
+                  draggedPreviewIndex !== null &&
+                  draggedPreviewIndex !== index
+                    ? "border-naki-primary ring-2 ring-naki-primary/20"
+                    : "border-naki-steel"
+                } ${draggedPreviewIndex === index ? "opacity-50" : "opacity-100"}`}
                 draggable
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.dataTransfer.dropEffect = "move";
+                  setDragOverPreviewIndex(index);
+                }}
+                onDrop={(event) => handlePreviewDrop(event, index)}
                 onDragEnd={handlePreviewDragEnd}
                 onDragStart={(event) => handlePreviewDragStart(event, index)}
-                title="Drag untuk mengurutkan gambar dan caption"
               >
-                <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase text-naki-smoke">
-                    Posisi {index + 1}
-                  </p>
-                  <p className="truncate text-sm font-medium text-naki-primary">
-                    {item.caption || "Belum ada caption"}
-                  </p>
-                </div>
-                <span
-                  className="grid size-9 shrink-0 place-items-center rounded-lg border border-naki-steel bg-naki-frost text-naki-secondary"
-                  aria-hidden="true"
-                >
-                  <GripVertical size={17} />
-                </span>
-              </div>
-              {item.image ? (
-                <img
-                  className="h-36 w-full cursor-grab object-cover active:cursor-grabbing"
-                  draggable
-                  onDragEnd={handlePreviewDragEnd}
-                  onDragStart={(event) => handlePreviewDragStart(event, index)}
-                  src={item.image}
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  loading="lazy"
-                  decoding="async"
-                  alt={item.caption || "Preview template"}
-                  title="Drag gambar untuk mengurutkan"
-                />
-              ) : (
+                {/* Sort Handle */}
                 <div
-                  className="grid h-36 cursor-grab place-items-center bg-naki-steel text-sm font-medium text-naki-smoke active:cursor-grabbing"
-                  draggable
-                  onDragEnd={handlePreviewDragEnd}
-                  onDragStart={(event) => handlePreviewDragStart(event, index)}
+                  className="cursor-grab text-naki-smoke transition hover:text-naki-primary active:cursor-grabbing"
                   title="Drag untuk mengurutkan"
                 >
-                  Belum ada foto
+                  <GripVertical size={20} />
                 </div>
-              )}
-              <div className="grid gap-2 border-t border-naki-steel p-3">
-                <label className="grid gap-1 text-xs font-medium text-naki-smoke">
-                  Caption foto
+
+                {/* Thumbnail */}
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-naki-steel bg-naki-frost">
+                  {item.image ? (
+                    <img
+                      className="h-full w-full object-cover"
+                      src={item.image}
+                      alt={item.caption || "Preview"}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-naki-smoke">
+                      <ImagePlus size={16} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Caption / Info */}
+                <div className="min-w-0 flex-1">
                   <input
-                    className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
+                    className="w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary outline-none transition focus:border-blue-400"
                     value={item.caption}
                     onChange={(event) =>
                       updateCaption(index, event.target.value)
                     }
-                    placeholder="Contoh: Tampilan homepage"
+                    placeholder="Tambahkan caption..."
                     type="text"
                   />
-                </label>
-              </div>
-              <div className="grid grid-cols-3 border-t border-naki-steel">
+                </div>
+
+                {/* Delete Button */}
                 <button
-                  className="flex h-10 items-center justify-center gap-1 border-r border-naki-steel text-xs font-medium text-naki-secondary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:text-naki-smoke"
-                  disabled={!canMovePreviewItem(index, -1)}
-                  onClick={() => movePreviewItem(index, index - 1)}
-                  type="button"
-                >
-                  <ArrowUp size={14} />
-                  Naik
-                </button>
-                <button
-                  className="flex h-10 items-center justify-center gap-1 border-r border-naki-steel text-xs font-medium text-naki-secondary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:text-naki-smoke"
-                  disabled={!canMovePreviewItem(index, 1)}
-                  onClick={() => movePreviewItem(index, index + 1)}
-                  type="button"
-                >
-                  <ArrowDown size={14} />
-                  Turun
-                </button>
-                <button
-                  className="flex h-10 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:bg-naki-frost hover:text-naki-primary"
+                  className="grid size-9 shrink-0 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
                   onClick={() => removeItem(index)}
                   type="button"
+                  title="Hapus gambar"
                 >
-                  <X size={14} />
-                  Hapus
+                  <X size={16} />
                 </button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      ) : null}
+      )}
+
+      {/* Status */}
+      {uploadStatus && (
+        <p className="text-sm text-naki-smoke">{uploadStatus}</p>
+      )}
     </section>
   );
 }
@@ -868,20 +1046,31 @@ export type SourceCodeUploadProps = {
 };
 
 export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
-  function addSourceFiles(files: File[]) {
-    const packageItems = files
-      .filter((file) => /\.(zip|rar)$/i.test(file.name))
-      .map(
-        (file) => `Source package: ${file.name} (${formatFileSize(file.size)})`,
-      );
+  const [isUploading, setIsUploading] = useState(false);
 
-    if (packageItems.length) {
-      onChange(appendLines(value, packageItems));
-    }
+  function addSourceFiles(files: File[]) {
+    setIsUploading(true);
+
+    // Simulate upload delay
+    setTimeout(() => {
+      const packageItems = files
+        .filter((file) => /\.(zip|rar)$/i.test(file.name))
+        .map(
+          (file) => `${file.name} (${formatFileSize(file.size)})`,
+        );
+
+      if (packageItems.length) {
+        onChange(appendLines(value, packageItems));
+      }
+      setIsUploading(false);
+    }, 1000);
   }
+
+  const uploadedFiles = splitLines(value);
 
   return (
     <section className="grid gap-3">
+      {/* Upload Area */}
       <div className="flex flex-col justify-between gap-3 rounded-xl border border-naki-steel bg-naki-frost p-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <span className="grid size-11 place-items-center rounded-xl bg-white text-naki-secondary">
@@ -896,13 +1085,27 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
             </p>
           </div>
         </div>
-        <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90">
-          <UploadCloud size={16} />
-          Upload
+        <label className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition ${
+          isUploading
+            ? 'cursor-not-allowed bg-naki-smoke'
+            : 'cursor-pointer bg-naki-primary hover:opacity-90'
+        }`}>
+          {isUploading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Mengupload...
+            </>
+          ) : (
+            <>
+              <UploadCloud size={16} />
+              Upload
+            </>
+          )}
           <input
             className="sr-only"
             accept=".zip,.rar,application/zip,application/x-rar-compressed"
             multiple
+            disabled={isUploading}
             onChange={(event) => {
               addSourceFiles(Array.from(event.target.files ?? []));
               event.target.value = "";
@@ -911,11 +1114,71 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
           />
         </label>
       </div>
+
+      {/* Uploaded Files List */}
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-naki-primary">
+            Uploaded Files
+          </p>
+          <div className="grid gap-2">
+            {uploadedFiles.map((file, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 rounded-xl border border-naki-steel bg-white p-3"
+              >
+                <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
+                  <FileArchive size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-naki-primary">
+                    {file}
+                  </p>
+                </div>
+                <button
+                  className="grid size-9 shrink-0 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
+                  onClick={() => {
+                    const newFiles = uploadedFiles.filter((_, i) => i !== index);
+                    onChange(newFiles.join("\n"));
+                  }}
+                  type="button"
+                  title="Hapus file"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
+function categorizeStack(items: string[]): { frontend: string[]; backend: string[]; database: string[]; other: string[] } {
+  const frontendSet = new Set(frontendStackOptions.map((s) => s.toLowerCase()));
+  const backendSet = new Set(backendStackOptions.map((s) => s.toLowerCase()));
+  const databaseSet = new Set(databaseStackOptions.map((s) => s.toLowerCase()));
+
+  const frontend: string[] = [];
+  const backend: string[] = [];
+  const database: string[] = [];
+  const other: string[] = [];
+
+  for (const item of items) {
+    const lower = item.toLowerCase();
+    if (frontendSet.has(lower)) frontend.push(item);
+    else if (backendSet.has(lower)) backend.push(item);
+    else if (databaseSet.has(lower)) database.push(item);
+    else other.push(item);
+  }
+
+  return { frontend, backend, database, other };
+}
+
 export function templateToForm(template: TemplateItem): TemplateFormState {
+  const { frontend, backend, database, other } = categorizeStack(template.stack);
+
   return {
     id: template.id,
     slug: template.slug,
@@ -923,11 +1186,14 @@ export function templateToForm(template: TemplateItem): TemplateFormState {
     category: template.category,
     description: template.description,
     price: template.price,
-    stack: template.stack.join(", "),
+    frontendStack: [...frontend, ...other].join(", "),
+    backendStack: backend.join(", "),
+    databaseStack: database.join(", "),
     level: template.level,
     accentClass: template.accentClass,
     preview: template.preview,
     demoUrl: template.demoUrl,
+    lynkUrl: template.lynkUrl || "",
     features: template.features.join("\n"),
     includedFiles: template.includedFiles.join("\n"),
     sourceCode: template.sourceCode.join("\n"),
@@ -940,13 +1206,19 @@ export function templateToForm(template: TemplateItem): TemplateFormState {
 export function formToPayload(
   form: TemplateFormState,
 ): Omit<TemplateItem, "id" | "rating" | "buyerCount" | "reviews"> {
+  const allStack = [
+    ...splitLines(form.frontendStack),
+    ...splitLines(form.backendStack),
+    ...splitLines(form.databaseStack),
+  ];
+
   return {
     slug: form.slug || slugify(form.title),
     title: form.title.trim(),
     category: form.category,
     description: form.description.trim(),
     price: form.price.trim(),
-    stack: splitLines(form.stack),
+    stack: allStack,
     level: form.level.trim(),
     accentClass: form.accentClass.trim() || "bg-naki-secondary",
     preview: form.preview.filter((item) => item.image || item.caption.trim()),

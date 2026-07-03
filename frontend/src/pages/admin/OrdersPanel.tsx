@@ -85,89 +85,78 @@ export function OrdersPanel({
   }
 
   return (
-    <section className="min-h-screen bg-naki-page-bg py-8">
-      {ordersStats ? (
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <StatCard
-            label="Total order"
-            value={String(ordersStats.totalOrders)}
-            color="text-naki-primary"
-          />
-          <StatCard
-            label="Revenue"
-            value={formatRupiah(ordersStats.totalRevenue)}
-            color="text-emerald-500"
-          />
-          <StatCard
-            label="Sudah dibayar"
-            value={String(ordersStats.paidOrders)}
-            color="text-emerald-500"
-          />
-          <StatCard
-            label="Baru"
-            value={String(ordersStats.newOrders)}
-            color="text-amber-500"
-          />
+    <div className="space-y-6">
+      {/* Stats */}
+      {ordersStats && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Orders</p>
+            <p className="mt-2 text-2xl font-bold text-gray-900">{ordersStats.totalOrders}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Revenue</p>
+            <p className="mt-2 text-2xl font-bold text-green-600">{formatRupiah(ordersStats.totalRevenue)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Paid</p>
+            <p className="mt-2 text-2xl font-bold text-green-600">{ordersStats.paidOrders}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">New</p>
+            <p className="mt-2 text-2xl font-bold text-amber-600">{ordersStats.newOrders}</p>
+          </div>
         </div>
-      ) : null}
+      )}
 
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold leading-tight text-naki-primary">
-            Inbox order
-          </h2>
-          <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
-            Request konsultasi dari halaman detail template.
+          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Consultation requests from template detail pages.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex w-fit items-center gap-2 rounded-xl bg-naki-frost px-3 py-2 text-sm font-semibold text-naki-secondary">
-            <BadgeCheck size={16} />
-            {ordersStatus}
-          </span>
-          <button
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
-            disabled={isLoadingOrders}
-            onClick={onRefreshOrders}
-            type="button"
-          >
-            <RefreshCw size={16} />
-            {isLoadingOrders ? "Memuat..." : "Refresh"}
-          </button>
-        </div>
+        <button
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+          disabled={isLoadingOrders}
+          onClick={onRefreshOrders}
+          type="button"
+        >
+          <RefreshCw size={14} className={isLoadingOrders ? "animate-spin" : ""} />
+          {isLoadingOrders ? "Loading..." : "Refresh"}
+        </button>
       </div>
 
-      <div className="mb-8 rounded-2xl bg-white p-5 shadow-sm">
+      {/* Filters */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <p className="text-sm font-semibold text-naki-primary">
-              Filter order
-            </p>
-            <p className="mt-0.5 text-xs text-naki-smoke">
-              {ordersMeta.total} order cocok dengan filter saat ini.
+            <p className="text-sm font-semibold text-gray-900">Filter orders</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {ordersMeta.total} orders match current filters.
             </p>
           </div>
-          {hasActiveFilters ? (
+          {hasActiveFilters && (
             <button
-              className="inline-flex h-9 w-fit items-center justify-center rounded-xl border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:border-naki-primary/40"
+              className="inline-flex h-8 items-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
               onClick={() =>
                 onOrderFiltersChange({ status: "all", paymentStatus: "all" })
               }
               type="button"
             >
-              Reset filter
+              Reset filters
             </button>
-          ) : null}
+          )}
         </div>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <FilterButtonGroup
-            label="Status order"
+            label="Order status"
             filters={orderStatusFilters}
             activeValue={orderFilters.status}
             onChange={updateStatusFilter}
           />
           <FilterButtonGroup
-            label="Status pembayaran"
+            label="Payment status"
             filters={paymentStatusFilters}
             activeValue={orderFilters.paymentStatus}
             onChange={updatePaymentStatusFilter}
@@ -175,42 +164,43 @@ export function OrdersPanel({
         </div>
       </div>
 
+      {/* Orders List */}
       {isLoadingOrders ? (
         <OrderCardSkeletonGrid count={3} />
       ) : orders.length === 0 ? (
-        <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-          <Inbox className="mx-auto text-naki-secondary" size={40} />
-          <h3 className="mt-4 text-xl font-bold text-naki-primary">
-            {hasActiveFilters ? "Tidak ada order di filter ini." : "Belum ada order."}
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+          <Inbox className="mx-auto text-gray-300" size={40} />
+          <h3 className="mt-4 text-lg font-bold text-gray-900">
+            {hasActiveFilters ? "No orders match this filter." : "No orders yet."}
           </h3>
-          <p className="mt-2 text-sm text-naki-smoke leading-relaxed">
+          <p className="mt-2 text-sm text-gray-500">
             {hasActiveFilters
-              ? "Coba pilih status lain atau reset filter."
-              : "Saat user mengirim form konsultasi, request akan muncul di sini."}
+              ? "Try selecting a different status or reset filters."
+              : "When users submit consultation forms, requests will appear here."}
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="space-y-3">
           {orders.map((order) => (
             <article
               key={order.id}
-              className="rounded-2xl bg-white p-5 shadow-sm"
+              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
             >
               <div className="grid gap-4 md:grid-cols-[1fr_170px] md:items-start">
                 <div className="min-w-0">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <p className="w-fit rounded-lg bg-naki-frost px-2.5 py-1 text-xs font-semibold text-naki-primary">
+                    <p className="w-fit rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
                       #{order.id}
                     </p>
-                    <h3 className="min-w-0 flex-1 truncate text-lg font-bold leading-tight text-naki-primary">
+                    <h3 className="min-w-0 flex-1 truncate text-base font-bold text-gray-900">
                       {order.customerName}
                     </h3>
-                    <span className="inline-flex h-8 w-fit items-center rounded-lg bg-naki-frost px-2.5 text-xs font-medium text-naki-smoke">
+                    <span className="inline-flex h-7 w-fit items-center rounded-md bg-gray-100 px-2.5 text-xs font-medium text-gray-600">
                       {order.projectType}
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-5">
-                    <OrderMeta label="Kontak" value={order.customerContact} />
+                    <OrderMeta label="Contact" value={order.customerContact} />
                     <OrderMeta label="Template" value={order.templateTitle} />
                     <OrderMeta label="Budget" value={order.budgetRange} />
                     <OrderMeta
@@ -218,18 +208,18 @@ export function OrdersPanel({
                       value={getPaymentStatusLabel(order.paymentStatus)}
                     />
                     <OrderMeta
-                      label="Masuk"
+                      label="Created"
                       value={formatOrderDate(order.createdAt)}
                     />
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <label className="grid w-full gap-1.5">
-                    <span className="text-xs font-medium text-naki-smoke">
+                    <span className="text-xs font-medium text-gray-500">
                       Status
                     </span>
                     <select
-                      className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400 disabled:cursor-not-allowed disabled:text-naki-smoke"
+                      className="h-10 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-400"
                       disabled={updatingOrderId === order.id}
                       value={order.status}
                       onChange={(event) =>
@@ -246,23 +236,23 @@ export function OrdersPanel({
                     </select>
                   </label>
                   <button
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white text-xs font-medium text-naki-smoke transition hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:text-naki-smoke"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-xs font-medium text-gray-600 transition hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
                     disabled={updatingOrderId === order.id}
                     onClick={() => onDeleteOrder(order)}
                     type="button"
                   >
                     <Trash2 size={14} />
-                    Hapus
+                    Delete
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl bg-naki-frost p-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-naki-smoke">
+              <div className="mt-4 rounded-lg bg-gray-50 p-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
                   <MessageSquareText size={14} />
                   Brief
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-naki-smoke">
+                <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-gray-600">
                   {order.message}
                 </p>
               </div>
@@ -278,7 +268,7 @@ export function OrdersPanel({
           />
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

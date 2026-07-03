@@ -308,28 +308,9 @@ async function resolveTemplateCategory(categoryName: string) {
     return { id: rows[0].id, name: rows[0].name };
   }
 
-  const [result] = await pool.query<ResultSetHeader>(
-    `INSERT IGNORE INTO template_categories (name, sort_order)
-    SELECT ?, COALESCE(MAX(sort_order), 0) + 1
-    FROM template_categories`,
-    [normalizedName],
-  );
-
-  if (result.insertId > 0) {
-    return { id: result.insertId, name: normalizedName };
-  }
-
-  const [retryRows] = await pool.query<
-    (RowDataPacket & { id: number; name: string })[]
-  >('SELECT id, name FROM template_categories WHERE name = ? LIMIT 1', [
-    normalizedName,
-  ]);
-
-  if (retryRows[0]) {
-    return { id: retryRows[0].id, name: retryRows[0].name };
-  }
-
-  throw new Error('Template category could not be resolved');
+  // Don't auto-create categories - they must be created explicitly via the categories API
+  // This prevents deleted categories from being recreated when templates are saved
+  throw new Error(`Kategori "${normalizedName}" tidak ditemukan. Buat kategori terlebih dahulu.`);
 }
 
 function parseStringArray(value: string | string[]) {

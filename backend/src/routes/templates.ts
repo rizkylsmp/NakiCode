@@ -121,6 +121,11 @@ templatesRouter.post('/', requireAdmin, async (request, response) => {
       template,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('tidak ditemukan')) {
+      response.status(400).json({ message });
+      return;
+    }
     Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan template' });
   }
@@ -258,6 +263,11 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
       template,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('tidak ditemukan')) {
+      response.status(400).json({ message });
+      return;
+    }
     Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengubah template' });
   }

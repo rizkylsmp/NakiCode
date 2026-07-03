@@ -43,26 +43,22 @@ export function PortfolioAdminPanel({
   onCancelDelete,
 }: PortfolioAdminPanelProps) {
   return (
-    <section className="py-8">
-      <div className="mb-6 flex flex-col justify-between gap-3 rounded-2xl bg-white p-5 shadow-sm sm:flex-row sm:items-center">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold leading-tight text-naki-primary">
-            Website yang sudah jadi
-          </h2>
-          <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
-            {projects.length} item tampil di section Portofolio storefront.
+          <h1 className="text-2xl font-bold text-gray-900">Portfolio</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {projects.length} items displayed on the storefront portfolio section.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-naki-frost px-3 text-sm font-semibold text-naki-primary">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-600">
             <Globe2 size={16} />
             {projects.length} live
           </span>
-          <span className="inline-flex min-h-10 items-center rounded-xl border border-naki-steel bg-white px-3 py-2 text-sm font-medium text-naki-smoke">
-            {status}
-          </span>
           <button
-            className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
             onClick={() => {
               onReset();
               onOpenModal();
@@ -70,19 +66,19 @@ export function PortfolioAdminPanel({
             type="button"
           >
             <Plus size={16} />
-            Tambah baru
+            New Project
           </button>
         </div>
       </div>
 
       {projects.length === 0 ? (
-        <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-          <span className="mx-auto grid size-14 place-items-center rounded-xl bg-naki-frost text-naki-secondary">
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+          <span className="mx-auto grid size-14 place-items-center rounded-xl bg-gray-100 text-gray-400">
             <Globe2 size={28} />
           </span>
-          <h3 className="mt-5 text-2xl font-bold text-naki-primary">Belum ada portofolio.</h3>
-          <p className="mt-2 text-sm text-naki-smoke leading-relaxed">
-            Tambahkan website yang sudah selesai agar tampil di halaman utama.
+          <h3 className="mt-5 text-xl font-bold text-gray-900">No portfolio yet.</h3>
+          <p className="mt-2 text-sm text-gray-500">
+            Add completed websites to display on the homepage.
           </p>
         </div>
       ) : (
@@ -240,7 +236,7 @@ export function PortfolioAdminPanel({
         </div>,
         document.body,
       ) : null}
-    </section>
+    </div>
   );
 }
 

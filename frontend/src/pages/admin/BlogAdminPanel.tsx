@@ -69,166 +69,161 @@ export function BlogAdminPanel({
   const [previewPost, setPreviewPost] = useState<BlogPostItem | null>(null);
 
   return (
-    <div className="bg-naki-page-bg py-8">
-      <section className="min-w-0">
-        {/* Header */}
-        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-naki-primary leading-tight">Artikel Blog</h2>
-            <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
-              {totalPosts} artikel{totalPosts !== 1 ? "" : ""}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Blog</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {totalPosts} article{totalPosts !== 1 ? "s" : ""}
+          </p>
+          {status && (
+            <p className="mt-1 text-sm font-medium text-blue-600">{status}</p>
+          )}
+        </div>
+        <button
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+          onClick={() => {
+            onStartCreate();
+            onOpenModal();
+          }}
+          type="button"
+        >
+          <Plus size={16} />
+          New Article
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <label className="grid gap-1.5">
+          <span className="text-xs font-medium text-gray-500">Search articles</span>
+          <input
+            className="h-10 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            placeholder="Search by title or content..."
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            type="search"
+          />
+        </label>
+      </div>
+
+      {/* Posts list */}
+      {paginatedPosts.length === 0 ? (
+        <div className="grid min-h-48 place-items-center rounded-xl border-2 border-dashed border-gray-200 bg-white">
+          <div className="text-center">
+            <FileText size={32} className="mx-auto text-gray-300" />
+            <p className="mt-2 text-sm font-medium text-gray-500">
+              No articles yet
             </p>
-            {status ? (
-              <p className="mt-1 text-sm font-medium text-naki-primary">{status}</p>
-            ) : null}
           </div>
-          <button
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90"
-            onClick={() => {
-              onStartCreate();
-              onOpenModal();
-            }}
-            type="button"
-          >
-            <Plus size={16} />
-            Artikel baru
-          </button>
         </div>
-
-        {/* Search */}
-        <div className="mb-6 grid gap-3 rounded-2xl bg-white p-4 shadow-sm">
-          <label className="grid gap-1.5">
-            <span className="text-xs font-medium text-naki-smoke">Cari artikel</span>
-            <input
-              className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
-              placeholder="Cari judul atau isi artikel..."
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              type="search"
-            />
-          </label>
-        </div>
-
-        {/* Posts list */}
-        {paginatedPosts.length === 0 ? (
-          <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-naki-steel bg-white shadow-sm">
-            <div className="text-center">
-              <FileText size={32} className="mx-auto text-naki-smoke/50" />
-              <p className="mt-2 text-sm font-medium text-naki-smoke">
-                Belum ada artikel
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {paginatedPosts.map((post) => (
+      ) : (
+        <>
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            {paginatedPosts.map((post, index) => (
               <article
                 key={post.id}
-                className={`group rounded-2xl bg-white p-4 shadow-sm transition duration-200 sm:p-5 ${
+                className={`flex items-center gap-4 px-6 py-4 transition ${
+                  index !== paginatedPosts.length - 1 ? "border-b border-gray-100" : ""
+                } ${
                   selectedId === post.id
-                    ? "ring-2 ring-naki-secondary/30"
-                    : "hover:shadow-md"
+                    ? "bg-blue-50"
+                    : "hover:bg-gray-50"
                 }`}
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-4 min-w-0 flex-1">
-                    {post.coverImage && (
-                      <div className="shrink-0">
-                        <img
-                          src={post.coverImage}
-                          alt={post.title}
-                          className="h-16 w-16 rounded-lg object-cover sm:h-20 sm:w-20"
-                        />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="truncate text-base font-semibold text-naki-primary">
-                          {post.title}
-                        </p>
-                        <span
-                          className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${
-                            post.status === "published"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          {post.status === "published" ? "Published" : "Draft"}
-                        </span>
-                      </div>
-                      <p className="mt-1 truncate text-xs text-naki-smoke">
-                        /blog/{post.slug}
-                      </p>
-                      <p className="mt-2 line-clamp-2 text-xs text-naki-smoke leading-relaxed">
-                        {post.excerpt}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-naki-smoke/80">
-                        <span>oleh {post.author}</span>
-                      </div>
-                    </div>
+                {post.coverImage && (
+                  <div className="shrink-0">
+                    <img
+                      src={post.coverImage}
+                      alt={post.title}
+                      className="h-14 w-14 rounded-lg object-cover"
+                    />
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      className="grid size-10 place-items-center rounded-xl border border-naki-steel bg-white text-naki-smoke transition hover:border-naki-secondary hover:text-naki-secondary"
-                      onClick={() => setPreviewPost(post)}
-                      type="button"
-                      aria-label={`Preview ${post.title}`}
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-gray-900">
+                      {post.title}
+                    </p>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${
+                        post.status === "published"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}
                     >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      className="grid size-10 place-items-center rounded-xl border border-naki-steel bg-white text-naki-smoke transition hover:border-naki-secondary hover:text-naki-secondary"
-                      onClick={() => onStartEdit(post)}
-                      type="button"
-                      aria-label={`Edit ${post.title}`}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      className="grid size-10 place-items-center rounded-xl border border-naki-steel bg-white text-naki-smoke transition hover:border-red-400 hover:text-red-500"
-                      onClick={() => onDelete(post)}
-                      type="button"
-                      aria-label={`Hapus ${post.title}`}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      {post.status === "published" ? "Published" : "Draft"}
+                    </span>
                   </div>
+                  <p className="mt-0.5 truncate text-xs text-gray-400">
+                    /blog/{post.slug}
+                  </p>
+                  <p className="mt-1 line-clamp-1 text-xs text-gray-500">
+                    {post.excerpt}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+                    onClick={() => setPreviewPost(post)}
+                    type="button"
+                    aria-label={`Preview ${post.title}`}
+                  >
+                    <Eye size={15} />
+                  </button>
+                  <button
+                    className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+                    onClick={() => onStartEdit(post)}
+                    type="button"
+                    aria-label={`Edit ${post.title}`}
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                  <button
+                    className="grid size-8 place-items-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+                    onClick={() => onDelete(post)}
+                    type="button"
+                    aria-label={`Hapus ${post.title}`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </article>
             ))}
           </div>
-        )}
 
-        {/* Pagination */}
-        <PaginationControls
-          page={page}
-          total={totalPosts}
-          totalPages={totalPages}
-          pageSize={adminBlogPostsPageSize}
-          onPageChange={onPageChange}
-        />
-      </section>
+          {/* Pagination */}
+          <PaginationControls
+            page={page}
+            total={totalPosts}
+            totalPages={totalPages}
+            pageSize={adminBlogPostsPageSize}
+            onPageChange={onPageChange}
+          />
+        </>
+      )}
 
       {isModalOpen ? createPortal(
         <div
-          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
           aria-labelledby="blog-form-title"
         >
-          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-sm">
-            <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-white/95 p-5 backdrop-blur sm:flex-row sm:items-start">
+          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-lg">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-5">
               <div>
-                <h2 id="blog-form-title" className="text-2xl font-bold leading-tight text-naki-primary">
-                  {form.id ? "Edit Artikel" : "Artikel Baru"}
+                <h2 id="blog-form-title" className="text-xl font-bold text-gray-900">
+                  {form.id ? "Edit Article" : "New Article"}
                 </h2>
-                <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
-                  Tulis dan publikasikan artikel blog.
+                <p className="mt-1 text-sm text-gray-500">
+                  Write and publish blog articles.
                 </p>
               </div>
               <div className="flex gap-2">
                 <button
-                  className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-secondary transition hover:border-naki-secondary"
+                  className="grid size-9 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100"
                   onClick={onStartCreate}
                   type="button"
                   aria-label="Reset form"
@@ -236,24 +231,24 @@ export function BlogAdminPanel({
                   <RefreshCw size={16} />
                 </button>
                 <button
-                  className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
+                  className="grid size-9 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100"
                   onClick={onCloseModal}
                   type="button"
-                  aria-label="Tutup form"
+                  aria-label="Close form"
                 >
                   <X size={17} />
                 </button>
               </div>
             </div>
 
-            <form className="grid gap-5 p-5" onSubmit={onSubmit}>
+            <form className="p-5 space-y-5" onSubmit={onSubmit}>
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-naki-smoke">Judul *</span>
+                <span className="text-sm font-medium text-gray-700">Title *</span>
                 <input
-                  className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={form.title}
                   onChange={(event) => onFormChange("title", event.target.value)}
-                  placeholder="Judul artikel"
+                  placeholder="Article title"
                   required
                   type="text"
                 />
@@ -261,19 +256,19 @@ export function BlogAdminPanel({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5">
-                  <span className="text-sm font-medium text-naki-smoke">Slug</span>
+                  <span className="text-sm font-medium text-gray-700">Slug</span>
                   <input
-                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     value={form.slug}
                     onChange={(event) => onFormChange("slug", event.target.value)}
-                    placeholder="auto-dari-judul"
+                    placeholder="auto-from-title"
                     type="text"
                   />
                 </label>
                 <label className="grid gap-1.5">
-                  <span className="text-sm font-medium text-naki-smoke">Status</span>
+                  <span className="text-sm font-medium text-gray-700">Status</span>
                   <select
-                    className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     value={form.status}
                     onChange={(event) => onFormChange("status", event.target.value)}
                   >
@@ -284,9 +279,9 @@ export function BlogAdminPanel({
               </div>
 
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-naki-smoke">Penulis</span>
+                <span className="text-sm font-medium text-gray-700">Author</span>
                 <input
-                  className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={form.author}
                   onChange={(event) => onFormChange("author", event.target.value)}
                   type="text"
@@ -294,10 +289,11 @@ export function BlogAdminPanel({
               </label>
 
               <div className="grid gap-1.5">
-                <span className="text-sm font-medium text-naki-smoke">Cover Image</span>
+                <span className="text-sm font-medium text-gray-700">Cover Image</span>
                 <ImageUploadDropZone
-                  title="Upload gambar cover"
-                  description="Pilih gambar untuk cover artikel (max 5MB, min 200x200px)"
+                  title="Upload cover image"
+                  description="Select an image for the article cover (max 5MB, min 200x200px)"
+                  status={status}
                   multiple={false}
                   adminToken={adminToken}
                   onUploaded={(urls) => {
@@ -306,22 +302,23 @@ export function BlogAdminPanel({
                     }
                   }}
                   onStatusChange={(msg) => console.log(msg)}
+                  successMessage={(urls) => `Successfully uploaded ${urls.length} image`}
                 />
                 {form.coverImage && (
-                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-naki-steel bg-naki-page-bg p-3">
+                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                     <img
                       src={form.coverImage}
                       alt="Cover preview"
                       className="h-20 w-20 rounded-lg object-cover"
                     />
                     <div className="flex-1">
-                      <p className="text-xs text-naki-smoke truncate">{form.coverImage}</p>
+                      <p className="text-xs text-gray-500 truncate">{form.coverImage}</p>
                       <button
                         type="button"
                         className="mt-1 text-xs text-red-500 hover:text-red-600"
                         onClick={() => onFormChange("coverImage", "")}
                       >
-                        Hapus gambar
+                        Remove image
                       </button>
                     </div>
                   </div>
@@ -329,44 +326,44 @@ export function BlogAdminPanel({
               </div>
 
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-naki-smoke">Excerpt *</span>
+                <span className="text-sm font-medium text-gray-700">Excerpt *</span>
                 <textarea
-                  className="resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-naki-primary"
+                  className="resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 leading-relaxed outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={form.excerpt}
                   onChange={(event) => onFormChange("excerpt", event.target.value)}
-                  placeholder="Ringkasan singkat artikel..."
+                  placeholder="Brief summary of the article..."
                   required
                   rows={3}
                 />
               </label>
 
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-naki-smoke">Konten *</span>
+                <span className="text-sm font-medium text-gray-700">Content *</span>
                 <textarea
-                  className="resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-naki-primary"
+                  className="resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 leading-relaxed outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={form.content}
                   onChange={(event) => onFormChange("content", event.target.value)}
-                  placeholder="Tulis konten artikel. Markdown didukung."
+                  placeholder="Write article content. Markdown supported."
                   required
                   rows={12}
                 />
               </label>
 
-              <div className="flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
+              <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
                 <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
+                  className="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                   onClick={onCloseModal}
                   type="button"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
                   disabled={isSaving}
                   type="submit"
                 >
-                  <Save size={17} />
-                  {isSaving ? "Menyimpan..." : form.id ? "Simpan" : "Buat"}
+                  <Save size={16} />
+                  {isSaving ? "Saving..." : form.id ? "Save" : "Create"}
                 </button>
               </div>
             </form>
@@ -378,20 +375,20 @@ export function BlogAdminPanel({
       {/* Preview modal */}
       {previewPost ? createPortal(
         <div
-          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-sm">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white/95 p-5 backdrop-blur">
-              <h2 className="text-2xl font-bold leading-tight text-naki-primary">
-                Preview Artikel
+          <div className="w-full my-10 mx-4 max-w-4xl rounded-2xl bg-white shadow-lg">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-5">
+              <h2 className="text-xl font-bold text-gray-900">
+                Article Preview
               </h2>
               <button
-                className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
+                className="grid size-9 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100"
                 onClick={() => setPreviewPost(null)}
                 type="button"
-                aria-label="Tutup preview"
+                aria-label="Close preview"
               >
                 <X size={17} />
               </button>
@@ -404,24 +401,24 @@ export function BlogAdminPanel({
                   className="mb-6 h-64 w-full rounded-xl object-cover"
                 />
               )}
-              <h1 className="text-3xl font-bold text-naki-primary mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {previewPost.title}
               </h1>
-              <div className="flex items-center gap-3 text-sm text-naki-smoke mb-6">
-                <span>oleh {previewPost.author}</span>
+              <div className="flex items-center gap-3 text-sm text-gray-500 mb-6">
+                <span>by {previewPost.author}</span>
                 <span>•</span>
                 <span>
-                  {new Date(previewPost.publishedAt || previewPost.createdAt).toLocaleDateString('id-ID', {
+                  {new Date(previewPost.publishedAt || previewPost.createdAt).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })}
                 </span>
               </div>
-              <p className="text-lg text-naki-smoke leading-relaxed mb-6 italic">
+              <p className="text-lg text-gray-600 leading-relaxed mb-6 italic">
                 {previewPost.excerpt}
               </p>
-              <div className="prose prose-sm max-w-none text-naki-primary leading-relaxed whitespace-pre-wrap">
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {previewPost.content}
               </div>
             </div>

@@ -16,6 +16,7 @@ import { UserLoginPage } from "./pages/UserLoginPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { RequireAdmin, RequireAuth } from "./route-guards";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ToastProvider } from "./components/Toast";
 
 /**
  * One-time stale chunk reload guard.
@@ -271,29 +272,30 @@ function App() {
 
   return (
     <Suspense fallback={<RouteLoading />}>
-      <Helmet>
-        <title>Naki Code</title>
-        <meta
-          name="description"
-          content="Naki Code menyediakan template website siap pakai untuk portfolio, e-commerce, top up games, CRUD, company profile, dan pesanan custom."
-        />
-        <meta property="og:title" content="Naki Code - Toko Template Coding" />
-        <meta
-          property="og:description"
-          content="Cari dan checkout template coding siap pakai dari Naki Code."
-        />
-        <meta property="og:image" content="/logo.png" />
-        <meta property="og:type" content="website" />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Store",
-            name: "Naki Code",
-            description: "Toko template coding dan jasa custom website.",
-          })}
-        </script>
-      </Helmet>
-      <Routes>
+      <ToastProvider>
+        <Helmet>
+          <title>Naki Code</title>
+          <meta
+            name="description"
+            content="Naki Code menyediakan template website siap pakai untuk portfolio, e-commerce, top up games, CRUD, company profile, dan pesanan custom."
+          />
+          <meta property="og:title" content="Naki Code - Toko Template Coding" />
+          <meta
+            property="og:description"
+            content="Cari dan checkout template coding siap pakai dari Naki Code."
+          />
+          <meta property="og:image" content="/logo.png" />
+          <meta property="og:type" content="website" />
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Store",
+              name: "Naki Code",
+              description: "Toko template coding dan jasa custom website.",
+            })}
+          </script>
+        </Helmet>
+        <Routes>
         <Route path="/" element={homePageElement} />
         <Route
           path="/template"
@@ -387,7 +389,8 @@ function App() {
           }
         />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        </Routes>
+      </ToastProvider>
     </Suspense>
   );
 }

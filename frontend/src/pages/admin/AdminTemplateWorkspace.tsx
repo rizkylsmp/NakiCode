@@ -1,4 +1,4 @@
-import { ArrowLeft, ClipboardList, FileText, Globe2, Inbox, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, ClipboardList, FileText, Globe2, Inbox, LayoutDashboard, MessageSquareQuote } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { type PortfolioItem, type TemplateItem } from "../../content";
@@ -11,6 +11,7 @@ import {
   type OrderStatus,
   type PortfolioFormState,
   type TemplateFormState,
+  type TestimonialItem,
 } from "./AdminTemplateWorkspace.shared";
 
 // Lazy-loaded admin panels
@@ -19,6 +20,7 @@ const BlogAdminPanel = lazy(() => import("./BlogAdminPanel").then((m) => ({ defa
 const OrdersPanel = lazy(() => import("./OrdersPanel").then((m) => ({ default: m.OrdersPanel })));
 const PortfolioAdminPanel = lazy(() => import("./PortfolioAdminPanel").then((m) => ({ default: m.PortfolioAdminPanel })));
 const TemplatesPanel = lazy(() => import("./TemplatesPanel").then((m) => ({ default: m.TemplatesPanel })));
+const AdminTestimonialsSection = lazy(() => import("./AdminTestimonialsSection").then((m) => ({ default: m.AdminTestimonialsSection })));
 
 type AdminTemplateWorkspaceProps = {
   templates: TemplateItem[];
@@ -116,6 +118,8 @@ type AdminTemplateWorkspaceProps = {
   onUpdateBlogField: <Key extends keyof BlogPostFormState>(key: Key, value: BlogPostFormState[Key]) => void;
   onConfirmDeleteBlog: () => void;
   onCancelDeleteBlog: () => void;
+  testimonials: TestimonialItem[];
+  onTestimonialsChange: (testimonials: TestimonialItem[]) => void;
 };
 
 function PanelLoader() {
@@ -219,6 +223,8 @@ export function AdminTemplateWorkspace({
   onUpdateBlogField,
   onConfirmDeleteBlog,
   onCancelDeleteBlog,
+  testimonials,
+  onTestimonialsChange,
 }: AdminTemplateWorkspaceProps) {
   return (
     <section className="min-h-screen bg-naki-page-bg">
@@ -288,6 +294,14 @@ export function AdminTemplateWorkspace({
             <FileText size={16} />
             <span className="hidden sm:inline">Blog</span>
           </button>
+          <button
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "testimonials" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            onClick={() => onActiveAdminViewChange("testimonials")}
+            type="button"
+          >
+            <MessageSquareQuote size={16} />
+            <span className="hidden sm:inline">Testimonials</span>
+          </button>
         </div>
       </div>
 
@@ -308,6 +322,10 @@ export function AdminTemplateWorkspace({
         ) : activeAdminView === "blog" ? (
           <Suspense fallback={<PanelLoader />}>
             <BlogAdminPanel posts={blogPosts} paginatedPosts={paginatedBlogPosts} totalPosts={totalBlogPosts} page={blogPostsPage} totalPages={blogPostsTotalPages} search={blogSearch} selectedId={null} status={blogStatus} isSaving={isSavingBlog} isModalOpen={isBlogModalOpen} deletingId={deletingBlogId} form={blogForm} adminToken={adminToken} onSearchChange={onBlogSearchChange} onPageChange={onBlogPostsPageChange} onStartCreate={onStartCreateBlog} onStartEdit={onStartEditBlog} onDelete={onDeleteBlog} onOpenModal={onOpenBlogModal} onCloseModal={onCloseBlogModal} onFormChange={onUpdateBlogField} onSubmit={onSubmitBlog} onConfirmDelete={onConfirmDeleteBlog} onCancelDelete={onCancelDeleteBlog} />
+          </Suspense>
+        ) : activeAdminView === "testimonials" ? (
+          <Suspense fallback={<PanelLoader />}>
+            <AdminTestimonialsSection adminToken={adminToken} testimonials={testimonials} onTestimonialsChange={onTestimonialsChange} />
           </Suspense>
         ) : (
           <Suspense fallback={<PanelLoader />}>

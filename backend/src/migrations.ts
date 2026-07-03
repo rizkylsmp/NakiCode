@@ -142,6 +142,39 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: '007_testimonials',
+    async up(connection) {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS testimonials (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          source_type VARCHAR(20) NOT NULL DEFAULT 'manual',
+          rating_id INT NULL,
+          customer_name VARCHAR(120) NOT NULL,
+          customer_role VARCHAR(80) NULL,
+          quote TEXT NOT NULL,
+          rating TINYINT NOT NULL DEFAULT 5,
+          template_id INT NULL,
+          is_featured BOOLEAN NOT NULL DEFAULT TRUE,
+          sort_order INT NOT NULL DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          CONSTRAINT fk_testimonials_rating FOREIGN KEY (rating_id) REFERENCES template_ratings(id) ON DELETE SET NULL
+        )
+      `);
+    },
+  },
+  {
+    id: '008_testimonials_deleted_at',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'testimonials', 'deleted_at'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('testimonials')}
+          ADD COLUMN ${connection.escapeId('deleted_at')} TIMESTAMP NULL AFTER ${connection.escapeId('updated_at')}`,
+        );
+      }
+    },
+  },
 ];
 
 export async function runMigrations(connection: Connection) {

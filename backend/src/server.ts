@@ -21,6 +21,7 @@ import { router as ordersStatsRouter } from './routes/orders-stats';
 import { paymentsRouter } from './routes/payments';
 import { projectsRouter } from './routes/projects';
 import { templatesRouter } from './routes/templates';
+import { testimonialsRouter } from './routes/testimonials';
 import { uploadsRouter } from './routes/uploads';
 import {
   apiRateLimit,
@@ -140,6 +141,7 @@ function mountApiRoutes(prefix: string) {
   app.use(`${prefix}/uploads`, uploadsRouter);
   app.use(`${prefix}/blog`, blogPostsRouter);
   app.use(`${prefix}/business`, businessRouter);
+  app.use(`${prefix}/testimonials`, testimonialsRouter);
 }
 
 export async function startServer() {
