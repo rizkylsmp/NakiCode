@@ -1,4 +1,4 @@
-import type { TemplateItem } from "./content";
+import type { TemplateItem } from "../domain/content";
 
 const searchHistoryKey = "naki_code_search_history";
 const recentlyViewedKey = "naki_code_recently_viewed_templates";

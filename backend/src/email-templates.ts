@@ -111,7 +111,7 @@ function baseEmailTemplate(content: string): string {
     </div>
     ${content}
     <div class="email-footer">
-      <p class="email-footer-text">Â© ${new Date().getFullYear()} Naki Code. Toko template coding & jasa custom website.</p>
+      <p class="email-footer-text">&copy; ${new Date().getFullYear()} Naki Code. Jasa pembuatan website & source code design.</p>
       <p class="email-footer-text">Email ini dikirim secara otomatis. Jangan balas email ini.</p>
     </div>
   </div>
@@ -133,7 +133,7 @@ export interface WelcomeEmailData {
 export function generateWelcomeEmail(data: WelcomeEmailData): string {
   const content = `
     <div class="email-body">
-      <h2 class="email-title">Selamat Datang di Naki Code! ðŸŽ‰</h2>
+      <h2 class="email-title">Selamat Datang di Naki Code!</h2>
       
       <p class="email-text">
         Halo <strong>${data.username}</strong>,
@@ -167,7 +167,7 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
         </p>
       ` : `
         <p class="email-text">
-          Akun kamu sudah aktif dan siap digunakan! ðŸš€
+          Akun kamu sudah aktif dan siap digunakan!
         </p>
       `}
       
@@ -178,9 +178,9 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
       </p>
       
       <ul style="font-size: 16px; line-height: 1.8; color: ${COLORS.primary};">
-        <li>Jelajahi template siap pakai untuk berbagai kebutuhan</li>
-        <li>Beli template berkualitas dengan harga terjangkau</li>
-        <li>Pesan jasa custom website sesuai kebutuhan</li>
+        <li>Jelajahi design website sebagai referensi visual</li>
+        <li>Konsultasikan pembuatan website berdasarkan design pilihan</li>
+        <li>Beli source code design jika ingin mengembangkan mandiri</li>
         <li>Akses dokumentasi dan tutorial coding</li>
       </ul>
       
@@ -238,7 +238,7 @@ export function generatePasswordResetEmail(data: PasswordResetEmailData): string
       
       <div class="highlight-box">
         <p class="email-text" style="margin: 0; font-size: 14px;">
-          ?? <strong>Penting:</strong> ${expiryText}
+          <strong>Penting:</strong> ${expiryText}
         </p>
       </div>
       
@@ -250,9 +250,9 @@ export function generatePasswordResetEmail(data: PasswordResetEmailData): string
       
       <p class="email-text" style="font-size: 14px; color: ${COLORS.smoke};">
         <strong>Tips Keamanan:</strong><br>
-        • Gunakan password yang kuat (minimal 8 karakter)<br>
-        • Kombinasikan huruf besar, huruf kecil, angka, dan simbol<br>
-        • Jangan gunakan password yang sama dengan akun lain
+        - Gunakan password yang kuat (minimal 8 karakter)<br>
+        - Kombinasikan huruf besar, huruf kecil, angka, dan simbol<br>
+        - Jangan gunakan password yang sama dengan akun lain
       </p>
       
       <p class="email-text">
@@ -267,7 +267,7 @@ export function generatePasswordResetEmail(data: PasswordResetEmailData): string
 
 /**
  * Order confirmation email template
- * Sent when customer places an order for a template
+ * Sent when customer places an order for a design or website service
  */
 export interface OrderConfirmationEmailData {
   orderNumber: string;
@@ -284,7 +284,7 @@ export interface OrderConfirmationEmailData {
 export function generateOrderConfirmationEmail(data: OrderConfirmationEmailData): string {
   const isPaid = data.paymentStatus === 'paid' || data.paymentStatus === 'confirmed';
   const statusColor = isPaid ? COLORS.success : COLORS.secondary;
-  const statusText = isPaid ? '? Pembayaran Berhasil' : '? Menunggu Pembayaran';
+  const statusText = isPaid ? 'Pembayaran Berhasil' : 'Menunggu Pembayaran';
   
   const content = `
     <div class="email-body">
@@ -302,7 +302,7 @@ export function generateOrderConfirmationEmail(data: OrderConfirmationEmailData)
         <p class="email-text" style="margin: 0;">
           <strong>No. Pesanan:</strong> ${data.orderNumber}<br>
           <strong>Tanggal:</strong> ${data.orderDate}<br>
-          <strong>Template:</strong> ${data.templateName}<br>
+          <strong>Design:</strong> ${data.templateName}<br>
           <strong>Harga:</strong> ${data.templatePrice}
           ${data.paymentMethod ? `<br><strong>Metode Pembayaran:</strong> ${data.paymentMethod}` : ''}
         </p>
@@ -316,22 +316,22 @@ export function generateOrderConfirmationEmail(data: OrderConfirmationEmailData)
       
       ${isPaid && data.downloadUrl ? `
         <p class="email-text">
-          Template Anda sudah siap diunduh! Klik tombol di bawah untuk mengunduh file template:
+          Source code design Anda sudah siap diunduh! Klik tombol di bawah untuk mengunduh file project:
         </p>
         
         <div style="text-align: center; margin: 24px 0;">
           <a href="${data.downloadUrl}" class="email-button">
-            ?? Download Template
+            Download Source Code
           </a>
         </div>
       ` : `
         <p class="email-text">
-          Silakan lanjutkan pembayaran untuk mengakses template Anda. Setelah pembayaran dikonfirmasi, link download akan dikirimkan ke email Anda.
+          Silakan lanjutkan pembayaran untuk mengakses source code design Anda. Setelah pembayaran dikonfirmasi, link download akan dikirimkan ke email Anda.
         </p>
         
         <div style="text-align: center; margin: 24px 0;">
           <a href="${data.orderUrl}" class="email-button">
-            ?? Bayar Sekarang
+            Bayar Sekarang
           </a>
         </div>
       `}
@@ -343,12 +343,12 @@ export function generateOrderConfirmationEmail(data: OrderConfirmationEmailData)
       </p>
       
       <p class="email-text">
-        Anda dapat melihat status pesanan dan mengunduh template kapan saja melalui halaman "Pesanan Saya" di akun Anda.
+        Anda dapat melihat status pesanan dan mengunduh source code kapan saja melalui halaman "Pesanan Saya" di akun Anda.
       </p>
       
       <div style="text-align: center; margin: 16px 0;">
         <a href="${data.orderUrl}" style="color: ${COLORS.secondary}; text-decoration: underline; font-weight: 600;">
-          Lihat Pesanan ?
+          Lihat Pesanan
         </a>
       </div>
       
@@ -360,7 +360,7 @@ export function generateOrderConfirmationEmail(data: OrderConfirmationEmailData)
       </p>
       
       <p class="email-text">
-        Terima kasih telah berbelanja di Naki Code!<br><br>
+        Terima kasih telah mempercayakan kebutuhan website kamu ke Naki Code!<br><br>
         Salam,<br>
         <strong>Tim Naki Code</strong>
       </p>

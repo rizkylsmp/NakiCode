@@ -4,7 +4,7 @@ export const openApiDocument = {
     title: 'Naki Code API',
     version: '1.0.0',
     description:
-      'API toko template Naki Code untuk katalog, order, payment, wishlist, notifikasi, blog, coupon, referral, dan bundle.',
+      'API Naki Code untuk katalog design, order jasa website, payment, wishlist, notifikasi, blog, coupon, referral, dan bundle.',
   },
   servers: [
     {
@@ -27,18 +27,18 @@ export const openApiDocument = {
   paths: {
     '/templates': {
       get: {
-        summary: 'List template katalog',
-        responses: { 200: { description: 'Daftar template' } },
+        summary: 'List design katalog',
+        responses: { 200: { description: 'Daftar design' } },
       },
       post: {
-        summary: 'Buat template baru',
+        summary: 'Buat design baru',
         security: [{ bearerAuth: [] }],
-        responses: { 201: { description: 'Template dibuat' } },
+        responses: { 201: { description: 'Design dibuat' } },
       },
     },
     '/templates/{slug}': {
       get: {
-        summary: 'Detail template',
+        summary: 'Detail design',
         parameters: [
           {
             name: 'slug',
@@ -47,7 +47,7 @@ export const openApiDocument = {
             schema: { type: 'string' },
           },
         ],
-        responses: { 200: { description: 'Detail template' } },
+        responses: { 200: { description: 'Detail design' } },
       },
     },
     '/orders': {
@@ -78,9 +78,9 @@ export const openApiDocument = {
     },
     '/favorites/my': {
       get: {
-        summary: 'List template favorit user',
+        summary: 'List design favorit user',
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Template IDs' } },
+        responses: { 200: { description: 'Design IDs' } },
       },
     },
     '/notifications/my': {
@@ -109,7 +109,7 @@ export const openApiDocument = {
     },
     '/business/bundles': {
       get: {
-        summary: 'List paket bundle template',
+        summary: 'List paket bundle design',
         responses: { 200: { description: 'Daftar bundle' } },
       },
     },

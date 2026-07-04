@@ -1,8 +1,8 @@
-import { Star, Trash2, Edit2, Plus, MessageSquareQuote, X, Save, PenLine, StarIcon, MessageCircle, Eye, GripVertical } from "lucide-react";
-import { useState, useEffect } from "react";
-import { apiDelete, apiGet, apiPost, apiPut } from "../../api-client";
+import { Star, Trash2, Edit2, Plus, MessageSquareQuote, X, Save, PenLine, StarIcon, MessageCircle, Eye, GripVertical, RefreshCw, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { apiDelete, apiGet, apiPost, apiPut } from "../../services/api-client";
 import type { TestimonialItem } from "../admin/AdminTemplateWorkspace.shared";
-import { useToast } from "../../components/Toast";
+import { useToast } from "../../components/ui/Toast";
 
 type AvailableRating = {
   id: number;
@@ -16,13 +16,19 @@ type AvailableRating = {
 type AdminTestimonialsSectionProps = {
   adminToken: string | null;
   testimonials: TestimonialItem[];
+  isRefreshing?: boolean;
+  status?: string;
   onTestimonialsChange: (testimonials: TestimonialItem[]) => void;
+  onRefresh?: () => void;
 };
 
 export function AdminTestimonialsSection({
   adminToken,
   testimonials,
+  isRefreshing = false,
+  status = "",
   onTestimonialsChange,
+  onRefresh,
 }: AdminTestimonialsSectionProps) {
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,6 +54,57 @@ export function AdminTestimonialsSection({
   const [ratingError, setRatingError] = useState("");
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [featuredFilter, setFeaturedFilter] = useState<"all" | "featured" | "hidden">("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "manual" | "rating">("all");
+
+  const summary = useMemo(
+    () => ({
+      total: testimonials.length,
+      featured: testimonials.filter((testimonial) => testimonial.is_featured).length,
+      hidden: testimonials.filter((testimonial) => !testimonial.is_featured).length,
+      rating: testimonials.filter((testimonial) => testimonial.source_type === "rating").length,
+      manual: testimonials.filter((testimonial) => testimonial.source_type === "manual").length,
+    }),
+    [testimonials],
+  );
+
+  const filteredTestimonials = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return testimonials.filter((testimonial) => {
+      const matchesSearch =
+        !normalizedQuery ||
+        [
+          testimonial.customer_name,
+          testimonial.customer_role ?? "",
+          testimonial.quote,
+          testimonial.source_type,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery);
+      const matchesFeatured =
+        featuredFilter === "all" ||
+        (featuredFilter === "featured" && testimonial.is_featured) ||
+        (featuredFilter === "hidden" && !testimonial.is_featured);
+      const matchesSource =
+        sourceFilter === "all" || testimonial.source_type === sourceFilter;
+
+      return matchesSearch && matchesFeatured && matchesSource;
+    });
+  }, [featuredFilter, searchQuery, sourceFilter, testimonials]);
+
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 ||
+    featuredFilter !== "all" ||
+    sourceFilter !== "all";
+
+  function resetFilters() {
+    setSearchQuery("");
+    setFeaturedFilter("all");
+    setSourceFilter("all");
+  }
 
   const handleOpenSourceDialog = () => {
     setError("");
@@ -290,7 +347,7 @@ export function AdminTestimonialsSection({
       );
       await Promise.all(updates);
       toast.addToast('success', 'Urutan testimonial berhasil diubah');
-    } catch (err) {
+    } catch {
       toast.addToast('error', 'Gagal mengubah urutan testimonial');
       // Reload to restore original order
       const data = await apiGet<{ testimonials: TestimonialItem[] }>("/api/testimonials/admin");
@@ -303,20 +360,103 @@ export function AdminTestimonialsSection({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <h2 className="text-2xl font-bold text-naki-primary">Testimonials</h2>
+          <h2 className="text-2xl font-bold text-naki-primary">Testimoni</h2>
           <p className="text-sm text-naki-smoke mt-1">
-            Kelola testimonial yang ditampilkan di halaman utama
+            Kelola testimoni yang ditampilkan di halaman utama.
           </p>
+          {status ? (
+            <p className="mt-2 text-xs font-medium text-naki-smoke" aria-live="polite">
+              {status}
+            </p>
+          ) : null}
         </div>
-        <button
-          onClick={handleOpenSourceDialog}
-          className="flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Tambah Testimonial
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {onRefresh ? (
+            <button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          ) : null}
+          <button
+            onClick={handleOpenSourceDialog}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-medium text-white transition-colors hover:opacity-90"
+            type="button"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Testimoni
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <SummaryCard label="Total" value={summary.total} />
+        <SummaryCard label="Tampil" value={summary.featured} />
+        <SummaryCard label="Disembunyikan" value={summary.hidden} />
+        <SummaryCard label="Dari review" value={summary.rating} />
+        <SummaryCard label="Manual" value={summary.manual} />
+      </div>
+
+      <div className="rounded-xl border border-naki-steel bg-white p-4">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center">
+          <label className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-naki-smoke"
+              size={17}
+            />
+            <input
+              className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg pl-10 pr-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setSearchQuery("");
+              }}
+              placeholder="Cari nama, role, atau isi testimoni..."
+              type="search"
+            />
+          </label>
+          <select
+            className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+            value={featuredFilter}
+            onChange={(event) =>
+              setFeaturedFilter(event.target.value as typeof featuredFilter)
+            }
+          >
+            <option value="all">Semua status</option>
+            <option value="featured">Tampil di homepage</option>
+            <option value="hidden">Disembunyikan</option>
+          </select>
+          <select
+            className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
+            value={sourceFilter}
+            onChange={(event) =>
+              setSourceFilter(event.target.value as typeof sourceFilter)
+            }
+          >
+            <option value="all">Semua sumber</option>
+            <option value="rating">Dari review</option>
+            <option value="manual">Manual</option>
+          </select>
+          <button
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!hasActiveFilters}
+            onClick={resetFilters}
+            type="button"
+          >
+            Reset
+          </button>
+        </div>
+        <p className="mt-3 text-sm text-naki-smoke">
+          Menampilkan{" "}
+          <strong className="text-naki-primary">{filteredTestimonials.length}</strong>{" "}
+          dari {testimonials.length} testimoni.
+        </p>
       </div>
 
       {testimonials.length === 0 ? (
@@ -324,12 +464,27 @@ export function AdminTestimonialsSection({
           <MessageSquareQuote className="mx-auto h-12 w-12 text-naki-smoke mb-4" />
           <p className="text-naki-smoke">Belum ada testimonial</p>
           <p className="text-sm text-naki-smoke/70 mt-1">
-            Klik tombol "Tambah Testimonial" untuk membuat testimonial baru
+            Klik tombol "Tambah Testimoni" untuk membuat testimoni baru.
           </p>
+        </div>
+      ) : filteredTestimonials.length === 0 ? (
+        <div className="rounded-lg border border-naki-steel bg-naki-page-bg p-12 text-center">
+          <MessageSquareQuote className="mx-auto mb-4 h-12 w-12 text-naki-smoke" />
+          <p className="text-naki-smoke">Tidak ada testimoni yang cocok</p>
+          <p className="mt-1 text-sm text-naki-smoke/70">
+            Coba ubah pencarian atau reset filter.
+          </p>
+          <button
+            className="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
+            onClick={resetFilters}
+            type="button"
+          >
+            Reset filter
+          </button>
         </div>
       ) : (
         <div className="grid gap-4">
-          {testimonials.map((testimonial) => (
+          {filteredTestimonials.map((testimonial) => (
             <div
               key={testimonial.id}
               className={`rounded-lg border bg-naki-page-bg p-6 space-y-3 transition-all ${
@@ -399,13 +554,15 @@ export function AdminTestimonialsSection({
                         : "bg-naki-steel text-naki-smoke hover:bg-naki-steel/80"
                     }`}
                     title={testimonial.is_featured ? "Ditampilkan" : "Tidak ditampilkan"}
+                    type="button"
                   >
-                    {testimonial.is_featured ? "Featured" : "Hidden"}
+                    {testimonial.is_featured ? "Tampil" : "Sembunyi"}
                   </button>
                   <button
                     onClick={() => handlePreview(testimonial)}
                     className="rounded-lg p-2 text-naki-smoke hover:bg-naki-frost hover:text-naki-primary transition-colors"
                     title="Preview"
+                    type="button"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
@@ -413,6 +570,7 @@ export function AdminTestimonialsSection({
                     onClick={() => handleOpenModal(testimonial)}
                     className="rounded-lg p-2 text-naki-smoke hover:bg-naki-frost hover:text-naki-primary transition-colors"
                     title="Edit"
+                    type="button"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
@@ -420,6 +578,7 @@ export function AdminTestimonialsSection({
                     onClick={() => handleDelete(testimonial)}
                     className="rounded-lg p-2 text-naki-smoke hover:bg-naki-frost hover:text-naki-secondary transition-colors"
                     title="Hapus"
+                    type="button"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -432,7 +591,7 @@ export function AdminTestimonialsSection({
 
       {isSourceDialogOpen && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
@@ -483,10 +642,10 @@ export function AdminTestimonialsSection({
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="font-semibold text-naki-primary">
-                    Dari Review Template
+                    Dari Review Design
                   </h3>
                   <p className="mt-1 text-sm text-naki-smoke">
-                    Pilih dari review template yang sudah ada
+                    Pilih dari review design yang sudah ada
                   </p>
                 </div>
               </button>
@@ -497,7 +656,7 @@ export function AdminTestimonialsSection({
 
       {isRatingPickerOpen && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
@@ -629,7 +788,7 @@ export function AdminTestimonialsSection({
 
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
@@ -793,7 +952,7 @@ export function AdminTestimonialsSection({
 
       {isDeleteDialogOpen && deleteTarget && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
@@ -850,7 +1009,7 @@ export function AdminTestimonialsSection({
 
       {isPreviewOpen && previewData && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
@@ -913,6 +1072,17 @@ export function AdminTestimonialsSection({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-naki-steel bg-white p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-naki-smoke">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-bold text-naki-primary">{value}</p>
     </div>
   );
 }

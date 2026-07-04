@@ -1,39 +1,41 @@
 #!/usr/bin/env node
 /**
- * Database Migration System
- * 
- * Simple, pragmatic migration system for managing database schema changes.
- * 
+ * SQL File Migration CLI
+ *
+ * Manual migration runner for SQL files in backend/database/migrations.
+ * Runtime startup migrations live in src/runtime-migrations.ts.
+ *
  * Usage:
- *   npm run migrate        # Run pending migrations
- *   npm run migrate:status # Check migration status
- *   npm run migrate:create <name> # Create new migration file
+ *   npm run migrate:sql        # Run pending SQL file migrations
+ *   npm run migrate:sql:status # Check SQL file migration status
+ *   npm run migrate:sql:create <name> # Create a new SQL migration file
  */
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import type { RowDataPacket } from 'mysql2/promise';
 import { pool } from '../db';
-import { config } from '../config';
 
-const MIGRATIONS_DIR = path.join(__dirname, '../../database/migrations');
+const SQL_MIGRATIONS_DIR = path.join(__dirname, '../../database/migrations');
 
-interface Migration {
+type SqlMigrationRecord = RowDataPacket & {
   id: number;
   name: string;
   appliedAt: Date;
-}
+};
 
-interface MigrationFile {
+type SqlMigrationFile = {
   filename: string;
   name: string;
   up: string;
   down: string;
-}
+};
 
-/**
- * Ensure migrations table exists
- */
-async function ensureMigrationsTable() {
+type NodeError = Error & {
+  code?: string;
+};
+
+async function ensureSqlMigrationsTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS migrations (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -44,31 +46,28 @@ async function ensureMigrationsTable() {
   `);
 }
 
-/**
- * Get list of applied migrations
- */
-async function getAppliedMigrations(): Promise<Migration[]> {
-  const [rows] = await pool.query<any[]>(
-    'SELECT id, name, applied_at as appliedAt FROM migrations ORDER BY id ASC'
+async function getAppliedSqlMigrations(): Promise<SqlMigrationRecord[]> {
+  const [rows] = await pool.query<SqlMigrationRecord[]>(
+    'SELECT id, name, applied_at as appliedAt FROM migrations ORDER BY id ASC',
   );
   return rows;
 }
 
-/**
- * Get list of migration files
- */
-async function getMigrationFiles(): Promise<MigrationFile[]> {
+async function getSqlMigrationFiles(): Promise<SqlMigrationFile[]> {
   try {
-    const files = await readdir(MIGRATIONS_DIR);
+    const files = await readdir(SQL_MIGRATIONS_DIR);
     const migrationFiles = files
-      .filter(f => f.endsWith('.sql'))
-      .sort(); // Alphabetical sort (timestamp-based naming ensures chronological order)
+      .filter((file) => file.endsWith('.sql'))
+      .sort();
 
-    const migrations: MigrationFile[] = [];
+    const migrations: SqlMigrationFile[] = [];
 
     for (const filename of migrationFiles) {
-      const content = await readFile(path.join(MIGRATIONS_DIR, filename), 'utf-8');
-      const { up, down } = parseMigrationFile(content);
+      const content = await readFile(
+        path.join(SQL_MIGRATIONS_DIR, filename),
+        'utf-8',
+      );
+      const { up, down } = parseSqlMigrationFile(content);
       migrations.push({
         filename,
         name: filename.replace('.sql', ''),
@@ -79,17 +78,14 @@ async function getMigrationFiles(): Promise<MigrationFile[]> {
 
     return migrations;
   } catch (error) {
-    if ((error as any).code === 'ENOENT') {
+    if ((error as NodeError).code === 'ENOENT') {
       return [];
     }
     throw error;
   }
 }
 
-/**
- * Parse migration file into up and down sections
- */
-function parseMigrationFile(content: string): { up: string; down: string } {
+function parseSqlMigrationFile(content: string): { up: string; down: string } {
   const upMatch = content.match(/-- UP\s+([\s\S]*?)(?=-- DOWN|$)/i);
   const downMatch = content.match(/-- DOWN\s+([\s\S]*)/i);
 
@@ -99,77 +95,69 @@ function parseMigrationFile(content: string): { up: string; down: string } {
   };
 }
 
-/**
- * Run pending migrations
- */
-async function runMigrations() {
-  console.log('🔄 Running database migrations...\n');
+async function runSqlFileMigrations() {
+  console.log('Running SQL file migrations...\n');
 
-  await ensureMigrationsTable();
+  await ensureSqlMigrationsTable();
 
-  const applied = await getAppliedMigrations();
-  const files = await getMigrationFiles();
+  const applied = await getAppliedSqlMigrations();
+  const files = await getSqlMigrationFiles();
 
-  const appliedNames = new Set(applied.map(m => m.name));
-  const pending = files.filter(f => !appliedNames.has(f.name));
+  const appliedNames = new Set(applied.map((migration) => migration.name));
+  const pending = files.filter((file) => !appliedNames.has(file.name));
 
   if (pending.length === 0) {
-    console.log('✅ No pending migrations. Database is up to date.\n');
+    console.log('No pending SQL file migrations. Database is up to date.\n');
     return;
   }
 
-  console.log(`📋 Found ${pending.length} pending migration(s):\n`);
+  console.log(`Found ${pending.length} pending SQL file migration(s):\n`);
 
   for (const migration of pending) {
     try {
-      console.log(`⏳ Running: ${migration.name}`);
+      console.log(`Running: ${migration.name}`);
 
-      // Execute migration SQL
       await pool.query(migration.up);
+      await pool.query('INSERT INTO migrations (name) VALUES (?)', [
+        migration.name,
+      ]);
 
-      // Record migration
-      await pool.query(
-        'INSERT INTO migrations (name) VALUES (?)',
-        [migration.name]
-      );
-
-      console.log(`✅ Applied: ${migration.name}\n`);
+      console.log(`Applied: ${migration.name}\n`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`❌ Failed: ${migration.name}`);
+      console.error(`Failed: ${migration.name}`);
       console.error(`   Error: ${message}\n`);
       throw error;
     }
   }
 
-  console.log('✨ All migrations completed successfully!\n');
+  console.log('All SQL file migrations completed successfully.\n');
 }
 
-/**
- * Show migration status
- */
-async function showStatus() {
-  await ensureMigrationsTable();
+async function showSqlMigrationStatus() {
+  await ensureSqlMigrationsTable();
 
-  const applied = await getAppliedMigrations();
-  const files = await getMigrationFiles();
+  const applied = await getAppliedSqlMigrations();
+  const files = await getSqlMigrationFiles();
 
-  console.log('📊 Migration Status\n');
-  console.log(`Total migrations: ${files.length}`);
+  console.log('SQL File Migration Status\n');
+  console.log(`Total SQL file migrations: ${files.length}`);
   console.log(`Applied: ${applied.length}`);
   console.log(`Pending: ${files.length - applied.length}\n`);
 
   if (files.length === 0) {
-    console.log('No migration files found.\n');
+    console.log('No SQL migration files found.\n');
     return;
   }
 
-  const appliedNames = new Set(applied.map(m => m.name));
+  const appliedNames = new Set(applied.map((migration) => migration.name));
 
   console.log('Migrations:');
   for (const file of files) {
-    const status = appliedNames.has(file.name) ? '✅' : '⏳';
-    const appliedMigration = applied.find(m => m.name === file.name);
+    const status = appliedNames.has(file.name) ? 'applied' : 'pending';
+    const appliedMigration = applied.find(
+      (migration) => migration.name === file.name,
+    );
     const timestamp = appliedMigration
       ? ` (applied: ${appliedMigration.appliedAt.toISOString()})`
       : '';
@@ -179,21 +167,24 @@ async function showStatus() {
   console.log('');
 }
 
-/**
- * Create new migration file
- */
-async function createMigration(name: string) {
+async function createSqlMigration(name: string) {
   if (!name || name.trim().length === 0) {
-    console.error('❌ Migration name is required\n');
-    console.log('Usage: npm run migrate:create <name>\n');
-    console.log('Example: npm run migrate:create add-users-table\n');
+    console.error('Migration name is required\n');
+    console.log('Usage: npm run migrate:sql:create <name>\n');
+    console.log('Example: npm run migrate:sql:create add-users-table\n');
     return;
   }
 
-  const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '-');
+  await mkdir(SQL_MIGRATIONS_DIR, { recursive: true });
+
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\..+/, '')
+    .replace('T', '-');
   const sanitizedName = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const filename = `${timestamp}-${sanitizedName}.sql`;
-  const filepath = path.join(MIGRATIONS_DIR, filename);
+  const filepath = path.join(SQL_MIGRATIONS_DIR, filename);
 
   const template = `-- Migration: ${sanitizedName}
 -- Created: ${new Date().toISOString()}
@@ -216,12 +207,11 @@ async function createMigration(name: string) {
 
   await writeFile(filepath, template, 'utf-8');
 
-  console.log('✅ Created migration file:\n');
+  console.log('Created SQL migration file:\n');
   console.log(`   ${filename}\n`);
   console.log(`   Location: ${filepath}\n`);
 }
 
-// CLI execution
 if (require.main === module) {
   const args = process.argv.slice(2);
   const command = args[0];
@@ -229,19 +219,23 @@ if (require.main === module) {
   (async () => {
     try {
       if (command === 'status') {
-        await showStatus();
+        await showSqlMigrationStatus();
       } else if (command === 'create') {
-        await createMigration(args.slice(1).join(' '));
+        await createSqlMigration(args.slice(1).join(' '));
       } else {
-        await runMigrations();
+        await runSqlFileMigrations();
       }
       process.exit(0);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`\n❌ Migration failed: ${message}\n`);
+      console.error(`\nSQL file migration failed: ${message}\n`);
       process.exit(1);
     }
   })();
 }
 
-export { runMigrations, showStatus, createMigration };
+export {
+  createSqlMigration,
+  runSqlFileMigrations,
+  showSqlMigrationStatus,
+};

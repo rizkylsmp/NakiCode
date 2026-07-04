@@ -1,6 +1,6 @@
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { type TemplateItem } from "../../content";
+import { type TemplateItem } from "../../domain/content";
 
 type DeleteTemplateDialogProps = {
   template: TemplateItem | null;
@@ -34,13 +34,13 @@ export function DeleteTemplateDialog({
             </span>
             <div>
               <p className="text-xs font-medium uppercase text-naki-smoke">
-                Validasi hapus template
+                Validasi hapus design
               </p>
               <h2
                 id="delete-template-title"
                 className="mt-1 text-2xl font-bold leading-tight text-naki-primary"
               >
-                Hapus template "{template.title}"?
+                Hapus design "{template.title}"?
               </h2>
             </div>
           </div>
@@ -49,7 +49,7 @@ export function DeleteTemplateDialog({
             disabled={isDeleting}
             onClick={onClose}
             type="button"
-            aria-label="Tutup dialog hapus template"
+            aria-label="Tutup dialog hapus design"
           >
             <X size={18} />
           </button>
@@ -57,7 +57,7 @@ export function DeleteTemplateDialog({
 
         <div className="grid gap-4 p-5">
           <p className="text-sm leading-relaxed text-naki-smoke">
-            Template ini akan dihapus dari katalog. Tindakan ini tidak dapat dibatalkan.
+            Design ini akan dihapus dari katalog referensi. Tindakan ini tidak dapat dibatalkan.
           </p>
 
           <div className="grid gap-2 rounded-xl bg-naki-frost p-3">
@@ -82,8 +82,8 @@ export function DeleteTemplateDialog({
           </div>
 
           <div className="rounded-xl bg-red-50 px-3 py-2.5 text-xs leading-relaxed text-red-700">
-            <strong>Perhatian:</strong> Template yang sudah dihapus tidak dapat dikembalikan.
-            Pastikan template ini tidak sedang digunakan oleh order aktif.
+            <strong>Perhatian:</strong> Design yang sudah dihapus tidak dapat dikembalikan.
+            Pastikan design ini tidak sedang digunakan oleh order aktif.
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export function DeleteTemplateDialog({
             type="button"
           >
             <Trash2 size={16} />
-            {isDeleting ? "Menghapus..." : "Ya, hapus template"}
+            {isDeleting ? "Menghapus..." : "Ya, hapus design"}
           </button>
         </div>
       </div>

@@ -85,7 +85,7 @@ templatesRouter.get('/', async (_request, response) => {
   } catch (error) {
     Sentry.captureException(error);
     response.status(503).json({
-      message: 'Database templates belum tersedia',
+      message: 'Database design belum tersedia',
       templates: [],
     });
   }
@@ -127,7 +127,7 @@ templatesRouter.post('/', requireAdmin, async (request, response) => {
       return;
     }
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menyimpan template' });
+    response.status(500).json({ message: 'Gagal menyimpan design' });
   }
 });
 
@@ -145,7 +145,7 @@ templatesRouter.get('/:slug', async (request, response) => {
     const template = await findTemplateBySlugOrId(slug);
 
     if (!template) {
-      response.status(404).json({ message: 'Template not found' });
+      response.status(404).json({ message: 'Design tidak ditemukan' });
       return;
     }
 
@@ -158,7 +158,7 @@ templatesRouter.get('/:slug', async (request, response) => {
     response.json(payload);
   } catch (error) {
     Sentry.captureException(error);
-    response.status(503).json({ message: 'Database templates belum tersedia' });
+    response.status(503).json({ message: 'Database design belum tersedia' });
   }
 });
 
@@ -175,7 +175,7 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
     const template = await findTemplateBySlugOrId(String(params.id));
 
     if (!template) {
-      response.status(404).json({ message: 'Template not found' });
+      response.status(404).json({ message: 'Design tidak ditemukan' });
       return;
     }
 
@@ -192,7 +192,7 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
 
     if (hasRated) {
       response.status(409).json({
-        message: 'User sudah memberi rating untuk template ini',
+        message: 'User sudah memberi rating untuk design ini',
       });
       return;
     }
@@ -242,7 +242,7 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
     const template = await updateTemplate(params.id, payload);
 
     if (!template) {
-      response.status(404).json({ message: 'Template not found' });
+      response.status(404).json({ message: 'Design tidak ditemukan' });
       return;
     }
 
@@ -269,7 +269,7 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
       return;
     }
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mengubah template' });
+    response.status(500).json({ message: 'Gagal mengubah design' });
   }
 });
 
@@ -285,7 +285,7 @@ templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
     const wasDeleted = await deleteTemplate(params.id);
 
     if (!wasDeleted) {
-      response.status(404).json({ message: 'Template not found' });
+      response.status(404).json({ message: 'Design tidak ditemukan' });
       return;
     }
 
@@ -300,6 +300,6 @@ templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
     response.status(204).send();
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menghapus template' });
+    response.status(500).json({ message: 'Gagal menghapus design' });
   }
 });

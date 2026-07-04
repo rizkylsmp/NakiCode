@@ -7,13 +7,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { setUnauthorizedHandler } from "./api-client";
+import { setUnauthorizedHandler } from "../services/api-client";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "./user-session";
+} from "../utils/user-session";
 
 export type AuthRole = "user" | "admin";
 

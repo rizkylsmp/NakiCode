@@ -1,8 +1,8 @@
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Header } from "../components/Header";
-import { Footer } from "../components/Footer";
-import { useAuth } from "../auth-context";
+import { Header } from "../components/layout/Header";
+import { Footer } from "../components/layout/Footer";
+import { useAuth } from "../contexts/auth-context";
 
 export function NotFoundPage() {
   const { isAdmin } = useAuth();

@@ -1,4 +1,5 @@
 import { ArrowRight, Calendar, User } from "lucide-react";
+import { BlogCardSkeletonGrid } from "../ui/skeletons/BlogCardSkeleton";
 
 type BlogPost = {
   id: number;
@@ -12,9 +13,10 @@ type BlogPost = {
 
 type LearningSectionProps = {
   blogPosts: BlogPost[];
+  isLoading?: boolean;
 };
 
-export function LearningSection({ blogPosts }: LearningSectionProps) {
+export function LearningSection({ blogPosts, isLoading = false }: LearningSectionProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
     const date = new Date(dateString);
@@ -49,7 +51,9 @@ export function LearningSection({ blogPosts }: LearningSectionProps) {
           </a>
         </div>
 
-        {blogPosts.length === 0 ? (
+        {isLoading ? (
+          <BlogCardSkeletonGrid count={3} />
+        ) : blogPosts.length === 0 ? (
           <div className="rounded-xl border border-naki-steel/60 bg-white p-12 text-center">
             <p className="text-naki-smoke">Belum ada artikel yang dipublikasikan.</p>
           </div>

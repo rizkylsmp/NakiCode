@@ -3,7 +3,7 @@ import axios, {
   type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from "axios";
-import { userTokenKey } from "./user-session";
+import { userTokenKey } from "../utils/user-session";
 
 /**
  * Global 401 handler - triggers logout when session expires

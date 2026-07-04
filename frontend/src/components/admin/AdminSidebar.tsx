@@ -6,9 +6,7 @@ import {
   MessageSquareQuote,
   Tag,
   BookOpen,
-  Settings,
   LogOut,
-  User,
 } from "lucide-react";
 import { type DashboardView } from "../../pages/admin/AdminTemplateWorkspace.shared";
 
@@ -30,11 +28,11 @@ const MAIN_MENU: MenuItem[] = [
 ];
 
 const APP_MENU: MenuItem[] = [
-  { key: "templates", label: "Templates", icon: FileText },
+  { key: "templates", label: "Design", icon: FileText },
   { key: "orders", label: "Orders", icon: ShoppingCart },
   { key: "portfolio", label: "Portfolio", icon: Briefcase },
   { key: "blog", label: "Blog", icon: BookOpen },
-  { key: "testimonials", label: "Testimonials", icon: MessageSquareQuote },
+  { key: "testimonials", label: "Testimoni", icon: MessageSquareQuote },
   { key: "categories", label: "Categories", icon: Tag },
 ];
 

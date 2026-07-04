@@ -16,16 +16,16 @@ import {
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { apiDelete, apiGet, apiPatch, getApiErrorMessage } from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
-import { ProfileSkeleton } from "../components/skeletons/ProfileSkeleton";
+import { apiDelete, apiGet, apiPatch, getApiErrorMessage } from "../services/api-client";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
+import { ProfileSkeleton } from "../components/ui/skeletons/ProfileSkeleton";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 
 type UserProfile = {
   id: number;

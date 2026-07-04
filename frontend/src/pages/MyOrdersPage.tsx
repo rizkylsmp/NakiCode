@@ -17,12 +17,12 @@ import {
   apiPost,
   getApiErrorMessage,
   getApiErrorStatus,
-} from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
-import { PaginationControls } from "../components/PaginationControls";
-import { OrderCardSkeletonGrid } from "../components/skeletons/ProfileSkeleton";
-import type { TemplateItem } from "../content";
+} from "../services/api-client";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
+import { PaginationControls } from "../components/ui/PaginationControls";
+import { OrderCardSkeletonGrid } from "../components/ui/skeletons/ProfileSkeleton";
+import type { TemplateItem } from "../domain/content";
 import {
   canConfirmPaymentManually,
   canRateOrder,
@@ -30,12 +30,12 @@ import {
   getWaitingPaymentMessage,
   type OrderItem,
   type OrdersResponse,
-} from "../order-types";
+} from "../domain/order-types";
 import {
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 
 type MyOrdersPageProps = {
   onTemplateUpdate: (template: TemplateItem) => void;
@@ -248,11 +248,11 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
       }
 
       setRatedOrderIds((currentIds) => [...currentIds, order.id]);
-      setStatus(`Rating untuk ${order.templateTitle} tersimpan.`);
+      setStatus(`Rating design ${order.templateTitle} tersimpan.`);
     } catch (error) {
       if (getApiErrorStatus(error) === 409) {
         setRatedOrderIds((currentIds) => [...currentIds, order.id]);
-        setStatus("Rating untuk template ini sudah pernah dikirim.");
+        setStatus("Rating untuk design ini sudah pernah dikirim.");
         return;
       }
 
@@ -376,7 +376,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                   className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:opacity-90"
                   to="/#template"
                 >
-                  Cari template
+                  Cari design
                 </Link>
               </div>
             ) : (
@@ -560,7 +560,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                         <section className="mt-4 rounded-xl bg-naki-frost p-4">
                           <div className="flex items-center gap-2 text-xs font-semibold uppercase text-naki-secondary">
                             <Star className="text-naki-secondary" size={16} />
-                            Rating template
+                            Rating design
                           </div>
                           {isRated ? (
                             <p className="mt-2 text-sm text-naki-smoke">
@@ -703,6 +703,6 @@ function getEmptyOrdersMessage(value: OrdersPaymentMenu) {
     case "unpaid":
       return "Pesanan yang belum masuk proses pembayaran akan tampil di sini.";
     default:
-      return "Pilih template, kirim order, lalu statusnya akan tampil di sini.";
+      return "Pilih design atau layanan, kirim konsultasi/order, lalu statusnya akan tampil di sini.";
   }
 }

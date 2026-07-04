@@ -1,6 +1,4 @@
 import {
-  ArrowDown,
-  ArrowUp,
   FileArchive,
   GripVertical,
   ImagePlus,
@@ -10,13 +8,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type React from "react";
-import { apiUpload } from "../../api-client";
+import { apiUpload } from "../../services/api-client";
 import {
   type PortfolioItem,
   type TemplateCategory,
   type TemplateItem,
   type TemplatePreviewItem,
-} from "../../content";
+} from "../../domain/content";
 
 export type TemplateFormState = {
   id?: number;
@@ -60,7 +58,7 @@ export const defaultFormState: TemplateFormState = {
   sourceCode: "",
   suitableFor: "",
   license:
-    "Boleh dipakai untuk satu personal/client project. Tidak untuk dijual ulang sebagai template mentah.",
+    "Boleh dipakai untuk satu personal/client project. Source code tidak boleh dijual ulang tanpa izin.",
   support: "Support setup dasar setelah pembelian.",
 };
 
@@ -314,7 +312,7 @@ export const databaseStackOptions = [
   "Vercel Postgres",
 ];
 export const licenseOptions = [
-  "Boleh dipakai untuk satu personal/client project. Tidak untuk dijual ulang sebagai template mentah.",
+  "Boleh dipakai untuk satu personal/client project. Source code tidak boleh dijual ulang tanpa izin.",
   "Boleh dipakai untuk satu brand atau satu client project.",
   "Boleh dipakai untuk personal dan client project.",
   "Personal use only.",
@@ -578,7 +576,7 @@ export function ImageUploadDropZone({
   successMessage,
 }: ImageUploadDropZoneProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [, setValidationError] = useState<string | null>(null);
 
   function getImageDimensions(
     file: File,

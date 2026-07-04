@@ -1,4 +1,4 @@
-import { Code2, Mail, Store } from "lucide-react";
+import { Code2, Mail } from "lucide-react";
 
 // Simple inline SVG icons for social links since lucide-react doesn't export brand icons
 function GitHubIcon() {
@@ -26,7 +26,7 @@ function InstagramIcon() {
 }
 
 const productLinks = [
-  { label: "Semua Template", href: "/template" },
+  { label: "Semua Design", href: "/template" },
   { label: "Landing Page", href: "/template?category=Landing%20Page" },
   { label: "Dashboard", href: "/template?category=Dashboard" },
   { label: "E-commerce", href: "/template?category=E-commerce" },
@@ -73,8 +73,8 @@ export function Footer() {
                 </span>
               </a>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                Marketplace template dan kode berkualitas untuk developer modern.
-                Bangun project lebih cepat dengan fondasi yang solid.
+                Jasa pembuatan website dengan design referensi yang siap disesuaikan.
+                Pilih inspirasi visualnya, lalu kami wujudkan sesuai kebutuhanmu.
               </p>
               <div className="mt-6 flex gap-3">
                 {socialLinks.map(({ icon: Icon, label, href }) => (

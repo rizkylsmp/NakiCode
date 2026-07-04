@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { TemplateItem } from './content';
+import type { TemplateItem } from '../domain/content';
 
 type CompareContextType = {
   compareIds: number[];

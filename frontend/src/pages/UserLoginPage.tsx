@@ -6,24 +6,24 @@ import {
   getApiErrorData,
   getApiErrorMessage,
   getApiErrorStatus,
-} from "../api-client";
+} from "../services/api-client";
 import {
   initializeCaptcha,
   validateCaptcha,
   type CaptchaState,
-} from "../auth-captcha";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
+} from "../utils/auth-captcha";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
 import {
   PasswordStrengthIndicator,
   isPasswordStrong,
-} from "../components/PasswordStrengthIndicator";
+} from "../components/ui/PasswordStrengthIndicator";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 
 type AuthMode = "login" | "register";
 

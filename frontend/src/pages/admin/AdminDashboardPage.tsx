@@ -23,10 +23,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
-import type { PortfolioItem, TemplateItem } from "../../content";
-import type { OrderItem } from "../../order-types";
+import type { PortfolioItem, TemplateItem } from "../../domain/content";
+import type { OrderItem } from "../../domain/order-types";
 import type { DashboardView } from "./AdminTemplateWorkspace.shared";
 
 // Naki Code theme colors for charts
@@ -48,6 +47,44 @@ type AdminDashboardPageProps = {
   onRefreshOrders: () => void;
 };
 
+type ChartPayloadEntry = {
+  name?: string;
+  value?: number | string;
+};
+
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: ChartPayloadEntry[];
+  label?: number | string;
+};
+
+type PieLabelProps = {
+  name?: string;
+  value?: number | string;
+};
+
+function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-lg border border-naki-steel bg-white px-3 py-2 shadow-lg">
+      <p className="text-xs font-medium text-naki-primary">{label}</p>
+      {payload.map((entry, index) => (
+        <p key={`${entry.name ?? "item"}-${index}`} className="text-xs text-naki-smoke">
+          {entry.name}:{" "}
+          <span className="font-semibold text-naki-primary">{entry.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function renderPieLabel({ name, value }: PieLabelProps) {
+  return `${name}: ${value}`;
+}
+
 export function AdminDashboardPage({
   templates,
   projects,
@@ -56,7 +93,6 @@ export function AdminDashboardPage({
   onRefreshOrders,
 }: AdminDashboardPageProps) {
   const paidOrders = orders.filter((o) => o.paymentStatus === "paid").length;
-  const pendingOrders = orders.filter((o) => o.paymentStatus === "pending").length;
 
   // Orders by month (last 6 months)
   const ordersByMonth = useMemo(() => {
@@ -111,7 +147,7 @@ export function AdminDashboardPage({
 
   const stats = [
     {
-      label: "Total Templates",
+      label: "Total Design",
       value: templates.length,
       icon: FileText,
       color: "blue",
@@ -157,7 +193,7 @@ export function AdminDashboardPage({
 
   const quickActions = [
     {
-      label: "Manage Templates",
+      label: "Kelola Design",
       desc: "Add, edit, or delete catalog products",
       icon: FileText,
       view: "templates" as DashboardView,
@@ -185,37 +221,20 @@ export function AdminDashboardPage({
       color: "green",
     },
     {
-      label: "Testimonials",
-      desc: "Manage customer testimonials",
+      label: "Testimoni",
+      desc: "Kelola testimoni customer",
       icon: MessageSquareQuote,
       view: "testimonials" as DashboardView,
       color: "blue",
     },
     {
       label: "Categories",
-      desc: "Manage template categories",
+      desc: "Kelola kategori design",
       icon: Tag,
       view: "categories" as DashboardView,
       color: "purple",
     },
   ];
-
-  // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border border-naki-steel bg-white px-3 py-2 shadow-lg">
-          <p className="text-xs font-medium text-naki-primary">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-xs text-naki-smoke">
-              {entry.name}: <span className="font-semibold text-naki-primary">{entry.value}</span>
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="space-y-8">
@@ -337,7 +356,7 @@ export function AdminDashboardPage({
                     outerRadius={80}
                     paddingAngle={3}
                     dataKey="value"
-                    label={({ name, value }: any) => `${name}: ${value}`}
+                    label={renderPieLabel}
                     labelLine={false}
                   >
                     {ordersByStatus.map((_, index) => (
@@ -396,7 +415,7 @@ export function AdminDashboardPage({
         {/* Templates by Category - Horizontal Bar Chart */}
         <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-naki-primary">Templates by Category</h2>
+            <h2 className="text-lg font-semibold text-naki-primary">Design per Kategori</h2>
             <p className="text-sm text-naki-smoke">Distribution across categories</p>
           </div>
           <div className="h-64">
@@ -411,7 +430,7 @@ export function AdminDashboardPage({
                   <XAxis type="number" tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={false} tickLine={false} width={80} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" name="Templates" radius={[0, 6, 6, 0]}>
+                  <Bar dataKey="value" name="Design" radius={[0, 6, 6, 0]}>
                     {templatesByCategory.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
@@ -423,7 +442,7 @@ export function AdminDashboardPage({
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-naki-smoke">
-                No templates yet
+                Belum ada design
               </div>
             )}
           </div>

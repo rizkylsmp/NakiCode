@@ -1,7 +1,7 @@
 import { AlertTriangle, ClipboardList, Globe2, Inbox, Tag } from "lucide-react";
 import type React from "react";
-import { type PortfolioItem, type TemplateItem } from "../../content";
-import { type OrderItem } from "../../order-types";
+import { type PortfolioItem, type TemplateItem } from "../../domain/content";
+import { type OrderItem } from "../../domain/order-types";
 import { type DashboardView } from "./AdminTemplateWorkspace.shared";
 
 type AdminDashboardHomeProps = {
@@ -39,7 +39,7 @@ export function AdminDashboardHome({
       {/* Stat Cards */}
       <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-4">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium text-naki-smoke">Total Template</p>
+          <p className="text-xs font-medium text-naki-smoke">Total Design</p>
           <p className="mt-2 text-3xl font-bold text-naki-primary">
             {templates.length}
           </p>
@@ -103,7 +103,7 @@ export function AdminDashboardHome({
             </span>
             <div>
               <p className="text-base font-semibold text-naki-primary">
-                Kelola Template
+                Kelola Design
               </p>
               <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
                 Tambah, edit, atau hapus produk katalog.
@@ -142,7 +142,7 @@ export function AdminDashboardHome({
                 Kategori
               </p>
               <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
-                Buka tab template lalu atur kategori.
+                Buka tab design lalu atur kategori.
               </p>
             </div>
           </button>

@@ -1,8 +1,10 @@
 import { ArrowRight, Layout, BarChart3, ShoppingCart, Smartphone, Server, FileText, Code2, Globe, Database, Gamepad2, Heart, Package } from "lucide-react";
-import type { TemplateCategory } from "../content";
+import type { TemplateCategory } from "../../domain/content";
+import { Skeleton } from "../ui/skeletons/Skeleton";
 
 type CategorySectionProps = {
   categories: TemplateCategory[];
+  isLoading?: boolean;
 };
 
 // Icon mapping untuk setiap kategori
@@ -22,7 +24,7 @@ const iconMap: Record<string, React.ComponentType<{ size: number }>> = {
 };
 
 const descriptions: Record<string, string> = {
-  "Semua": "Semua template tersedia",
+  "Semua": "Semua design tersedia",
   "Landing Page": "Halaman pemasaran yang konversi tinggi",
   "Dashboard": "Panel admin & analytics",
   "E-commerce": "Toko online lengkap",
@@ -36,11 +38,11 @@ const descriptions: Record<string, string> = {
   "Company": "Company profile profesional",
 };
 
-export function CategorySection({ categories }: CategorySectionProps) {
+export function CategorySection({ categories, isLoading = false }: CategorySectionProps) {
   // Filter out "Semua" karena bukan kategori sebenarnya
   const realCategories = categories.filter((c) => c !== "Semua");
 
-  if (realCategories.length === 0) {
+  if (!isLoading && realCategories.length === 0) {
     return null;
   }
 
@@ -56,14 +58,16 @@ export function CategorySection({ categories }: CategorySectionProps) {
               Temukan Sesuai Kebutuhanmu
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-sm text-slate-400">
-              Dari frontend hingga backend, kami menyediakan template untuk berbagai jenis project digital.
+              Pilih gaya website yang paling sesuai sebagai referensi awal untuk project-mu.
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-            {realCategories.map((title) => {
+            {isLoading ? (
+              <CategorySkeletonGrid />
+            ) : realCategories.map((title) => {
               const Icon = iconMap[title] ?? Code2;
-              const description = descriptions[title] ?? `Template kategori ${title}`;
+              const description = descriptions[title] ?? `Design kategori ${title}`;
               const href = `/template?category=${encodeURIComponent(title)}`;
 
               return (
@@ -89,5 +93,43 @@ export function CategorySection({ categories }: CategorySectionProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+function CategorySkeletonGrid() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+        >
+          <Skeleton
+            width="2.5rem"
+            height="2.5rem"
+            radius="0.5rem"
+            className="bg-white/10"
+          />
+          <Skeleton
+            width="8rem"
+            height="1rem"
+            radius="0.25rem"
+            className="mt-4 bg-white/10"
+          />
+          <Skeleton
+            width="100%"
+            height="0.875rem"
+            radius="0.25rem"
+            className="mt-3 bg-white/10"
+          />
+          <Skeleton
+            width="65%"
+            height="0.875rem"
+            radius="0.25rem"
+            className="mt-2 bg-white/10"
+          />
+        </div>
+      ))}
+    </>
   );
 }

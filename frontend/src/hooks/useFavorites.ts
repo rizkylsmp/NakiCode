@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { apiDelete, apiGet, apiPost } from "./api-client";
-import { useAuth } from "./auth-context";
+import { apiDelete, apiGet, apiPost } from "../services/api-client";
+import { useAuth } from "../contexts/auth-context";
 
 type FavoritesResponse = {
   templateIds: number[];

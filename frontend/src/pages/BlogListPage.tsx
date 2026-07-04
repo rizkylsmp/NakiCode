@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BookOpenText, Clock, Inbox } from "lucide-react";
+import { ArrowRight, Clock, Inbox } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { apiGet } from "../api-client";
-import { BlogCardSkeletonGrid } from "../components/skeletons/BlogCardSkeleton";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
+import { apiGet } from "../services/api-client";
+import { BlogCardSkeletonGrid } from "../components/ui/skeletons/BlogCardSkeleton";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
 
 export type BlogPostItem = {
   id: number;
@@ -36,7 +36,7 @@ export function BlogListPage() {
         <title>Blog - Naki Code</title>
         <meta
           name="description"
-          content="Tutorial dan artikel Naki Code untuk template React, Express, MySQL, dan workflow project website."
+          content="Tutorial dan artikel Naki Code tentang design website, React, Express, MySQL, dan workflow pembuatan website."
         />
       </Helmet>
       <Header />

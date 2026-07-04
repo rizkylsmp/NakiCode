@@ -155,7 +155,7 @@ function buildVerificationHtml(username: string, otp: string) {
       </p>
     </div>
     <div style="background-color:${COLORS.frost};padding:24px;text-align:center;border-top:1px solid ${COLORS.steel}">
-      <p style="font-size:14px;color:${COLORS.smoke};margin:8px 0">© ${new Date().getFullYear()} Naki Code. Toko template coding & jasa custom website.</p>
+      <p style="font-size:14px;color:${COLORS.smoke};margin:8px 0">&copy; ${new Date().getFullYear()} Naki Code. Jasa pembuatan website & source code design.</p>
       <p style="font-size:14px;color:${COLORS.smoke};margin:8px 0">Email ini dikirim secara otomatis. Jangan balas email ini.</p>
     </div>
   </div>
@@ -225,7 +225,7 @@ function buildPasswordResetHtml(username: string, otp: string) {
       </p>
     </div>
     <div style="background-color:${COLORS.frost};padding:24px;text-align:center;border-top:1px solid ${COLORS.steel}">
-      <p style="font-size:14px;color:${COLORS.smoke};margin:8px 0">© ${new Date().getFullYear()} Naki Code. Toko template coding & jasa custom website.</p>
+      <p style="font-size:14px;color:${COLORS.smoke};margin:8px 0">&copy; ${new Date().getFullYear()} Naki Code. Jasa pembuatan website & source code design.</p>
       <p style="font-size:14px;color:${COLORS.smoke};margin:8px 0">Email ini dikirim secara otomatis. Jangan balas email ini.</p>
     </div>
   </div>

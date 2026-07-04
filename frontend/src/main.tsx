@@ -3,14 +3,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
-import App from './App';
-import { initializeAnalytics } from './analytics';
-import { setUnauthorizedHandler } from './api-client';
-import { AuthProvider } from './auth-context';
-import { CompareProvider } from './compare-context';
-import { ErrorBoundary } from './ErrorBoundary';
-import { registerServiceWorker } from './pwa';
-import { userTokenKey, userUsernameKey, userRoleKey, userSessionEvent } from './user-session';
+import App from './app/App';
+import { ErrorBoundary } from './app/ErrorBoundary';
+import { AuthProvider } from './contexts/auth-context';
+import { CompareProvider } from './contexts/compare-context';
+import { initializeAnalytics } from './services/analytics';
+import { setUnauthorizedHandler } from './services/api-client';
+import { registerServiceWorker } from './services/pwa';
+import { userTokenKey, userUsernameKey, userRoleKey, userSessionEvent } from './utils/user-session';
 import './styles.css';
 
 // Initialize Sentry (must be first)

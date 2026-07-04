@@ -1,27 +1,27 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   apiPost,
   getApiErrorData,
   getApiErrorMessage,
   getApiErrorStatus,
-} from "../api-client";
-import { trackEvent } from "../analytics";
+} from "../services/api-client";
+import { trackEvent } from "../services/analytics";
 import {
   initializeCaptcha,
   validateCaptcha,
   type CaptchaState,
-} from "../auth-captcha";
-import type { OrderItem } from "../order-types";
-import { saveRecentlyViewedTemplate } from "../template-activity";
-import { useFavoriteTemplates } from "../use-favorites";
+} from "../utils/auth-captcha";
+import type { OrderItem } from "../domain/order-types";
+import { saveRecentlyViewedTemplate } from "../utils/template-activity";
+import { useFavoriteTemplates } from "../hooks/useFavorites";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
-import type { TemplateItem } from "../content";
+} from "../utils/user-session";
+import type { TemplateItem } from "../domain/content";
 
 export type ConsultationFormState = {
   customerName: string;
@@ -58,7 +58,7 @@ type UserAuthResponse = {
 const defaultConsultationForm: ConsultationFormState = {
   customerName: "",
   customerContact: "",
-  projectType: "Beli template",
+  projectType: "Pembuatan website dari design",
   budgetRange: "Di bawah Rp500K",
   message: "",
 };
@@ -72,7 +72,6 @@ const defaultUserAuthForm: UserAuthFormState = {
 
 export function useTemplateDetailPage(template: TemplateItem | null) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Session state
   const [userToken, setUserToken] = useState<string | null>(
@@ -88,7 +87,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
   );
   const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false);
   const [consultationStatus, setConsultationStatus] = useState(
-    "Isi form untuk konsultasi atau beli template ini.",
+    "Isi form untuk membuat website dari design ini atau membeli source code.",
   );
 
   // User auth panel
@@ -99,7 +98,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
   const [isSubmittingUserAuth, setIsSubmittingUserAuth] = useState(false);
   const [userAuthStatus, setUserAuthStatus] = useState("");
   const [verificationUrl, setVerificationUrl] = useState("");
-  const [captcha, setCaptcha] = useState<CaptchaState>(() => initializeCaptcha());
+  const [captcha] = useState<CaptchaState>(() => initializeCaptcha());
 
   // Checkout
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
@@ -331,7 +330,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
           templateTitle: template.title,
           customerName: userUsername ?? "",
           customerContact: "",
-          projectType: "Checkout template",
+          projectType: "Beli source code design",
           budgetRange: template.price,
           message: "",
         });
@@ -371,7 +370,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
     : "";
   const whatsappMessage = template
     ? encodeURIComponent(
-        `Halo, saya tertarik dengan template "${template.title}". Bisa dibantu?`,
+        `Halo, saya tertarik membuat website dengan design "${template.title}" sebagai referensi. Bisa dibantu?`,
       )
     : "";
 

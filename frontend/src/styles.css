@@ -36,6 +36,14 @@
   color-scheme: light;
 }
 
+html[data-theme="dark"] {
+  --color-naki-page-bg: #0b1120;
+  --color-naki-frost: #111827;
+  --color-naki-steel: #334155;
+  --color-naki-smoke: #94a3b8;
+  color-scheme: dark;
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 80px;
@@ -44,6 +52,10 @@ html {
 body {
   margin: 0;
   background: var(--color-naki-page-bg);
+}
+
+html[data-theme="dark"] body {
+  color: #e5e7eb;
 }
 
 * {
@@ -116,6 +128,80 @@ body {
   pointer-events: none;
   position: fixed;
   z-index: 0;
+}
+
+html[data-theme="dark"] .naki-frosted-grid {
+  background-color: var(--color-naki-page-bg);
+  background-image:
+    linear-gradient(
+      rgba(148, 163, 184, 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(148, 163, 184, 0.08) 1px,
+      transparent 1px
+    );
+}
+
+html[data-theme="dark"] .naki-frosted-grid::before {
+  background:
+    radial-gradient(
+      ellipse 500px 350px at 30% 10%,
+      rgba(59, 130, 246, 0.14) 0,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 600px 400px at 80% 5%,
+      rgba(14, 165, 233, 0.1) 0,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 500px 450px at 75% 75%,
+      rgba(15, 23, 42, 0.4) 0,
+      transparent 70%
+    );
+}
+
+html[data-theme="dark"] .naki-frosted-grid::after {
+  background: radial-gradient(
+    ellipse 80% 80% at 50% 50%,
+    transparent 45%,
+    rgba(2, 6, 23, 0.55) 100%
+  );
+}
+
+html[data-theme="dark"] .bg-white {
+  background-color: #0f172a !important;
+}
+
+html[data-theme="dark"] .bg-naki-page-bg {
+  background-color: var(--color-naki-page-bg) !important;
+}
+
+html[data-theme="dark"] .bg-naki-frost,
+html[data-theme="dark"] .hover\:bg-naki-frost:hover {
+  background-color: var(--color-naki-frost) !important;
+}
+
+html[data-theme="dark"] .border-naki-steel,
+html[data-theme="dark"] .border-naki-steel\/60,
+html[data-theme="dark"] .hover\:border-naki-steel\/80:hover {
+  border-color: var(--color-naki-steel) !important;
+}
+
+html[data-theme="dark"] .text-naki-primary,
+html[data-theme="dark"] .hover\:text-naki-primary:hover {
+  color: #e5e7eb !important;
+}
+
+html[data-theme="dark"] .text-naki-smoke {
+  color: var(--color-naki-smoke) !important;
+}
+
+html[data-theme="dark"] .border-naki-primary,
+html[data-theme="dark"] .hover\:border-naki-primary\/40:hover {
+  border-color: #60a5fa !important;
 }
 
 /* Only apply z-index:1 to direct children that don't have their own stacking context */

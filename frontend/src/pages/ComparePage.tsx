@@ -1,11 +1,11 @@
 import { ArrowLeft, X } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCompare } from '../compare-context';
-import { Footer } from '../components/Footer';
-import { Header } from '../components/Header';
-import { ResponsiveImage } from '../components/ResponsiveImage';
-import type { TemplateItem } from '../content';
+import { useCompare } from '../contexts/compare-context';
+import { Footer } from '../components/layout/Footer';
+import { Header } from '../components/layout/Header';
+import { ResponsiveImage } from '../components/ui/ResponsiveImage';
+import type { TemplateItem } from '../domain/content';
 
 type ComparePageProps = {
   templates: TemplateItem[];
@@ -21,17 +21,17 @@ export function ComparePage({ templates }: ComparePageProps) {
     return (
       <main className="naki-frosted-grid min-h-screen bg-naki-page-bg">
         <Helmet>
-          <title>Bandingkan Template - Naki Code</title>
-          <meta name="description" content="Bandingkan template side-by-side untuk menemukan yang paling sesuai kebutuhan" />
+          <title>Bandingkan Design - Naki Code</title>
+          <meta name="description" content="Bandingkan design website untuk menemukan referensi yang paling sesuai kebutuhan" />
         </Helmet>
         <Header />
         <section className="grid min-h-[70vh] place-items-center px-5 py-16 text-center">
           <div>
             <h1 className="text-3xl font-bold text-naki-primary md:text-4xl">
-              Belum ada template untuk dibandingkan
+              Belum ada design untuk dibandingkan
             </h1>
             <p className="mt-3 text-base text-naki-smoke leading-relaxed">
-              Pilih 2-3 template dari katalog untuk memulai perbandingan.
+              Pilih 2-3 design dari katalog untuk memulai perbandingan.
             </p>
             <Link
               className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:opacity-90"
@@ -50,7 +50,7 @@ export function ComparePage({ templates }: ComparePageProps) {
   return (
     <main className="min-h-screen bg-naki-page-bg">
       <Helmet>
-        <title>Bandingkan {compareTemplates.length} Template - Naki Code</title>
+        <title>Bandingkan {compareTemplates.length} Design - Naki Code</title>
         <meta name="description" content={`Bandingkan ${compareTemplates.map(t => t.title).join(', ')} side-by-side`} />
       </Helmet>
       <Header />
@@ -68,10 +68,10 @@ export function ComparePage({ templates }: ComparePageProps) {
           <div className="mt-6 flex items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
-                Bandingkan Template
+                Bandingkan Design
               </h1>
               <p className="mt-3 text-base text-naki-steel leading-relaxed">
-                Perbandingan side-by-side untuk {compareTemplates.length} template yang dipilih
+                Perbandingan side-by-side untuk {compareTemplates.length} design yang dipilih
               </p>
             </div>
             {compareTemplates.length > 0 && (

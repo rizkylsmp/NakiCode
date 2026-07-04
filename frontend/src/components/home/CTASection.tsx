@@ -33,25 +33,25 @@ export function CTASection() {
                 <MessageCircle size={26} />
               </span>
               <h2 className="mt-6 text-2xl font-bold text-white md:text-3xl lg:text-4xl">
-                Siap mempercepat development-mu?
+                Siap mewujudkan website pilihanmu?
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-slate-400 md:text-base">
-                Mulai bangun project dengan fondasi yang lebih baik. Jelajahi template
-                premium atau konsultasi langsung dengan tim kami.
+                Pilih design yang kamu suka sebagai referensi. Kami bantu menyesuaikan
+                identitas brand, konten, dan fitur hingga siap digunakan.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <a
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
                   href="/template"
                 >
-                  Jelajahi Template
+                  Jelajahi Design
                   <ArrowRight size={16} />
                 </a>
                 <a
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 text-sm font-medium text-white backdrop-blur transition hover:bg-white/10"
                   href={
                     WHATSAPP_NUMBER
-                      ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo Naki Code, saya ingin konsultasi project.")}`
+                      ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo Naki Code, saya ingin konsultasi pembuatan website dari design yang tersedia.")}`
                       : "#template"
                   }
                   rel="noreferrer"

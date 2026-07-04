@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import type { HealthState, TemplateCategory, TemplateItem } from "../content";
-import { Header } from "../components/Header";
-import { Footer } from "../components/Footer";
-import { TemplateFilterBar } from "../components/TemplateFilterBar";
-import { TemplateCatalog } from "../components/TemplateCatalog";
+import type { TemplateCategory, TemplateItem } from "../domain/content";
+import { Header } from "../components/layout/Header";
+import { Footer } from "../components/layout/Footer";
+import { TemplateFilterBar } from "../components/catalog/TemplateFilterBar";
+import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
+import { getTemplateCategoryPath } from "../utils/template-url";
 
 type TemplateCatalogPageProps = {
-  health: HealthState | null;
   templates: TemplateItem[];
   categories: TemplateCategory[];
   activeCategory: TemplateCategory;
@@ -18,7 +18,6 @@ type TemplateCatalogPageProps = {
 };
 
 export function TemplateCatalogPage({
-  health,
   templates,
   categories,
   activeCategory,
@@ -28,6 +27,15 @@ export function TemplateCatalogPage({
   onQueryChange,
 }: TemplateCatalogPageProps) {
   const [sortBy, setSortBy] = useState("popular");
+  const isCategoryPage = activeCategory !== "Semua";
+  const categoryPath = getTemplateCategoryPath(activeCategory);
+  const canonicalUrl = `${window.location.origin}${categoryPath}`;
+  const pageTitle = isCategoryPage
+    ? `Design ${activeCategory} - Naki Code`
+    : "Koleksi Design Website - Naki Code";
+  const pageDescription = isCategoryPage
+    ? `Koleksi design ${activeCategory} sebagai referensi website yang siap disesuaikan oleh Naki Code. Source code tersedia sebagai opsi.`
+    : "Pilih design website sebagai inspirasi, lalu sesuaikan tampilan, konten, dan fiturnya bersama Naki Code.";
 
   const filteredTemplates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -67,18 +75,67 @@ export function TemplateCatalogPage({
       case "newest":
         return [...result].sort((a, b) => b.id - a.id);
       default:
-        return result.sort((a, b) => b.rating - a.rating);
+        return [...result].sort((a, b) => b.rating - a.rating);
     }
   }, [activeCategory, query, sortBy, templates]);
+
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: isCategoryPage
+      ? `Design ${activeCategory} Naki Code`
+      : "Koleksi Design Website Naki Code",
+    description: pageDescription,
+    numberOfItems: filteredTemplates.length,
+    itemListElement: filteredTemplates.slice(0, 20).map((template, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${window.location.origin}/templates/${template.slug}`,
+      name: template.title,
+    })),
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: `${window.location.origin}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Design",
+        item: `${window.location.origin}/template`,
+      },
+      ...(isCategoryPage
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: activeCategory,
+              item: canonicalUrl,
+            },
+          ]
+        : []),
+    ],
+  };
 
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Helmet>
-        <title>Koleksi Template - Naki Code</title>
-        <meta
-          name="description"
-          content="Pilih template terbaik untuk project-mu. Semua template dilengkapi dokumentasi dan update berkala."
-        />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <script type="application/ld+json">{JSON.stringify(itemListSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
       </Helmet>
 
       <Header />
@@ -86,13 +143,15 @@ export function TemplateCatalogPage({
       {/* Dark navy hero */}
       <section className="bg-naki-primary px-5 py-14 text-center md:px-8 xl:px-12 2xl:px-16">
         <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
-          Koleksi Template
+          {isCategoryPage ? `Kategori ${activeCategory}` : "Koleksi Design"}
         </p>
         <h1 className="mt-3 text-3xl font-bold text-white md:text-4xl">
-          Pilih template terbaik untuk project-mu
+          {isCategoryPage
+            ? `Design ${activeCategory} siap disesuaikan`
+            : "Pilih design untuk website-mu"}
         </h1>
         <p className="mx-auto mt-3 max-w-lg text-sm text-slate-400">
-          Semua template dilengkapi dokumentasi dan update berkala.
+          {pageDescription}
         </p>
       </section>
 
@@ -110,13 +169,12 @@ export function TemplateCatalogPage({
         />
       </section>
 
-      {/* Template grid */}
+      {/* Design grid */}
       <section className="bg-naki-page-bg px-5 pb-16 pt-8 md:px-8 xl:px-12 2xl:px-16">
         <TemplateCatalog
           templates={filteredTemplates}
           allTemplates={templates}
           activeCategory={activeCategory}
-          health={health}
           isLoading={isLoading}
         />
       </section>

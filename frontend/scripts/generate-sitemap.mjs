@@ -2,7 +2,32 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const siteUrl = process.env.SITE_URL ?? 'http://localhost:5173';
-const routes = ['/', '/template', '/blog', '/login', '/forgot-password'];
+const categories = [
+  'Top up games',
+  'E-commerce',
+  'Portfolio',
+  'Company Profile',
+  'CRUD',
+  'Web Bucin',
+];
+const slugifyCategory = (category) =>
+  category
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'dan')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+const categoryRoutes = categories.map(
+  (category) => `/template/kategori/${slugifyCategory(category)}`,
+);
+const routes = [
+  '/',
+  '/template',
+  ...categoryRoutes,
+  '/blog',
+  '/login',
+  '/forgot-password',
+];
 const now = new Date().toISOString();
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>

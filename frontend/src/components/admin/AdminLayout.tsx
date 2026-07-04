@@ -1,6 +1,6 @@
 import type React from "react";
 import { AdminSidebar } from "./AdminSidebar";
-import { Header } from "../Header";
+import { Header } from "../layout/Header";
 import { type DashboardView } from "../../pages/admin/AdminTemplateWorkspace.shared";
 
 type AdminLayoutProps = {

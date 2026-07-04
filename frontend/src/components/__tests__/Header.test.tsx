@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
-import { Header } from '../Header';
+import { Header } from '../layout/Header';
 import { renderWithProviders } from '../../test/render';
 
-vi.mock('../../api-client', async () => {
-  const actual = await vi.importActual<typeof import('../../api-client')>(
-    '../../api-client',
+vi.mock('../../services/api-client', async () => {
+  const actual = await vi.importActual<typeof import('../../services/api-client')>(
+    '../../services/api-client',
   );
 
   return {
@@ -60,7 +60,7 @@ describe('Header Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /admin/i }));
 
     expect(screen.getByRole('menuitem', { name: /dashboard admin/i })).toHaveAttribute('href', '/admin/dashboard');
-    expect(screen.getByRole('menuitem', { name: /kelola template/i })).toHaveAttribute('href', '/admin/templates');
+    expect(screen.getByRole('menuitem', { name: /kelola design/i })).toHaveAttribute('href', '/admin/templates');
   });
 
   it('renders navigation links', () => {

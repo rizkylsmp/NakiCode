@@ -1,8 +1,8 @@
 import { ArrowLeft, ClipboardList, FileText, Globe2, Inbox, LayoutDashboard, MessageSquareQuote } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import { type PortfolioItem, type TemplateItem } from "../../content";
-import { type OrderItem } from "../../order-types";
+import { type PortfolioItem, type TemplateItem } from "../../domain/content";
+import { type OrderItem } from "../../domain/order-types";
 import {
   type AdminOrderFilters,
   type BlogPostFormState,
@@ -78,7 +78,7 @@ type AdminTemplateWorkspaceProps = {
   onRefreshOrders: () => void;
   onOrderFiltersChange: (filters: AdminOrderFilters) => void;
   onOrdersPageChange: (page: number) => void;
-  onUpdateOrderStatus: (orderId: number, status: OrderStatus) => void;
+  onUpdateOrderStatus: (orderId: number, status: OrderStatus) => Promise<void>;
   onDeleteOrder: (order: OrderItem) => void;
   onStartCreate: () => void;
   onStartEdit: (template: TemplateItem) => void;
@@ -96,7 +96,6 @@ type AdminTemplateWorkspaceProps = {
   onDeletePortfolio: (project: PortfolioItem) => void;
   onConfirmDeletePortfolio: () => void;
   onCancelDeletePortfolio: () => void;
-  blogPosts: BlogPostItem[];
   paginatedBlogPosts: BlogPostItem[];
   totalBlogPosts: number;
   blogPostsPage: number;
@@ -201,7 +200,6 @@ export function AdminTemplateWorkspace({
   onDeletePortfolio,
   onConfirmDeletePortfolio,
   onCancelDeletePortfolio,
-  blogPosts,
   paginatedBlogPosts,
   totalBlogPosts,
   blogPostsPage,
@@ -265,7 +263,7 @@ export function AdminTemplateWorkspace({
             type="button"
           >
             <ClipboardList size={16} />
-            <span className="hidden sm:inline">Template</span>
+            <span className="hidden sm:inline">Design</span>
           </button>
           <button
             className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "orders" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
@@ -300,7 +298,7 @@ export function AdminTemplateWorkspace({
             type="button"
           >
             <MessageSquareQuote size={16} />
-            <span className="hidden sm:inline">Testimonials</span>
+            <span className="hidden sm:inline">Testimoni</span>
           </button>
         </div>
       </div>
@@ -321,7 +319,7 @@ export function AdminTemplateWorkspace({
           </Suspense>
         ) : activeAdminView === "blog" ? (
           <Suspense fallback={<PanelLoader />}>
-            <BlogAdminPanel posts={blogPosts} paginatedPosts={paginatedBlogPosts} totalPosts={totalBlogPosts} page={blogPostsPage} totalPages={blogPostsTotalPages} search={blogSearch} selectedId={null} status={blogStatus} isSaving={isSavingBlog} isModalOpen={isBlogModalOpen} deletingId={deletingBlogId} form={blogForm} adminToken={adminToken} onSearchChange={onBlogSearchChange} onPageChange={onBlogPostsPageChange} onStartCreate={onStartCreateBlog} onStartEdit={onStartEditBlog} onDelete={onDeleteBlog} onOpenModal={onOpenBlogModal} onCloseModal={onCloseBlogModal} onFormChange={onUpdateBlogField} onSubmit={onSubmitBlog} onConfirmDelete={onConfirmDeleteBlog} onCancelDelete={onCancelDeleteBlog} />
+            <BlogAdminPanel paginatedPosts={paginatedBlogPosts} totalPosts={totalBlogPosts} page={blogPostsPage} totalPages={blogPostsTotalPages} search={blogSearch} selectedId={null} status={blogStatus} isSaving={isSavingBlog} isModalOpen={isBlogModalOpen} deletingId={deletingBlogId} form={blogForm} adminToken={adminToken} onSearchChange={onBlogSearchChange} onPageChange={onBlogPostsPageChange} onStartCreate={onStartCreateBlog} onStartEdit={onStartEditBlog} onDelete={onDeleteBlog} onOpenModal={onOpenBlogModal} onCloseModal={onCloseBlogModal} onFormChange={onUpdateBlogField} onSubmit={onSubmitBlog} onConfirmDelete={onConfirmDeleteBlog} onCancelDelete={onCancelDeleteBlog} />
           </Suspense>
         ) : activeAdminView === "testimonials" ? (
           <Suspense fallback={<PanelLoader />}>

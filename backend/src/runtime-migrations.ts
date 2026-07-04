@@ -1,11 +1,13 @@
 import type { Connection, RowDataPacket } from 'mysql2/promise';
 
+// Runtime migrations run automatically during API/database initialization.
+// Keep these idempotent because serverless cold starts can invoke them again.
 type Migration = {
   id: string;
   up: (connection: Connection) => Promise<void>;
 };
 
-const migrations: Migration[] = [
+const runtimeMigrations: Migration[] = [
   {
     id: '001_order_payment_url_500',
     async up(connection) {
@@ -231,7 +233,7 @@ const migrations: Migration[] = [
   },
 ];
 
-export async function runMigrations(connection: Connection) {
+export async function runRuntimeMigrations(connection: Connection) {
   await connection.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id VARCHAR(160) PRIMARY KEY,
@@ -244,7 +246,7 @@ export async function runMigrations(connection: Connection) {
   );
   const executedMigrationIds = new Set(rows.map((row) => String(row.id)));
 
-  for (const migration of migrations) {
+  for (const migration of runtimeMigrations) {
     if (executedMigrationIds.has(migration.id)) {
       continue;
     }

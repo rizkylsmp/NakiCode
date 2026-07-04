@@ -1,12 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, type RenderOptions } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { AuthProvider } from "../auth-context";
+import { AuthProvider } from "../contexts/auth-context";
 import {
   userRoleKey,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 import type { ReactElement, ReactNode } from "react";
 
 type TestAuth = {

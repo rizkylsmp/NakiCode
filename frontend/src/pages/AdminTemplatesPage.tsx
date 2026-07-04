@@ -8,21 +8,21 @@ import {
   apiPost,
   apiPut,
   getApiErrorMessage,
-} from "../api-client";
-import { LoadingOverlay } from "../components/LoadingOverlay";
+} from "../services/api-client";
+import { LoadingOverlay } from "../components/ui/LoadingOverlay";
 import { AdminLayout } from "../components/admin/AdminLayout";
 import {
   type TemplateCategory,
   type TemplateItem,
   type PortfolioItem,
-} from "../content";
-import { type OrderItem, type OrdersResponse } from "../order-types";
+} from "../domain/content";
+import { type OrderItem, type OrdersResponse } from "../domain/order-types";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 import { AdminDashboardPage } from "./admin/AdminDashboardPage";
 import { TemplatesPanel } from "./admin/TemplatesPanel";
 import { OrdersPanel } from "./admin/OrdersPanel";
@@ -123,7 +123,7 @@ export function AdminTemplatesPage({
     () => window.localStorage.getItem(userRoleKey) ?? "user",
   );
   const [loginStatus, setLoginStatus] = useState(
-    "Login dengan akun admin untuk mengelola template.",
+    "Login dengan akun admin untuk mengelola design.",
   );
   const [form, setForm] = useState<TemplateFormState>(defaultFormState);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -145,7 +145,7 @@ export function AdminTemplatesPage({
   );
   const [deleteCandidatePortfolio, setDeleteCandidatePortfolio] =
     useState<PortfolioItem | null>(null);
-  const initialOrderState = useMemo(() => readOrderFiltersFromUrl(location.search), []);
+  const initialOrderState = readOrderFiltersFromUrl(location.search);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [ordersPage, setOrdersPage] = useState(initialOrderState.page);
   const [orderFilters, setOrderFilters] = useState<AdminOrderFilters>(initialOrderState.filters);
@@ -161,11 +161,12 @@ export function AdminTemplatesPage({
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
   const [updatingTemplateId, setUpdatingTemplateId] = useState<number | null>(null);
-  const [status, setStatus] = useState("Siap mengelola katalog template.");
+  const [status, setStatus] = useState("Siap mengelola katalog design.");
   const [categoryName, setCategoryName] = useState("");
   const [categoryStatus, setCategoryStatus] = useState(
-    "Tambahkan kategori agar muncul di dropdown template.",
+    "Tambahkan kategori agar muncul di dropdown design.",
   );
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
@@ -190,6 +191,10 @@ export function AdminTemplatesPage({
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [deletingBlogId, setDeletingBlogId] = useState<number | null>(null);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [testimonialsStatus, setTestimonialsStatus] = useState(
+    "Login admin diperlukan untuk memuat testimoni.",
+  );
+  const [isLoadingTestimonials, setIsLoadingTestimonials] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const adminTokenRef = useRef(adminToken);
   const isAdmin = Boolean(adminToken && adminRole === "admin");
@@ -220,7 +225,11 @@ export function AdminTemplatesPage({
       void loadOrders(adminToken, ordersPage);
     }
 
-    // loadOrders is intentionally omitted because this effect only syncs route into UI state.
+    if (routeAdminView === "categories" && isAdmin && adminToken) {
+      void refreshCategoriesWithIds();
+    }
+
+    // loadOrders and refreshCategoriesWithIds are intentionally omitted because this effect only syncs route into UI state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminSection, adminToken, isAdmin, location.hash, navigate, routeAdminView]);
 
@@ -286,9 +295,11 @@ export function AdminTemplatesPage({
         setAdminUsername("");
         setAdminRole("user");
         setOrders([]);
+        setCategoriesWithIds([]);
         setLoginStatus("Sesi berakhir. Silakan login lagi.");
         setOrdersStatus("Login untuk melihat request konsultasi.");
-        setStatus("Siap mengelola katalog template.");
+        setCategoryStatus("Login admin diperlukan untuk memuat kategori.");
+        setStatus("Siap mengelola katalog design.");
       }
     }
 
@@ -444,7 +455,7 @@ export function AdminTemplatesPage({
     setSelectedId(null);
     setForm(defaultFormState);
     setIsTemplateModalOpen(true);
-    setStatus("Mode tambah template baru.");
+    setStatus("Mode tambah design baru.");
   }
 
   const startEdit = useCallback((template: TemplateItem) => {
@@ -452,7 +463,7 @@ export function AdminTemplatesPage({
     setSelectedId(template.id);
     setForm(templateToForm(template));
     setIsTemplateModalOpen(true);
-    setStatus(`Mengedit ${template.title}.`);
+    setStatus(`Mengedit design ${template.title}.`);
   }, [navigate]);
 
   function closeTemplateModal() {
@@ -601,12 +612,12 @@ export function AdminTemplatesPage({
   async function submitTemplate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!adminToken) {
-      setStatus("Login admin diperlukan untuk menyimpan template.");
+      setStatus("Login admin diperlukan untuk menyimpan design.");
       return;
     }
 
     setIsSaving(true);
-    setLoadingMessage("Menyimpan template...");
+    setLoadingMessage("Menyimpan design...");
 
     const payload = formToPayload(form);
     const isEditing = selectedTemplate !== undefined;
@@ -628,7 +639,7 @@ export function AdminTemplatesPage({
       setSelectedId(data.template.id);
       setForm(templateToForm(data.template));
       setIsTemplateModalOpen(false);
-      setStatus(`Template ${data.template.title} tersimpan.`);
+      setStatus(`Design ${data.template.title} tersimpan.`);
     } catch {
       setStatus("Gagal menyimpan. Pastikan backend aktif.");
     } finally {
@@ -639,12 +650,12 @@ export function AdminTemplatesPage({
 
   async function deleteTemplate(template: TemplateItem) {
     if (!adminToken) {
-      setStatus("Login admin diperlukan untuk menghapus template.");
+      setStatus("Login admin diperlukan untuk menghapus design.");
       return;
     }
 
     setUpdatingTemplateId(template.id);
-    setLoadingMessage(`Menghapus ${template.title}...`);
+    setLoadingMessage(`Menghapus design ${template.title}...`);
 
     try {
       await apiDelete(`/api/templates/${template.id}`);
@@ -659,7 +670,7 @@ export function AdminTemplatesPage({
         startCreate();
       }
 
-      setStatus(`Template ${template.title} dihapus.`);
+      setStatus(`Design ${template.title} dihapus.`);
     } catch {
       setStatus("Gagal menghapus. Pastikan backend aktif.");
     } finally {
@@ -669,19 +680,31 @@ export function AdminTemplatesPage({
     }
   }
 
-  function cancelDeleteTemplate() {
-    setDeleteCandidateTemplate(null);
-  }
-
   async function refreshCategoriesWithIds() {
+    if (!adminToken) {
+      setCategoryStatus("Login admin diperlukan untuk memuat kategori.");
+      return [];
+    }
+
+    setIsLoadingCategories(true);
+    setCategoryStatus("Memuat kategori...");
+
     try {
       const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
       const categories = response.categories ?? [];
       setCategoriesWithIds(categories);
+      setCategoryStatus(
+        categories.length > 0
+          ? `${categories.length} kategori ditemukan.`
+          : "Belum ada kategori.",
+      );
       return categories;
     } catch (error) {
       console.error("Failed to refresh categories:", error);
+      setCategoryStatus("Gagal memuat kategori. Pastikan backend aktif.");
       return [];
+    } finally {
+      setIsLoadingCategories(false);
     }
   }
 
@@ -815,7 +838,7 @@ export function AdminTemplatesPage({
       // Provide more specific error messages
       if (errorMessage.includes("409") || errorMessage.includes("masih digunakan")) {
         setCategoryStatus(
-          `Kategori "${categoryName}" masih digunakan oleh template. Pindahkan template ke kategori lain terlebih dahulu.`,
+          `Kategori "${categoryName}" masih digunakan oleh design. Pindahkan design ke kategori lain terlebih dahulu.`,
         );
       } else {
         setCategoryStatus(errorMessage);
@@ -1080,14 +1103,35 @@ export function AdminTemplatesPage({
       void loadBlogPosts();
       void loadTestimonials();
     }
+    // These loaders intentionally run only when the authenticated session changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminToken]);
 
   async function loadTestimonials() {
+    if (!adminToken) {
+      setTestimonialsStatus("Login admin diperlukan untuk memuat testimoni.");
+      return;
+    }
+
+    setIsLoadingTestimonials(true);
+    setTestimonialsStatus("Memuat testimoni...");
+
     try {
-      const data = await apiGet<{ testimonials: TestimonialItem[] }>("/api/testimonials/admin");
-      setTestimonials(data.testimonials);
+      const data = await apiGet<{
+        testimonials: TestimonialItem[];
+        total?: number;
+      }>("/api/testimonials/admin?limit=100");
+      setTestimonials(data.testimonials ?? []);
+      setTestimonialsStatus(
+        data.total
+          ? `${data.total} testimoni ditemukan.`
+          : "Belum ada testimoni.",
+      );
     } catch (error) {
       console.error("Failed to load testimonials:", error);
+      setTestimonialsStatus("Gagal memuat testimoni. Pastikan backend aktif.");
+    } finally {
+      setIsLoadingTestimonials(false);
     }
   }
 
@@ -1264,7 +1308,6 @@ export function AdminTemplatesPage({
 
           {activeAdminView === "blog" && (
             <BlogAdminPanel
-              posts={blogPosts}
               paginatedPosts={paginatedBlogPosts}
               totalPosts={filteredBlogPosts.length}
               page={safeBlogPostsPage}
@@ -1295,7 +1338,10 @@ export function AdminTemplatesPage({
             <AdminTestimonialsSection
               adminToken={adminToken}
               testimonials={testimonials}
+              isRefreshing={isLoadingTestimonials}
+              status={testimonialsStatus}
               onTestimonialsChange={setTestimonials}
+              onRefresh={() => void loadTestimonials()}
             />
           )}
 
@@ -1303,7 +1349,10 @@ export function AdminTemplatesPage({
             <AdminCategoriesSection
               adminToken={adminToken}
               categories={categoriesWithIds}
+              isRefreshing={isLoadingCategories}
+              status={categoryStatus}
               onCategoriesChange={setCategoriesWithIds}
+              onRefresh={() => void refreshCategoriesWithIds()}
             />
           )}
         </AdminLayout>
@@ -1363,4 +1412,3 @@ export function AdminTemplatesPage({
     </>
   );
 }
-

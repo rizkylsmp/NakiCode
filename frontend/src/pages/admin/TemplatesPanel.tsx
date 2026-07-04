@@ -1,7 +1,7 @@
-import { BadgeCheck, Edit3, Plus, Trash2 } from "lucide-react";
+import { Edit3, Plus, Search, Trash2, X } from "lucide-react";
 import type React from "react";
-import { PaginationControls } from "../../components/PaginationControls";
-import { type TemplateItem } from "../../content";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { type TemplateItem } from "../../domain/content";
 import { adminTemplatesPageSize, type TemplateFormState } from "./AdminTemplateWorkspace.shared";
 import { CategoryModal } from "./CategoryModal";
 import { TemplateFormModal } from "./TemplateFormModal";
@@ -78,7 +78,7 @@ export function TemplatesPanel({
   onDeleteTemplate,
   onSubmitTemplate,
   onUpdateField,
-  onOpenCategoryModal,
+  onOpenCategoryModal: _onOpenCategoryModal,
   onCloseCategoryModal,
   onSubmitCategory,
   onCategoryNameChange,
@@ -89,14 +89,23 @@ export function TemplatesPanel({
   onDeleteCategory,
   isDeletingCategory,
 }: TemplatesPanelProps) {
+  const hasActiveTemplateTools =
+    templateSearch.trim().length > 0 || templateCategoryFilter !== "all";
+
+  function resetTemplateTools() {
+    onTemplateSearchChange("");
+    onTemplateCategoryFilterChange("all");
+    onTemplatesPageChange(1);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-naki-primary">Templates</h1>
+          <h1 className="text-2xl font-bold text-naki-primary">Design</h1>
           <p className="mt-1 text-sm text-naki-smoke">
-            {filteredTemplatesCount} dari {templates.length} template tampil.
+            {filteredTemplatesCount} dari {templates.length} design tampil.
           </p>
         </div>
         <button
@@ -105,21 +114,37 @@ export function TemplatesPanel({
           type="button"
         >
           <Plus size={16} />
-          New Template
+          Design Baru
         </button>
       </div>
 
       {/* Search & filter bar */}
       <div className="grid gap-3 rounded-xl border border-naki-steel bg-white p-4 shadow-sm md:grid-cols-[1fr_240px]">
         <label className="grid gap-1.5">
-          <span className="text-xs font-medium text-naki-smoke">Search template</span>
-          <input
-            className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
-            onChange={(event) => onTemplateSearchChange(event.target.value)}
-            placeholder="Search by title, slug, category, price..."
-            type="search"
-            value={templateSearch}
-          />
+          <span className="text-xs font-medium text-naki-smoke">Cari design</span>
+          <span className="flex h-10 items-center gap-2 rounded-lg border border-naki-steel bg-naki-page-bg px-3 focus-within:border-naki-primary">
+            <Search size={15} className="text-naki-smoke" />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-sm text-naki-primary outline-none"
+              onChange={(event) => onTemplateSearchChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") onTemplateSearchChange("");
+              }}
+              placeholder="Cari judul, slug, kategori, atau harga..."
+              type="search"
+              value={templateSearch}
+            />
+            {templateSearch && (
+              <button
+                aria-label="Hapus pencarian design"
+                className="grid size-6 place-items-center rounded-md text-naki-smoke transition hover:bg-white hover:text-naki-primary"
+                onClick={() => onTemplateSearchChange("")}
+                type="button"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </span>
         </label>
         <label className="grid gap-1.5">
           <span className="text-xs font-medium text-naki-smoke">Filter category</span>
@@ -136,6 +161,18 @@ export function TemplatesPanel({
             ))}
           </select>
         </label>
+        <div className="md:col-span-2 flex flex-col gap-2 border-t border-naki-steel pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-naki-smoke">{status}</p>
+          {hasActiveTemplateTools && (
+            <button
+              className="inline-flex h-8 w-fit items-center rounded-lg border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:bg-naki-frost"
+              onClick={resetTemplateTools}
+              type="button"
+            >
+              Reset tampilan design
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Template list */}
@@ -143,11 +180,20 @@ export function TemplatesPanel({
         {paginatedTemplates.length === 0 ? (
           <div className="rounded-xl border border-naki-steel bg-white p-12 text-center shadow-sm">
             <p className="text-lg font-semibold text-naki-primary">
-              No templates found.
+              Design tidak ditemukan.
             </p>
             <p className="mt-2 text-sm text-naki-smoke">
               Try adjusting your search or filter.
             </p>
+            {hasActiveTemplateTools && (
+              <button
+                className="mt-5 inline-flex h-9 items-center rounded-lg border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:bg-naki-frost"
+                onClick={resetTemplateTools}
+                type="button"
+              >
+                Reset view
+              </button>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-naki-steel bg-white shadow-sm overflow-hidden">
@@ -187,7 +233,7 @@ export function TemplatesPanel({
                         onStartEdit(template);
                       }}
                       type="button"
-                      aria-label={`Edit ${template.title}`}
+                      aria-label={`Edit design ${template.title}`}
                     >
                       <Edit3 size={15} />
                     </button>
@@ -195,7 +241,7 @@ export function TemplatesPanel({
                       className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-secondary"
                       onClick={() => onDeleteTemplate(template)}
                       type="button"
-                      aria-label={`Hapus ${template.title}`}
+                      aria-label={`Hapus design ${template.title}`}
                     >
                       <Trash2 size={15} />
                     </button>

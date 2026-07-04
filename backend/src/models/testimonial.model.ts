@@ -39,7 +39,7 @@ export async function findTestimonials(page = 1, limit = 20): Promise<{ testimon
 
 export async function findFeaturedTestimonials(): Promise<Testimonial[]> {
   const [rows] = await pool.query<TestimonialRow[]>(
-    'SELECT * FROM testimonials WHERE is_featured = TRUE ORDER BY sort_order ASC, created_at DESC LIMIT 10'
+    'SELECT * FROM testimonials WHERE is_featured = TRUE AND deleted_at IS NULL ORDER BY sort_order ASC, created_at DESC LIMIT 10'
   );
   return rows.map(normalizeTestimonial);
 }
@@ -108,7 +108,7 @@ export async function createFromRating(ratingId: number): Promise<Testimonial> {
 
   // Check if already exists as testimonial
   const [existing] = await pool.query<RowDataPacket[]>(
-    'SELECT id FROM testimonials WHERE rating_id = ?',
+    'SELECT id FROM testimonials WHERE rating_id = ? AND deleted_at IS NULL',
     [ratingId]
   );
 
@@ -184,12 +184,12 @@ export async function updateTestimonial(
   values.push(id);
 
   await pool.query(
-    `UPDATE testimonials SET ${updates.join(', ')} WHERE id = ?`,
+    `UPDATE testimonials SET ${updates.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
     values
   );
 
   const [rows] = await pool.query<TestimonialRow[]>(
-    'SELECT * FROM testimonials WHERE id = ?',
+    'SELECT * FROM testimonials WHERE id = ? AND deleted_at IS NULL',
     [id]
   );
 
@@ -214,7 +214,10 @@ export async function findAvailableRatings(): Promise<any[]> {
             t.title as template_title
      FROM template_ratings tr
      LEFT JOIN templates t ON tr.template_id = t.id
-     WHERE tr.id NOT IN (SELECT rating_id FROM testimonials WHERE rating_id IS NOT NULL)
+     WHERE tr.id NOT IN (
+       SELECT rating_id FROM testimonials
+       WHERE rating_id IS NOT NULL AND deleted_at IS NULL
+     )
      ORDER BY tr.created_at DESC`
   );
   return rows;

@@ -1,3 +1,7 @@
+-- Baseline schema for creating a fresh Naki Code database.
+-- Existing production/development databases are upgraded by runtime migrations
+-- in backend/src/runtime-migrations.ts and targeted ensureColumn checks in db.ts.
+
 CREATE DATABASE IF NOT EXISTS naki_code;
 USE naki_code;
 
@@ -238,38 +242,3 @@ CREATE TABLE IF NOT EXISTS template_bundle_items (
   sort_order INT NOT NULL DEFAULT 0,
   UNIQUE KEY bundle_template_unique (bundle_id, template_id)
 );
-
-INSERT IGNORE INTO template_categories (name, sort_order) VALUES
-  ('Portfolio', 1),
-  ('E-commerce', 2),
-  ('Top up games', 3),
-  ('Web Bucin', 4),
-  ('CRUD', 5),
-  ('Company', 6);
-
-INSERT IGNORE INTO projects (id, title, description) VALUES
-  (
-    1,
-    'Naki Code Starter',
-    'React, Vite, Tailwind, Express, dan MySQL sudah tersambung.'
-  );
-
-INSERT IGNORE INTO blog_posts (slug, title, excerpt, content, author, status, published_at) VALUES
-  (
-    'cara-install-template-react-vite',
-    'Cara install template React Vite dari Naki Code',
-    'Langkah cepat menjalankan template Naki Code di lokal.',
-    '1. Install dependency dengan npm install.\n2. Salin file env sesuai kebutuhan.\n3. Jalankan npm run dev dari root project.\n4. Buka frontend dan backend sesuai port yang tampil di terminal.',
-    'Naki Code',
-    'published',
-    CURRENT_TIMESTAMP
-  );
-
-INSERT IGNORE INTO coupons (code, description, discount_type, discount_value, active) VALUES
-  ('NAKIHEMAT', 'Diskon pembelian template Naki Code', 'percent', 10, TRUE);
-
-INSERT IGNORE INTO affiliate_referrals (code, owner_name, active) VALUES
-  ('NAKIPARTNER', 'Naki Partner', TRUE);
-
-INSERT IGNORE INTO template_bundles (slug, title, description, price, active) VALUES
-  ('starter-store-bundle', 'Starter Store Bundle', 'Paket template pilihan untuk mulai toko online dan katalog jasa.', 'Rp399K', TRUE);

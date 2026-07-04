@@ -141,7 +141,7 @@ categoriesRouter.delete("/:id", requireAdmin, async (request, response) => {
     const result = await deleteTemplateCategory(params.id);
 
     if (result.inUse) {
-      response.status(409).json({ message: "Kategori masih digunakan template" });
+      response.status(409).json({ message: "Kategori masih digunakan design" });
       return;
     }
 

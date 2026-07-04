@@ -1,21 +1,27 @@
 import { Plus, Edit2, Trash2, X, GripVertical, Tag } from "lucide-react";
 import { useState } from "react";
-import { apiDelete, apiGet, apiPost, apiPut } from "../../api-client";
-import { getApiErrorMessage } from "../../api-client";
-import { useToast } from "../../components/Toast";
+import { apiDelete, apiGet, apiPost, apiPut } from "../../services/api-client";
+import { getApiErrorMessage } from "../../services/api-client";
+import { useToast } from "../../components/ui/Toast";
 
 type CategoryWithId = { id: number; name: string };
 
 type AdminCategoriesSectionProps = {
   adminToken: string | null;
   categories: CategoryWithId[];
+  isRefreshing?: boolean;
+  status?: string;
   onCategoriesChange: (categories: CategoryWithId[]) => void;
+  onRefresh?: () => void;
 };
 
 export function AdminCategoriesSection({
   adminToken,
   categories,
+  isRefreshing = false,
+  status = "",
   onCategoriesChange,
+  onRefresh,
 }: AdminCategoriesSectionProps) {
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,6 +33,11 @@ export function AdminCategoriesSection({
   const [deleteTarget, setDeleteTarget] = useState<CategoryWithId | null>(null);
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+
+  async function refreshAdminCategories() {
+    const data = await apiGet<{ categories: CategoryWithId[] }>("/api/categories/admin");
+    onCategoriesChange(data.categories ?? []);
+  }
 
   const handleOpenCreate = () => {
     setEditingCategory(null);
@@ -64,18 +75,17 @@ export function AdminCategoriesSection({
 
     try {
       if (editingCategory) {
-        const data = await apiPut<{ categories: CategoryWithId[]; message?: string }>(
+        await apiPut(
           `/api/categories/${editingCategory.id}`,
           { name }
         );
-        onCategoriesChange(data.categories);
       } else {
-        const data = await apiPost<{ categories: CategoryWithId[]; message?: string }>(
+        await apiPost(
           "/api/categories",
           { name }
         );
-        onCategoriesChange(data.categories);
       }
+      await refreshAdminCategories();
       handleCloseModal();
     } catch (err) {
       setError(getApiErrorMessage(err, "Gagal menyimpan kategori."));
@@ -94,10 +104,10 @@ export function AdminCategoriesSection({
 
     setIsLoading(true);
     try {
-      const data = await apiDelete<{ categories: CategoryWithId[]; message?: string }>(
+      await apiDelete(
         `/api/categories/${deleteTarget.id}`
       );
-      onCategoriesChange(data.categories);
+      await refreshAdminCategories();
       setIsDeleteOpen(false);
       setDeleteTarget(null);
       toast.addToast('success', 'Kategori berhasil dihapus');
@@ -105,7 +115,7 @@ export function AdminCategoriesSection({
       const msg = getApiErrorMessage(err, "Gagal menghapus kategori.");
       if (msg.includes("409") || msg.includes("masih digunakan")) {
         setError(
-          `Kategori "${deleteTarget.name}" masih digunakan oleh template. Pindahkan template ke kategori lain terlebih dahulu.`
+          `Kategori "${deleteTarget.name}" masih digunakan oleh design. Pindahkan design ke kategori lain terlebih dahulu.`
         );
       } else {
         setError(msg);
@@ -162,7 +172,7 @@ export function AdminCategoriesSection({
       );
       await Promise.all(updates);
       toast.addToast('success', 'Urutan kategori berhasil diubah');
-    } catch (err) {
+    } catch {
       toast.addToast('error', 'Gagal mengubah urutan kategori');
       // Reload to restore original order
       const data = await apiGet<{ categories: CategoryWithId[] }>("/api/categories/admin");
@@ -178,18 +188,36 @@ export function AdminCategoriesSection({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-naki-primary">Categories</h1>
+          <h1 className="text-2xl font-bold text-naki-primary">Kategori</h1>
           <p className="mt-1 text-sm text-naki-smoke">
-            Manage template categories used in the catalog.
+            Kelola kategori design yang dipakai di katalog.
           </p>
+          {status ? (
+            <p className="mt-2 text-xs font-medium text-naki-smoke" aria-live="polite">
+              {status}
+            </p>
+          ) : null}
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
-        >
-          <Plus size={16} />
-          Add Category
-        </button>
+        <div className="flex gap-2">
+          {onRefresh ? (
+            <button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 rounded-lg border border-naki-steel bg-white px-4 py-2 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+            >
+              {isRefreshing ? "Memuat..." : "Refresh"}
+            </button>
+          ) : null}
+          <button
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+            type="button"
+          >
+            <Plus size={16} />
+            Tambah Kategori
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -202,9 +230,11 @@ export function AdminCategoriesSection({
       {categories.length === 0 ? (
         <div className="rounded-xl border border-naki-steel bg-white p-12 text-center">
           <Tag className="mx-auto h-12 w-12 text-naki-steel mb-3" />
-          <p className="text-sm text-naki-smoke">No categories yet.</p>
+          <p className="text-sm text-naki-smoke">
+            {isRefreshing ? "Memuat kategori..." : "Belum ada kategori."}
+          </p>
           <p className="mt-1 text-xs text-naki-smoke">
-            Click "Add Category" to create one.
+            Klik "Tambah Kategori" untuk membuat kategori baru.
           </p>
         </div>
       ) : (
@@ -259,18 +289,19 @@ export function AdminCategoriesSection({
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
           <div className="w-full max-w-md rounded-2xl bg-white shadow-naki-card">
             <div className="flex items-center justify-between border-b border-naki-steel p-5">
               <h2 className="text-lg font-bold text-naki-primary">
-                {editingCategory ? "Edit Category" : "Add Category"}
+                {editingCategory ? "Edit Kategori" : "Tambah Kategori"}
               </h2>
               <button
                 onClick={handleCloseModal}
                 className="grid size-9 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost"
+                type="button"
               >
                 <X size={16} />
               </button>
@@ -278,14 +309,14 @@ export function AdminCategoriesSection({
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-naki-primary mb-1.5">
-                  Category Name <span className="text-naki-secondary">*</span>
+                  Nama Kategori <span className="text-naki-secondary">*</span>
                 </label>
                 <input
                   type="text"
                   value={categoryName}
                   onChange={(e) => setCategoryName(e.target.value)}
                   className="w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2.5 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
-                  placeholder="e.g. Portfolio"
+                  placeholder="Contoh: Portfolio"
                   required
                 />
               </div>
@@ -301,14 +332,14 @@ export function AdminCategoriesSection({
                   disabled={isLoading}
                   className="inline-flex h-10 items-center rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="inline-flex h-10 items-center rounded-lg bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
                 >
-                  {isLoading ? "Saving..." : editingCategory ? "Update" : "Create"}
+                  {isLoading ? "Menyimpan..." : editingCategory ? "Update" : "Buat"}
                 </button>
               </div>
             </form>
@@ -319,15 +350,15 @@ export function AdminCategoriesSection({
       {/* Delete Confirmation */}
       {isDeleteOpen && deleteTarget && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-naki-primary/40 px-4 backdrop-blur"
           role="dialog"
           aria-modal="true"
         >
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-naki-card">
             <div className="p-5">
-              <h2 className="text-lg font-bold text-naki-primary">Delete Category?</h2>
+              <h2 className="text-lg font-bold text-naki-primary">Hapus Kategori?</h2>
               <p className="mt-2 text-sm text-naki-smoke">
-                Category <span className="font-semibold text-naki-primary">"{deleteTarget.name}"</span> will be permanently deleted. This action cannot be undone.
+                Kategori <span className="font-semibold text-naki-primary">"{deleteTarget.name}"</span> akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
               </p>
               <div className="mt-5 flex justify-end gap-3">
                 <button
@@ -335,14 +366,14 @@ export function AdminCategoriesSection({
                   disabled={isLoading}
                   className="inline-flex h-10 items-center rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   onClick={confirmDelete}
                   disabled={isLoading}
                   className="inline-flex h-10 items-center rounded-lg bg-naki-secondary px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
                 >
-                  {isLoading ? "Deleting..." : "Delete"}
+                  {isLoading ? "Menghapus..." : "Hapus"}
                 </button>
               </div>
             </div>

@@ -10,9 +10,12 @@
     "backup:db": "tsx src/scripts/backup-database.ts",
     "backup:list": "tsx src/scripts/backup-database.ts --list",
     "payment:webhook:sandbox": "tsx src/scripts/midtrans-webhook-sandbox.ts",
-    "migrate": "tsx src/scripts/migrate.ts",
-    "migrate:status": "tsx src/scripts/migrate.ts status",
-    "migrate:create": "tsx src/scripts/migrate.ts create"
+    "migrate": "npm run migrate:sql",
+    "migrate:status": "npm run migrate:sql:status",
+    "migrate:create": "npm run migrate:sql:create --",
+    "migrate:sql": "tsx src/scripts/migrate.ts",
+    "migrate:sql:status": "tsx src/scripts/migrate.ts status",
+    "migrate:sql:create": "tsx src/scripts/migrate.ts create"
   },
   "dependencies": {
     "@sentry/node": "^10.58.0",

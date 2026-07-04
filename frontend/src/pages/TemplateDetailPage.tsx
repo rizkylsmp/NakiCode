@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Send,
   Share2,
-  ShoppingBag,
   Star,
   UserRound,
   UsersRound,
@@ -28,26 +27,26 @@ import {
   getApiErrorData,
   getApiErrorMessage,
   getApiErrorStatus,
-} from "../api-client";
-import { trackEvent } from "../analytics";
+} from "../services/api-client";
+import { trackEvent } from "../services/analytics";
 import {
   initializeCaptcha,
   validateCaptcha,
   type CaptchaState,
-} from "../auth-captcha";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
-import { ResponsiveImage } from "../components/ResponsiveImage";
-import { getTemplateBySlug, type TemplateItem } from "../content";
-import type { OrderItem } from "../order-types";
-import { saveRecentlyViewedTemplate } from "../template-activity";
-import { useFavoriteTemplates } from "../use-favorites";
+} from "../utils/auth-captcha";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
+import { getTemplateBySlug, type TemplateItem } from "../domain/content";
+import type { OrderItem } from "../domain/order-types";
+import { saveRecentlyViewedTemplate } from "../utils/template-activity";
+import { getTemplateCategoryPath } from "../utils/template-url";
+import { useFavoriteTemplates } from "../hooks/useFavorites";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 
 type TemplateDetailPageProps = {
   templates: TemplateItem[];
@@ -88,7 +87,7 @@ type UserAuthResponse = {
 const defaultConsultationForm: ConsultationFormState = {
   customerName: "",
   customerContact: "",
-  projectType: "Beli template",
+  projectType: "Pembuatan website dari design",
   budgetRange: "Di bawah Rp500K",
   message: "",
 };
@@ -128,9 +127,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   const [userAuthForm, setUserAuthForm] = useState(defaultUserAuthForm);
   const [isSubmittingUserAuth, setIsSubmittingUserAuth] = useState(false);
   const [userAuthStatus, setUserAuthStatus] = useState(
-    "Masuk atau daftar dulu sebelum order template.",
+    "Masuk atau daftar dulu untuk konsultasi atau membeli source code.",
   );
-  const [verificationUrl, setVerificationUrl] = useState("");
+  const [, setVerificationUrl] = useState("");
   const [captcha, setCaptcha] = useState<CaptchaState>(() =>
     initializeCaptcha(),
   );
@@ -138,7 +137,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   const [checkoutStatus, setCheckoutStatus] = useState(
     "Buat order lalu lanjut ke halaman checkout.",
   );
-  const [shareStatus, setShareStatus] = useState("");
+  const [, setShareStatus] = useState("");
   const [expandedPreview, setExpandedPreview] = useState<{
     image: string;
     caption: string;
@@ -188,10 +187,10 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
         <Header />
         <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center px-5 py-16 text-center md:px-8 xl:px-12 2xl:px-16">
           <h1 className="text-2xl font-bold text-naki-primary md:text-3xl">
-            Template tidak ditemukan.
+            Design tidak ditemukan.
           </h1>
           <p className="mt-3 text-naki-smoke">
-            Coba kembali ke katalog dan pilih template lain.
+            Coba kembali ke katalog dan pilih design lain.
           </p>
           <Link
             className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-medium text-white"
@@ -207,15 +206,26 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   }
 
   const selectedTemplate = template;
+  const selectedTemplateCategoryPath = getTemplateCategoryPath(
+    selectedTemplate.category,
+  );
+  const selectedTemplateStack = new Set(selectedTemplate.stack);
   const relatedTemplates = templates
-    .filter(
-      (item) =>
-        item.id !== selectedTemplate.id &&
-        item.category === selectedTemplate.category,
-    )
+    .filter((item) => item.id !== selectedTemplate.id)
+    .map((item) => {
+      const sharedStackCount = item.stack.filter((tech) =>
+        selectedTemplateStack.has(tech),
+      ).length;
+      const categoryScore = item.category === selectedTemplate.category ? 8 : 0;
+      return {
+        item,
+        score: categoryScore + sharedStackCount * 2 + item.rating,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
     .slice(0, 3);
   const whatsappMessage = encodeURIComponent(
-    `Halo Naki Code, saya mau konsultasi/beli template ${selectedTemplate.title}.`,
+    `Halo Naki Code, saya tertarik membuat website menggunakan design ${selectedTemplate.title} sebagai referensi.`,
   );
   const shareUrl = `${window.location.origin}/templates/${selectedTemplate.slug}`;
   const shareText = encodeURIComponent(
@@ -406,9 +416,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
         customerName:
           consultationForm.customerName.trim() || userUsername || "Buyer",
         customerContact,
-        projectType: "Checkout template",
+        projectType: "Beli source code design",
         budgetRange: selectedTemplate.price,
-        message: `Pembelian langsung template ${selectedTemplate.title}. Kirim source code dan panduan setelah pembayaran berhasil.`,
+        message: `Pembelian source code untuk design ${selectedTemplate.title}. Kirim source code dan panduan setelah pembayaran berhasil.`,
       });
       trackEvent("order_created", {
         template_id: selectedTemplate.id,
@@ -435,7 +445,8 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
 
   const productSchema = {
     "@context": "https://schema.org",
-    "@type": "Product",
+    "@type": "Service",
+    serviceType: "Pembuatan website berbasis design referensi",
     name: selectedTemplate.title,
     description: selectedTemplate.description,
     image:
@@ -454,10 +465,32 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: selectedTemplate.rating.toFixed(1),
-            reviewCount: selectedTemplate.buyerCount,
+            reviewCount: Math.max(
+              selectedTemplate.reviews.length,
+              selectedTemplate.buyerCount,
+            ),
             bestRating: "5",
             worstRating: "1",
           },
+        }
+      : {}),
+    ...(selectedTemplate.reviews.length
+      ? {
+          review: selectedTemplate.reviews.slice(0, 5).map((review) => ({
+            "@type": "Review",
+            author: {
+              "@type": "Person",
+              name: review.customerName,
+            },
+            datePublished: review.createdAt,
+            reviewBody: review.message,
+            reviewRating: {
+              "@type": "Rating",
+              ratingValue: review.rating.toFixed(1),
+              bestRating: "5",
+              worstRating: "1",
+            },
+          })),
         }
       : {}),
   };
@@ -467,7 +500,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: `${window.location.origin}/` },
-      { "@type": "ListItem", position: 2, name: selectedTemplate.category, item: `${window.location.origin}/template` },
+      { "@type": "ListItem", position: 2, name: selectedTemplate.category, item: `${window.location.origin}${selectedTemplateCategoryPath}` },
       { "@type": "ListItem", position: 3, name: selectedTemplate.title, item: shareUrl },
     ],
   };
@@ -502,7 +535,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
           <nav className="flex items-center gap-2 text-sm text-naki-smoke" aria-label="Breadcrumb">
             <Link className="hover:text-naki-primary" to="/">Home</Link>
             <span>/</span>
-            <Link className="hover:text-naki-primary" to="/template">
+            <Link className="hover:text-naki-primary" to={selectedTemplateCategoryPath}>
               {selectedTemplate.category}
             </Link>
             <span>/</span>
@@ -574,7 +607,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                     {selectedTemplate.rating > 0 ? selectedTemplate.rating.toFixed(1) : "Baru"}
                   </span>
                   <span className="text-xs text-naki-smoke">
-                    {selectedTemplate.buyerCount} pembeli
+                    {selectedTemplate.buyerCount} pelanggan
                   </span>
                 </div>
 
@@ -608,7 +641,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                   </div>
                   <div className="rounded-xl bg-naki-frost p-4">
                     <UsersRound size={18} className="text-blue-500" />
-                    <p className="mt-2 text-xs text-naki-smoke">Pembeli</p>
+                    <p className="mt-2 text-xs text-naki-smoke">Pelanggan</p>
                     <p className="text-lg font-semibold text-naki-primary">
                       {selectedTemplate.buyerCount}
                     </p>
@@ -687,10 +720,10 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
               <section className="mt-10">
                 <h2 className="flex items-center gap-2 text-base font-semibold text-naki-primary">
                   <MessageSquareText size={18} className="text-blue-500" />
-                  Review buyer
+                  Review pelanggan
                 </h2>
                 <p className="mt-1 text-xs text-naki-smoke">
-                  Ulasan tampil setelah pembeli memberi rating.
+                  Ulasan tampil setelah pelanggan menyelesaikan transaksi dan memberi rating.
                 </p>
                 {selectedTemplate.reviews?.length ? (
                   <div className="mt-4 grid gap-3">
@@ -709,29 +742,29 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                   </div>
                 ) : (
                   <p className="mt-4 rounded-xl bg-white p-4 text-sm text-naki-smoke">
-                    Belum ada review tertulis untuk template ini.
+                    Belum ada review tertulis untuk design ini.
                   </p>
                 )}
               </section>
 
-              {/* Related Templates */}
+              {/* Related designs */}
               {relatedTemplates.length > 0 && (
                 <section className="mt-14">
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-blue-500">
-                        Template Terkait
+                        Design Terkait
                       </p>
                       <h2 className="mt-1 text-xl font-bold text-naki-primary">
                         Kategori {selectedTemplate.category}
                       </h2>
                     </div>
-                    <Link className="hidden text-sm font-medium text-blue-500 sm:inline-flex" to="/template">
-                      Lihat katalog <ArrowRight size={14} className="ml-1" />
+                    <Link className="hidden text-sm font-medium text-blue-500 sm:inline-flex" to={selectedTemplateCategoryPath}>
+                      Lihat kategori <ArrowRight size={14} className="ml-1" />
                     </Link>
                   </div>
                   <div className="mt-5 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-                    {relatedTemplates.map((item) => (
+                    {relatedTemplates.map(({ item }) => (
                       <Link
                         key={item.id}
                         className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
@@ -760,31 +793,58 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
 
             {/* Right: Sidebar */}
             <aside className="h-fit space-y-5 md:sticky md:top-24">
-              {/* Price + Checkout */}
+              {/* Primary service */}
+              <div className="rounded-2xl bg-naki-primary p-6 text-white shadow-sm">
+                <HeartHandshake size={24} className="text-blue-300" />
+                <p className="mt-3 text-xs font-medium uppercase text-blue-200">Layanan utama</p>
+                <h2 className="mt-1 text-lg font-semibold">Buat website dari design ini</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                  Kami sesuaikan warna, konten, halaman, alur, dan fitur berdasarkan kebutuhan brand-mu.
+                </p>
+                <a
+                  className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
+                  href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${whatsappMessage}`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Konsultasi pembuatan website <ArrowRight size={16} />
+                </a>
+              </div>
+
+              {/* Source code purchase */}
               <div className="rounded-2xl bg-white p-6 shadow-sm">
-                <p className="text-xs font-medium text-naki-smoke">Harga template</p>
+                <p className="text-xs font-medium uppercase text-naki-smoke">Opsi mandiri</p>
+                <h2 className="mt-1 text-base font-semibold text-naki-primary">Beli source code design</h2>
                 <p className="mt-1 text-4xl font-bold text-naki-primary">{selectedTemplate.price}</p>
                 <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
-                  Pembelian berisi source code dan panduan setup.
+                  Opsi ini khusus untuk membeli source code design dan panduan setup.
                 </p>
+                <div className="mt-4 grid gap-2 rounded-xl bg-naki-frost p-3">
+                  {[
+                    "Source code lengkap siap dikembangkan",
+                    "Panduan setup dan struktur folder",
+                    "Support dasar setelah pembelian",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-2 text-xs text-naki-smoke">
+                      <BadgeCheck className="mt-0.5 shrink-0 text-blue-500" size={14} />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
 
                 {selectedTemplate.lynkUrl ? (
                   <div className="mt-5 space-y-3">
                     <a
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:shadow-xl"
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 text-sm font-semibold text-white transition hover:bg-blue-600"
                       href={selectedTemplate.lynkUrl}
                       rel="noreferrer"
                       target="_blank"
                     >
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                      Checkout via Lynk
+                      <BadgeCheck size={18} />
+                      Beli source code via Lynk
                     </a>
                     <div className="flex items-center justify-center gap-2 text-xs text-naki-smoke">
-                      <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
-                      </svg>
+                      <ShieldCheck className="text-green-500" size={16} />
                       <span>Pembayaran aman & instan via Lynk.id</span>
                     </div>
                   </div>
@@ -797,7 +857,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                       type="button"
                     >
                       <CreditCard size={17} />
-                      {isStartingCheckout ? "Memproses..." : "Checkout"}
+                      {isStartingCheckout ? "Memproses..." : "Beli source code"}
                     </button>
                     <p className="mt-2 text-xs text-naki-smoke" aria-live="polite">
                       {checkoutStatus}
@@ -809,26 +869,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                     to={appendNextParam("/login", nextTarget)}
                   >
                     <LogIn size={17} />
-                    Login untuk beli
+                    Login untuk beli source code
                   </Link>
                 )}
-              </div>
-
-              {/* Custom request */}
-              <div className="rounded-2xl bg-naki-frost p-6">
-                <HeartHandshake size={22} className="text-blue-500" />
-                <p className="mt-3 text-sm font-semibold text-naki-primary">Bisa request custom</p>
-                <p className="mt-1 text-xs leading-relaxed text-naki-smoke">
-                  Tambah halaman, ubah flow, sambungkan backend, atau sesuaikan desain.
-                </p>
-                <a
-                  className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
-                  href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${whatsappMessage}`}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  Konsultasi via WhatsApp <ArrowRight size={16} />
-                </a>
               </div>
 
               {/* Auth / Consultation */}
@@ -881,8 +924,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                           value={consultationForm.projectType}
                           onChange={(event) => updateConsultationField("projectType", event.target.value)}
                         >
-                          <option>Beli template</option>
-                          <option>Custom template</option>
+                          <option>Pembuatan website dari design</option>
+                          <option>Design dan website custom</option>
+                          <option>Beli source code design</option>
                           <option>Integrasi backend</option>
                           <option>Konsultasi project</option>
                         </select>
@@ -906,7 +950,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                           className="min-h-24 resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm leading-relaxed outline-none focus:border-blue-400"
                           value={consultationForm.message}
                           onChange={(event) => updateConsultationField("message", event.target.value)}
-                          placeholder="Contoh: Saya butuh template ini ditambah checkout WhatsApp."
+                          placeholder="Contoh: Saya suka design ini dan ingin disesuaikan untuk bisnis kuliner dengan checkout WhatsApp."
                           required
                         />
                       </label>
@@ -1010,7 +1054,7 @@ function UserAuthPanel({
           <LockKeyhole size={18} />
         </span>
         <div>
-          <h2 className="text-base font-semibold text-naki-primary">Akun pembeli</h2>
+          <h2 className="text-base font-semibold text-naki-primary">Akun pelanggan</h2>
           <p className="mt-0.5 text-xs text-naki-smoke">Login atau daftar untuk membuat order.</p>
         </div>
       </div>
@@ -1148,7 +1192,7 @@ function appendNextParam(target: string, next: string) {
 async function shareTemplate(title: string, url: string, setStatus: (value: string) => void) {
   if (navigator.share) {
     await navigator.share({ title, text: `${title} dari Naki Code`, url });
-    setStatus("Template dibagikan.");
+    setStatus("Design dibagikan.");
     return;
   }
   await copyShareLink(url, setStatus);
@@ -1156,7 +1200,7 @@ async function shareTemplate(title: string, url: string, setStatus: (value: stri
 
 async function copyShareLink(url: string, setStatus: (value: string) => void) {
   await navigator.clipboard.writeText(url);
-  setStatus("Link template disalin.");
+  setStatus("Link design disalin.");
 }
 
 type DetailBlockProps = { title: string; items: string[] };

@@ -1,25 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { CategorySection } from "../components/CategorySection";
-import { CTASection } from "../components/CTASection";
-import { FaqSection } from "../components/FaqSection";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
-import { Hero } from "../components/Hero";
-import { LearningSection } from "../components/LearningSection";
-import { PortfolioSection } from "../components/PortfolioSection";
-import { TemplateCatalog } from "../components/TemplateCatalog";
-import { TestimonialSection } from "../components/TestimonialSection";
-import { apiGet } from "../api-client";
+import { CategorySection } from "../components/home/CategorySection";
+import { CTASection } from "../components/home/CTASection";
+import { FaqSection } from "../components/home/FaqSection";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
+import { Hero } from "../components/home/Hero";
+import { LearningSection } from "../components/home/LearningSection";
+import { PortfolioSection } from "../components/home/PortfolioSection";
+import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
+import { TestimonialSection } from "../components/home/TestimonialSection";
+import { apiGet } from "../services/api-client";
 import {
   faqs,
-  type HealthState,
   type PortfolioItem,
   type TemplateCategory,
   type TemplateItem,
-} from "../content";
+} from "../domain/content";
 
 type HomePageProps = {
-  health: HealthState | null;
   templates: TemplateItem[];
   categories: TemplateCategory[];
   filteredTemplates: TemplateItem[];
@@ -27,7 +25,6 @@ type HomePageProps = {
   activeCategory: TemplateCategory;
   query: string;
   isLoading?: boolean;
-  onCategoryChange: (category: TemplateCategory) => void;
   onQueryChange: (value: string) => void;
 };
 
@@ -45,7 +42,6 @@ type BlogPostsResponse = {
 };
 
 export function HomePage({
-  health,
   templates,
   categories,
   filteredTemplates,
@@ -53,10 +49,13 @@ export function HomePage({
   activeCategory,
   query: _query,
   isLoading,
-  onCategoryChange,
   onQueryChange: _onQueryChange,
 }: HomePageProps) {
-  const { data: blogData } = useQuery({
+  const {
+    data: blogData,
+    isLoading: isLoadingBlogPosts,
+    isError: isBlogPostsError,
+  } = useQuery({
     queryKey: ["home-blog-posts"],
     queryFn: () => apiGet<BlogPostsResponse>("/api/blog"),
     staleTime: 5 * 60 * 1000,
@@ -85,15 +84,18 @@ export function HomePage({
         templates={filteredTemplates}
         allTemplates={templates}
         activeCategory={activeCategory}
-        health={health}
         isLoading={isLoading}
       />
-      <CategorySection categories={categories} />
+      <CategorySection categories={categories} isLoading={isLoading} />
       <TestimonialSection />
       <PortfolioSection
-        items={portfolioItems.length > 0 ? portfolioItems : []}
+        items={portfolioItems}
+        isLoading={isLoading}
       />
-      <LearningSection blogPosts={blogPosts} />
+      <LearningSection
+        blogPosts={blogPosts}
+        isLoading={isLoadingBlogPosts || isBlogPostsError}
+      />
       <FaqSection faqs={faqs} />
       <CTASection />
       <Footer />

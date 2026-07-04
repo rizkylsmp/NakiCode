@@ -378,7 +378,7 @@ function stringToPreviewItem(value: string): TemplatePreviewItem {
   if (value.startsWith('data:image/')) {
     return {
       image: '',
-      caption: 'Preview template perlu diupload ulang',
+      caption: 'Preview design perlu diupload ulang',
     };
   }
 

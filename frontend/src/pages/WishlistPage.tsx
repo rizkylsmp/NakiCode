@@ -1,11 +1,11 @@
 import { ArrowRight, Code2, Heart, Inbox } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
-import { ResponsiveImage } from "../components/ResponsiveImage";
-import { TemplateCardSkeletonGrid } from "../components/skeletons/TemplateCardSkeleton";
-import type { TemplateItem } from "../content";
-import { useFavoriteTemplates } from "../use-favorites";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
+import { ResponsiveImage } from "../components/ui/ResponsiveImage";
+import { TemplateCardSkeletonGrid } from "../components/ui/skeletons/TemplateCardSkeleton";
+import type { TemplateItem } from "../domain/content";
+import { useFavoriteTemplates } from "../hooks/useFavorites";
 
 type WishlistPageProps = {
   templates: TemplateItem[];
@@ -27,16 +27,16 @@ export function WishlistPage({ templates }: WishlistPageProps) {
             <p className="text-sm font-semibold text-naki-secondary">
               Wishlist
             </p>
-            <h1 className="mt-2 text-4xl font-bold leading-tight">Template tersimpan</h1>
+            <h1 className="mt-2 text-4xl font-bold leading-tight">Design tersimpan</h1>
             <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
-              Simpan template incaran sebelum checkout atau konsultasi.
+              Simpan design yang menarik sebagai referensi sebelum konsultasi.
             </p>
           </div>
           <Link
             className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
             to="/#template"
           >
-            Cari template
+            Cari design
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -50,7 +50,7 @@ export function WishlistPage({ templates }: WishlistPageProps) {
             <Inbox className="mx-auto text-naki-secondary" size={34} />
             <h2 className="mt-4 text-2xl font-bold">Wishlist masih kosong.</h2>
             <p className="mt-2 text-sm text-naki-smoke">
-              Tekan ikon hati di katalog atau detail template untuk menyimpan.
+              Tekan ikon hati di katalog atau detail design untuk menyimpan.
             </p>
           </div>
         ) : (

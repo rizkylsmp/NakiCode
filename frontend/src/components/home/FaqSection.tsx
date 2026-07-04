@@ -1,5 +1,5 @@
 import { HelpCircle } from "lucide-react";
-import type { FaqItem } from "../content";
+import type { FaqItem } from "../../domain/content";
 
 type FaqSectionProps = {
   faqs: FaqItem[];
@@ -19,7 +19,7 @@ export function FaqSection({ faqs }: FaqSectionProps) {
                 Pertanyaan yang Sering Muncul
               </h2>
               <p className="mt-3 text-sm text-naki-smoke">
-                Jawaban singkat untuk pembelian template, source code, lisensi, support, dan request custom.
+                Jawaban singkat tentang design, proses pengerjaan website, source code, revisi, dan support.
               </p>
             </div>
             <div className="flex-1 grid gap-3">

@@ -1,6 +1,6 @@
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import type { PortfolioItem } from "../../content";
+import type { PortfolioItem } from "../../domain/content";
 
 type DeletePortfolioDialogProps = {
   portfolio: PortfolioItem | null;

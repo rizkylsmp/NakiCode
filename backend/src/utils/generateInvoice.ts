@@ -44,7 +44,7 @@ export async function generateInvoicePDF(
         .fontSize(10)
         .font('Helvetica')
         .fillColor('#666666')
-        .text('Toko Template Coding & Jasa Custom Website', 50, 80)
+        .text('Jasa Pembuatan Website & Source Code Design', 50, 80)
         .text('Email: hello@nakicode.com', 50, 95)
         .text('Website: https://nakicode.com', 50, 110);
 

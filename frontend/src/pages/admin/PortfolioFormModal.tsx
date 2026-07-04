@@ -25,66 +25,6 @@ type PortfolioFormModalProps = {
   ) => void;
 };
 
-type ThumbnailImageProps = {
-  imageUrl: string;
-  title: string;
-  index: number;
-  coverIndex: number;
-};
-
-function ThumbnailImage({ imageUrl, title, index, coverIndex }: ThumbnailImageProps) {
-  const [imageError, setImageError] = useState(false);
-
-  return (
-    <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-      <div className="relative h-32 overflow-hidden bg-naki-frost">
-        {imageError ? (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/10 to-naki-secondary/10 text-xs text-naki-smoke">
-            No image
-          </div>
-        ) : (
-          <img
-            className="h-full w-full object-cover"
-            src={imageUrl}
-            alt={`${title} ${index + 1}`}
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageError(true)}
-          />
-        )}
-        {index === coverIndex ? (
-          <span className="absolute left-2 top-2 rounded-lg bg-naki-primary px-2 py-1 text-xs font-medium text-white">
-            Cover
-          </span>
-        ) : null}
-      </div>
-      <div className="grid grid-cols-2 border-t border-naki-steel">
-        <button
-          className="flex h-9 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
-          disabled={index === coverIndex}
-          onClick={() => {
-            // handled by parent via onUpdateField
-          }}
-          type="button"
-        >
-          <Check size={13} />
-          Cover
-        </button>
-        <button
-          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-medium text-naki-secondary transition hover:text-naki-primary"
-          onClick={() => {
-            // handled by parent
-          }}
-          type="button"
-        >
-          <X size={13} />
-          Hapus
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function PortfolioFormModal({
   adminToken,
   form,

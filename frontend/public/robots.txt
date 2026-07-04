@@ -1,5 +1,5 @@
 # robots.txt for Naki Code
-# Template marketplace and custom website services
+# Website design references and custom website development services
 
 User-agent: *
 Allow: /

@@ -45,7 +45,7 @@ favoritesRouter.post('/:templateId', requireUser, async (request, response) => {
     const template = await findTemplateBySlugOrId(String(params.templateId));
 
     if (!template) {
-      response.status(404).json({ message: 'Template not found' });
+      response.status(404).json({ message: 'Design tidak ditemukan' });
       return;
     }
 

@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { apiGet } from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
+import { apiGet } from "../services/api-client";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
 import type { BlogPostItem } from "./BlogListPage";
 
 type BlogPostResponse = {

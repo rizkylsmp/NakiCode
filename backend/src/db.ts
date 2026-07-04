@@ -3,7 +3,7 @@ import path from "node:path";
 import mysql from "mysql2/promise";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { config } from "./config";
-import { runMigrations } from "./migrations";
+import { runRuntimeMigrations } from "./runtime-migrations";
 
 export const pool = mysql.createPool({
   ...config.mysql,
@@ -236,7 +236,7 @@ export async function initializeDatabase() {
       "TIMESTAMP NULL AFTER cover_index",
     );
 
-    await runMigrations(connection);
+    await runRuntimeMigrations(connection);
   } finally {
     await connection.end();
   }

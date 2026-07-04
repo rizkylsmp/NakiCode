@@ -1,9 +1,9 @@
 import { ArrowLeft, BadgeCheck, KeyRound, MailCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { apiPost, getApiErrorMessage } from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
+import { apiPost, getApiErrorMessage } from "../services/api-client";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
 
 type ForgotPasswordResponse = {
   message: string;

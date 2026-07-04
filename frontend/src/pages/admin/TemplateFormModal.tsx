@@ -2,7 +2,7 @@ import { FileArchive, FileText, Image, Package, Settings, Tag, RefreshCw, Save, 
 import { useState } from "react";
 import type React from "react";
 import { createPortal } from "react-dom";
-import { type TemplateItem } from "../../content";
+import { type TemplateItem } from "../../domain/content";
 import {
   Field,
   PreviewDropZone,
@@ -83,7 +83,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Informasi Dasar</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Data utama template yang akan ditampilkan di katalog.
+                Data utama design yang akan ditampilkan sebagai referensi di katalog.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -130,7 +130,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Harga & Link</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Tentukan harga template dan link checkout.
+                Tentukan harga source code design dan link checkout.
               </p>
             </div>
             <Field
@@ -154,7 +154,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Teknologi</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Stack teknologi yang digunakan dalam template ini.
+                Stack teknologi yang digunakan dalam implementasi design ini.
               </p>
             </div>
 
@@ -208,7 +208,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Media Preview</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Gambar preview yang akan ditampilkan di halaman detail template.
+                Gambar preview yang akan ditampilkan di halaman detail design.
               </p>
             </div>
             <PreviewDropZone
@@ -225,7 +225,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Fitur</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Daftar fitur, isi source code, dan target pengguna template.
+                Daftar fitur, isi source code, dan target pengguna design.
               </p>
             </div>
             <TagInput
@@ -252,7 +252,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Source Code</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Upload file source code template dalam format ZIP atau RAR.
+                Upload file source code design dalam format ZIP atau RAR.
               </p>
             </div>
             <SourceCodeUpload
@@ -268,7 +268,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Pengaturan</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Lisensi dan support untuk template ini.
+                Lisensi dan support untuk design ini.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -302,7 +302,7 @@ export function TemplateFormModal({
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-naki-steel bg-white/95 p-5 backdrop-blur">
           <div className="flex-1">
             <h2 id="template-form-title" className="text-2xl font-bold leading-tight text-naki-primary">
-              {selectedTemplate ? "Edit template" : "Tambah template"}
+              {selectedTemplate ? "Edit design" : "Tambah design"}
             </h2>
             <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
               {activeTabConfig.label}
@@ -359,7 +359,7 @@ export function TemplateFormModal({
           {/* Action Buttons */}
           <div className="flex items-center justify-between border-t border-naki-steel pt-5 mt-6">
             <div className="flex items-center gap-1.5">
-              {TABS.map((tab, index) => {
+              {TABS.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.key;
                 return (
@@ -394,7 +394,7 @@ export function TemplateFormModal({
                 type="submit"
               >
                 <Save size={17} />
-                {isSaving ? "Menyimpan..." : "Simpan template"}
+                {isSaving ? "Menyimpan..." : "Simpan design"}
               </button>
             </div>
           </div>

@@ -57,6 +57,8 @@ Target UX:
 - `react-helmet-async` untuk meta tags/SEO
 - PWA: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `offline.html`
 - Analytics env-based: `VITE_ANALYTICS_PROVIDER=ga4|plausible|umami|none`
+- Struktur `frontend/src`: `app` untuk application shell/router, `contexts` untuk global state, `domain` untuk model/data bisnis, `services` untuk integrasi eksternal, `utils` untuk helper murni, `hooks` untuk custom hooks, serta `components` dan `pages` untuk UI.
+- Root `frontend/src` hanya menyimpan entry/global files: `main.tsx`, `styles.css`, dan `vite-env.d.ts`.
 
 ### Backend
 
@@ -72,8 +74,10 @@ Target UX:
 
 ### Database
 
-- Schema utama: `backend/database/schema.sql`
-- Bootstrap DB: `backend/src/db.ts` -> create database dari `MYSQL_DATABASE`, apply schema, ensure columns, run migrations.
+- Baseline schema: `backend/database/schema.sql` untuk database kosong.
+- Runtime migrations: `backend/src/runtime-migrations.ts` jalan otomatis saat API init/cold start.
+- SQL file migrations: `backend/database/migrations/*.sql` dijalankan manual via `npm run migrate:sql --workspace backend`.
+- Bootstrap DB: `backend/src/db.ts` -> create database dari `MYSQL_DATABASE`, apply baseline schema, ensure columns, run runtime migrations.
 - Kategori template dinormalisasi via `templates.category_id` -> `template_categories.id`; `templates.category` masih dipertahankan sebagai compatibility/display fallback.
 - MySQL wajib tersedia. Backend harus gagal start jika DB init gagal.
 - Query manual dipisah di `backend/src/models/*`; route sebaiknya tidak menulis query besar langsung kecuali endpoint kecil/statistik.
@@ -204,8 +208,8 @@ Business:
 - Role: `user` atau `admin`.
 - Password hash: `scrypt` + salt.
 - Middleware: `requireUser`, `requireAdmin`.
-- Frontend menyimpan token di localStorage lewat `frontend/src/user-session.ts`.
-- Axios client di `frontend/src/api-client.ts` inject `Authorization: Bearer <token>` otomatis.
+- Frontend menyimpan token di localStorage lewat `frontend/src/utils/user-session.ts`.
+- Axios client di `frontend/src/services/api-client.ts` inject `Authorization: Bearer <token>` otomatis.
 - Global 401 handler auto logout.
 - Backend pakai `helmet`, rate limit global API, auth rate limit lebih ketat, CORS allowlist dari `CLIENT_ORIGINS`.
 - Admin action penting masuk `admin_audit_logs`.
@@ -397,8 +401,8 @@ Improvement backlog:
 - [x] Task 1 - Kurangi bundle frontend dengan route-level/code splitting untuk halaman dan modul berat.
 - [x] Task 2 - Rapikan CI/test coverage agar root test menjalankan frontend dan backend; test frontend saat ini perlu provider wrapper untuk Header/Auth/QueryClient.
 - [x] Task 3 - Siapkan production payment readiness: webhook sandbox, idempotency, logging failure, dan dashboard alasan gagal bayar.
-- [ ] Task 4 - Polish admin UX: bulk action, table density, keyboard-friendly search/filter, dan state kosong/error konsisten.
-- [ ] Task 5 - Tingkatkan SEO dan conversion katalog: schema product/review, CTA detail template, related templates, dan halaman kategori indexable.
+- [x] Task 4 - Polish admin UX: bulk action, table density, keyboard-friendly search/filter, dan state kosong/error konsisten.
+- [x] Task 5 - Tingkatkan SEO dan conversion katalog: schema product/review, CTA detail template, related templates, dan halaman kategori indexable.
 - [ ] Task 6 - Perkuat observability production dengan release tagging, request ID, structured logs, dan health dashboard kecil.
 
 ---
@@ -422,11 +426,11 @@ npm test --workspace backend
 npm run build:analyze --workspace frontend
 ```
 
-Backend migration/backup:
+Backend SQL file migration/backup:
 
 ```bash
-npm run migrate --workspace backend
-npm run migrate:status --workspace backend
+npm run migrate:sql --workspace backend
+npm run migrate:sql:status --workspace backend
 npm run backup:db --workspace backend
 npm run backup:list --workspace backend
 npm run payment:webhook:sandbox --workspace backend -- <payment_reference> <settlement|pending|deny|cancel|expire|failure> <amount> [webhook_url]
@@ -439,4 +443,7 @@ npm run payment:webhook:sandbox --workspace backend -- <payment_reference> <sett
 - [x] 2026-07-03 - Task 1 bundle optimization frontend: lazy load auth/not-found routes, defer Sentry, split vendor chunks, dan ganti zxcvbn frontend dengan strength heuristic ringan; main entry turun dari 926.56 kB ke 35.47 kB - files: frontend/src/App.tsx, frontend/src/main.tsx, frontend/src/ErrorBoundary.tsx, frontend/src/components/PasswordStrengthIndicator.tsx, frontend/vite.config.ts, frontend/vite.config.js, frontend/package.json, package-lock.json, docs/PROJECT_SUMMARY.md
 - [x] 2026-07-03 - Task 2 CI/test coverage: root npm test menjalankan frontend dan backend, test frontend memakai provider wrapper Auth/QueryClient/Router, webhook payment test backend diisolasi dari bootstrap DB, dan backend typecheck CI dibersihkan; root test lulus 122 test - files: package.json, frontend/package.json, .github/workflows/ci.yml, frontend/src/test/render.tsx, frontend/src/test/setup.ts, frontend/src/pages/__tests__/UserLoginPage.test.tsx, frontend/src/components/__tests__/Header.test.tsx, backend/src/__tests__/payments.integration.test.ts, backend/package.json, backend/src/routes/uploads.ts, backend/src/security.ts, backend/src/server.ts, docs/PROJECT_SUMMARY.md
 - [x] 2026-07-03 - Task 3 production payment readiness: tambah tabel payment_webhook_events untuk idempotency webhook Midtrans, simpan failure reason/code/last webhook di orders, tambah script sandbox signed webhook, tampilkan alasan pembayaran gagal di admin dashboard/orders, dan stabilkan test single-worker; root test lulus 123 test - files: backend/database/schema.sql, backend/src/db.ts, backend/src/migrations.ts, backend/src/models/order.model.ts, backend/src/models/payment-webhook-event.model.ts, backend/src/routes/payments.ts, backend/src/routes/orders-stats.ts, backend/src/scripts/midtrans-webhook-sandbox.ts, backend/src/__tests__/payments.integration.test.ts, backend/src/__tests__/templates.integration.test.ts, backend/package.json, frontend/package.json, frontend/src/order-types.ts, frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/AdminDashboardHome.tsx, docs/PROJECT_SUMMARY.md
+- [x] 2026-07-03 - Task 4 admin UX polish: tambah selection dan bulk status update di Orders, density switch comfort/compact, search current page dengan Escape-to-clear, status/empty state konsisten, dan template search reset yang keyboard-friendly - files: frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/TemplatesPanel.tsx, frontend/src/pages/admin/AdminTemplateWorkspace.tsx, docs/PROJECT_SUMMARY.md
+- [x] 2026-07-03 - Task 5 SEO dan conversion katalog: tambah route kategori indexable `/template/kategori/:categorySlug`, canonical/meta/ItemList/Breadcrumb schema untuk katalog, Product review schema dan breadcrumb kategori di detail template, related templates berbasis kategori/stack, CTA trust list di sidebar checkout, serta sitemap kategori; build frontend lulus - files: frontend/src/App.tsx, frontend/src/template-url.ts, frontend/src/pages/TemplateCatalogPage.tsx, frontend/src/pages/TemplateDetailPage.tsx, frontend/src/components/TemplateFilterBar.tsx, frontend/src/components/TemplateCatalog.tsx, frontend/scripts/generate-sitemap.mjs, frontend/public/sitemap.xml, docs/PROJECT_SUMMARY.md
+- [x] 2026-07-03 - Admin testimoni polish: tambah summary, pencarian, filter status/sumber, tombol refresh dan status loading di menu Testimoni; label admin dilokalkan, z-index modal diperbaiki, chart tooltip dashboard dibuat lint-safe, dan backend testimonial soft-delete tidak lagi muncul di endpoint public/available rating - files: frontend/src/pages/admin/AdminTestimonialsSection.tsx, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/components/admin/AdminSidebar.tsx, frontend/src/pages/admin/AdminDashboardPage.tsx, frontend/src/pages/admin/AdminTemplateWorkspace.tsx, backend/src/models/testimonial.model.ts, docs/PROJECT_SUMMARY.md
 - [x] 2026-07-03 - Normalisasi karakter Unicode di dokumentasi ke ASCII agar changelog dan project summary tidak tampil mojibake di terminal Windows/RTK - files: docs/CHANGELOG.md, docs/PROJECT_SUMMARY.md

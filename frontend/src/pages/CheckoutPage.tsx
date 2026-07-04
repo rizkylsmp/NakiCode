@@ -11,16 +11,16 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { apiGet, apiPost } from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
+import { apiGet, apiPost } from "../services/api-client";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
 import {
   canConfirmPaymentManually,
   getPaymentStatusLabel,
   getWaitingPaymentMessage,
   type OrderItem,
-} from "../order-types";
-import { userSessionEvent, userTokenKey } from "../user-session";
+} from "../domain/order-types";
+import { userSessionEvent, userTokenKey } from "../utils/user-session";
 
 type PaymentMethod = "qris" | "dana" | "manual";
 

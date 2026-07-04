@@ -1,6 +1,6 @@
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { getPaymentStatusLabel, type OrderItem } from "../../order-types";
+import { getPaymentStatusLabel, type OrderItem } from "../../domain/order-types";
 
 type DeleteOrderDialogProps = {
   order: OrderItem | null;
@@ -63,7 +63,7 @@ export function DeleteOrderDialog({
 
           <div className="grid gap-2 rounded-xl bg-naki-frost p-3">
             <DeleteOrderMeta label="Customer" value={order.customerName} />
-            <DeleteOrderMeta label="Template" value={order.templateTitle} />
+            <DeleteOrderMeta label="Design" value={order.templateTitle} />
             <DeleteOrderMeta
               label="Payment"
               value={getPaymentStatusLabel(order.paymentStatus)}

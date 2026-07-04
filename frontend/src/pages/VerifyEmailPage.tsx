@@ -1,15 +1,15 @@
 import { ArrowLeft, BadgeCheck, MailCheck, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { apiPost, getApiErrorMessage } from "../api-client";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
+import { apiPost, getApiErrorMessage } from "../services/api-client";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
 import {
   userRoleKey,
   userSessionEvent,
   userTokenKey,
   userUsernameKey,
-} from "../user-session";
+} from "../utils/user-session";
 
 type VerifyEmailResponse = {
   message: string;

@@ -1,4 +1,4 @@
-import { FileText, Image, Plus, Edit2, RefreshCw, Save, Trash2, X, Eye } from "lucide-react";
+import { FileText, Plus, Edit2, RefreshCw, Save, Trash2, X, Eye } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useState } from "react";
 import {
@@ -8,10 +8,9 @@ import {
 } from "./AdminTemplateWorkspace.shared";
 import { DeleteBlogDialog } from "./DeleteBlogDialog";
 import { ImageUploadDropZone } from "./AdminTemplateWorkspace.shared";
-import { PaginationControls } from "../../components/PaginationControls";
+import { PaginationControls } from "../../components/ui/PaginationControls";
 
 type BlogAdminPanelProps = {
-  posts: BlogPostItem[];
   paginatedPosts: BlogPostItem[];
   totalPosts: number;
   page: number;
@@ -41,7 +40,6 @@ type BlogAdminPanelProps = {
 };
 
 export function BlogAdminPanel({
-  posts,
   paginatedPosts,
   totalPosts,
   page,

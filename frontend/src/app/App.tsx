@@ -3,16 +3,16 @@ import type { ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { trackPageView } from "./analytics";
-import { apiGet } from "./api-client";
+import { trackPageView } from "../services/analytics";
+import { apiGet } from "../services/api-client";
 import {
-  type HealthState,
   type PortfolioItem,
   type TemplateCategory,
   type TemplateItem,
-} from "./content";
+} from "../domain/content";
 import { RequireAdmin, RequireAuth } from "./route-guards";
-import { ToastProvider } from "./components/Toast";
+import { ToastProvider } from "../components/ui/Toast";
+import { getTemplateCategoryFromSlug } from "../utils/template-url";
 
 /**
  * One-time stale chunk reload guard.
@@ -63,77 +63,77 @@ function lazyWithReload<T extends LazyComponent>(
 }
 
 const HomePage = lazyWithReload(() =>
-  import("./pages/HomePage").then((module) => ({
+  import("../pages/HomePage").then((module) => ({
     default: module.HomePage,
   })),
 );
 const TemplateDetailPage = lazyWithReload(() =>
-  import("./pages/TemplateDetailPage").then((module) => ({
+  import("../pages/TemplateDetailPage").then((module) => ({
     default: module.TemplateDetailPage,
   })),
 );
 const TemplateCatalogPage = lazyWithReload(() =>
-  import("./pages/TemplateCatalogPage").then((module) => ({
+  import("../pages/TemplateCatalogPage").then((module) => ({
     default: module.TemplateCatalogPage,
   })),
 );
 const AdminTemplatesPage = lazyWithReload(() =>
-  import("./pages/AdminTemplatesPage").then((module) => ({
+  import("../pages/AdminTemplatesPage").then((module) => ({
     default: module.AdminTemplatesPage,
   })),
 );
 const CheckoutPage = lazyWithReload(() =>
-  import("./pages/CheckoutPage").then((module) => ({
+  import("../pages/CheckoutPage").then((module) => ({
     default: module.CheckoutPage,
   })),
 );
 const BlogListPage = lazyWithReload(() =>
-  import("./pages/BlogListPage").then((module) => ({
+  import("../pages/BlogListPage").then((module) => ({
     default: module.BlogListPage,
   })),
 );
 const BlogDetailPage = lazyWithReload(() =>
-  import("./pages/BlogDetailPage").then((module) => ({
+  import("../pages/BlogDetailPage").then((module) => ({
     default: module.BlogDetailPage,
   })),
 );
 const MyOrdersPage = lazyWithReload(() =>
-  import("./pages/MyOrdersPage").then((module) => ({
+  import("../pages/MyOrdersPage").then((module) => ({
     default: module.MyOrdersPage,
   })),
 );
 const UserProfilePage = lazyWithReload(() =>
-  import("./pages/UserProfilePage").then((module) => ({
+  import("../pages/UserProfilePage").then((module) => ({
     default: module.UserProfilePage,
   })),
 );
 const WishlistPage = lazyWithReload(() =>
-  import("./pages/WishlistPage").then((module) => ({
+  import("../pages/WishlistPage").then((module) => ({
     default: module.WishlistPage,
   })),
 );
 const ComparePage = lazyWithReload(() =>
-  import("./pages/ComparePage").then((module) => ({
+  import("../pages/ComparePage").then((module) => ({
     default: module.ComparePage,
   })),
 );
 const UserLoginPage = lazyWithReload(() =>
-  import("./pages/UserLoginPage").then((module) => ({
+  import("../pages/UserLoginPage").then((module) => ({
     default: module.UserLoginPage,
   })),
 );
 const ForgotPasswordPage = lazyWithReload(() =>
-  import("./pages/ForgotPasswordPage").then((module) => ({
+  import("../pages/ForgotPasswordPage").then((module) => ({
     default: module.ForgotPasswordPage,
   })),
 );
 const VerifyEmailPage = lazyWithReload(() =>
-  import("./pages/VerifyEmailPage").then((module) => ({
+  import("../pages/VerifyEmailPage").then((module) => ({
     default: module.VerifyEmailPage,
   })),
 );
 const NotFoundPage = lazyWithReload(() =>
-  import("./pages/NotFoundPage").then((module) => ({
+  import("../pages/NotFoundPage").then((module) => ({
     default: module.NotFoundPage,
   })),
 );
@@ -193,15 +193,23 @@ function App() {
   }, [location.hash, location.pathname, location.search]);
 
   useEffect(() => {
-    if (location.pathname !== "/template") {
+    if (
+      location.pathname !== "/template" &&
+      !location.pathname.startsWith("/template/kategori/")
+    ) {
       return;
     }
 
     const params = new URLSearchParams(location.search);
     const requestedCategory = params.get("category");
     const requestedQuery = params.get("q");
+    const categorySlug = location.pathname.startsWith("/template/kategori/")
+      ? location.pathname.split("/").pop()
+      : undefined;
 
-    if (requestedCategory) {
+    if (categorySlug) {
+      setActiveCategory(getTemplateCategoryFromSlug(categories, categorySlug));
+    } else if (requestedCategory) {
       setActiveCategory(
         categories.includes(requestedCategory) ? requestedCategory : "Semua",
       );
@@ -232,16 +240,6 @@ function App() {
       setPortfolioItems(bootstrapData.projects.projects);
     }
   }, [activeCategory, bootstrapData]);
-
-  const health =
-    bootstrapData?.health ??
-    (isError
-      ? {
-          status: "offline",
-          service: "naki-code-api",
-          database: { status: "unknown", message: "Backend belum aktif." },
-        }
-      : null);
 
   const filteredTemplates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -276,15 +274,13 @@ function App() {
   const homePageElement = (
     <main className="naki-frosted-grid min-h-screen text-naki-primary">
       <HomePage
-        health={health}
         templates={templates}
         categories={categories}
         filteredTemplates={filteredTemplates}
         portfolioItems={portfolioItems}
         activeCategory={activeCategory}
         query={query}
-        isLoading={isLoading}
-        onCategoryChange={setActiveCategory}
+        isLoading={isLoading || isError}
         onQueryChange={setQuery}
       />
     </main>
@@ -297,21 +293,21 @@ function App() {
           <title>Naki Code</title>
           <meta
             name="description"
-            content="Naki Code menyediakan template website siap pakai untuk portfolio, e-commerce, top up games, CRUD, company profile, dan pesanan custom."
+            content="Naki Code menyediakan jasa pembuatan website dengan koleksi design referensi yang siap disesuaikan untuk brand, bisnis, dan kebutuhan custom."
           />
-          <meta property="og:title" content="Naki Code - Toko Template Coding" />
+          <meta property="og:title" content="Naki Code - Jasa Pembuatan Website Berbasis Design" />
           <meta
             property="og:description"
-            content="Cari dan checkout template coding siap pakai dari Naki Code."
+            content="Pilih design website, konsultasikan kebutuhanmu, lalu kami sesuaikan hingga siap digunakan. Source code juga tersedia sebagai opsi."
           />
           <meta property="og:image" content="/logo.png" />
           <meta property="og:type" content="website" />
           <script type="application/ld+json">
             {JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "Store",
+              "@type": "ProfessionalService",
               name: "Naki Code",
-              description: "Toko template coding dan jasa custom website.",
+              description: "Jasa pembuatan website dengan design referensi siap edit dan opsi pembelian source code.",
             })}
           </script>
         </Helmet>
@@ -321,12 +317,25 @@ function App() {
           path="/template"
           element={
             <TemplateCatalogPage
-              health={health}
               templates={templates}
               categories={categories}
               activeCategory={activeCategory}
               query={query}
-              isLoading={isLoading}
+              isLoading={isLoading || isError}
+              onCategoryChange={setActiveCategory}
+              onQueryChange={setQuery}
+            />
+          }
+        />
+        <Route
+          path="/template/kategori/:categorySlug"
+          element={
+            <TemplateCatalogPage
+              templates={templates}
+              categories={categories}
+              activeCategory={activeCategory}
+              query={query}
+              isLoading={isLoading || isError}
               onCategoryChange={setActiveCategory}
               onQueryChange={setQuery}
             />
@@ -416,14 +425,13 @@ function App() {
 }
 
 async function fetchAppBootstrap() {
-  const [health, templates, categories, projects] = await Promise.all([
-    apiGet<HealthState>("/api/health"),
+  const [templates, categories, projects] = await Promise.all([
     apiGet<TemplatesResponse>("/api/templates"),
     apiGet<CategoriesResponse>("/api/categories"),
     apiGet<ProjectsResponse>("/api/projects"),
   ]);
 
-  return { health, templates, categories, projects };
+  return { templates, categories, projects };
 }
 
 function RouteLoading() {

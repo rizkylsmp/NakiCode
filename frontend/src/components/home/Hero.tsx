@@ -20,20 +20,20 @@ export function Hero({ totalTemplates, totalDevelopers, totalTransactions, avera
             {/* Badge */}
             <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-600">
               <Sparkles size={14} />
-              {totalTemplates}+ template berkualitas untuk developer
+              {totalTemplates}+ design website siap disesuaikan
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl font-extrabold leading-[1.15] tracking-tight text-naki-primary md:text-5xl lg:text-6xl xl:text-7xl">
-              Bangun Project{" "}
-              <span className="text-blue-500">Lebih Cepat</span> dengan
-              Kode Siap Pakai
+              Wujudkan Website{" "}
+              <span className="text-blue-500">Sesuai Brand</span> dari
+              Design Pilihanmu
             </h1>
 
             {/* Subtitle */}
             <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-naki-smoke md:text-lg lg:mx-0">
-              Temukan template premium, komponen UI, dan starter kit yang dirancang
-              untuk skala profesional. Mulai dari landing page hingga dashboard lengkap.
+              Pilih design sebagai inspirasi, lalu kami sesuaikan tampilan, konten,
+              dan fiturnya menjadi website yang benar-benar cocok untuk kebutuhanmu.
             </p>
 
             {/* CTA Buttons */}
@@ -42,14 +42,14 @@ export function Hero({ totalTemplates, totalDevelopers, totalTransactions, avera
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
                 href="/template"
               >
-                Jelajahi Template
+                Pilih Design
                 <ArrowRight size={17} />
               </a>
               <a
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
                 href="/template"
               >
-                Lihat Demo
+                Lihat Referensi
               </a>
             </div>
 
@@ -67,13 +67,13 @@ export function Hero({ totalTemplates, totalDevelopers, totalTransactions, avera
               </div>
               <span className="font-medium">
                 Dipercaya <strong className="text-naki-primary">{totalDevelopers}+</strong>{" "}
-                developer
+                pelanggan dan developer
               </span>
             </div>
 
             {/* Feature checks */}
             <div className="mt-10 grid grid-cols-2 gap-4">
-              {["Source code bersih", "Dokumentasi lengkap", "Update berkala", "Support komunitas"].map((item) => (
+              {["Design siap edit", "Revisi terarah", "Website responsif", "Source code opsional"].map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 text-sm font-medium text-naki-smoke">
                   <Check size={16} className="text-blue-500" />
                   {item}
@@ -146,15 +146,15 @@ export function Hero({ totalTemplates, totalDevelopers, totalTransactions, avera
               </div>
             </div>
 
-            {/* Floating badge: Template count */}
+            {/* Floating badge: Design count */}
             <div className="absolute -right-4 -top-4 rounded-xl border border-blue-200 bg-white px-5 py-3 shadow-lg">
               <div className="flex items-center gap-3">
                 <span className="grid size-9 place-items-center rounded-lg bg-blue-100 text-blue-600">
                   <Code2 size={18} />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold text-naki-primary">{totalTemplates}+ Template</p>
-                  <p className="text-[10px] text-naki-smoke">Siap digunakan</p>
+                  <p className="text-xs font-semibold text-naki-primary">{totalTemplates}+ Design</p>
+                  <p className="text-[10px] text-naki-smoke">Siap disesuaikan</p>
                 </div>
               </div>
             </div>
@@ -170,13 +170,13 @@ export function Hero({ totalTemplates, totalDevelopers, totalTransactions, avera
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
                 {totalTemplates}+
               </div>
-              <div className="mt-1 text-sm text-naki-smoke">Template Tersedia</div>
+              <div className="mt-1 text-sm text-naki-smoke">Design Tersedia</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
                 {totalDevelopers}+
               </div>
-              <div className="mt-1 text-sm text-naki-smoke">Developer Aktif</div>
+              <div className="mt-1 text-sm text-naki-smoke">Project Dikerjakan</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">

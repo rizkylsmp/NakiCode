@@ -1,7 +1,7 @@
 import { Check, Edit3, Plus, Trash2, X } from "lucide-react";
 import type React from "react";
 import { createPortal } from "react-dom";
-import { type TemplateCategory } from "../../content";
+import { type TemplateCategory } from "../../domain/content";
 import { Field } from "./AdminTemplateWorkspace.shared";
 
 type CategoryModalProps = {
@@ -57,7 +57,7 @@ export function CategoryModal({
               Kelola Kategori
             </h2>
             <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
-              Tambah, edit, atau hapus kategori template.
+              Tambah, edit, atau hapus kategori design.
             </p>
           </div>
           <button

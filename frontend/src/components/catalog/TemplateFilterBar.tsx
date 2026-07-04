@@ -1,5 +1,7 @@
 import { Search, SlidersHorizontal } from "lucide-react";
-import type { TemplateCategory } from "../content";
+import { Link } from "react-router-dom";
+import type { TemplateCategory } from "../../domain/content";
+import { getTemplateCategoryPath } from "../../utils/template-url";
 
 type TemplateFilterBarProps = {
   categories: TemplateCategory[];
@@ -44,7 +46,7 @@ export function TemplateFilterBar({
               className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg pl-10 pr-4 text-sm outline-none placeholder:text-naki-smoke focus:border-blue-400"
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Cari template, teknologi, atau kategori..."
+              placeholder="Cari design, teknologi, atau kategori..."
               type="search"
             />
           </label>
@@ -70,21 +72,21 @@ export function TemplateFilterBar({
 
         {/* Bottom row: category pills */}
         <div className="mt-3 flex flex-wrap gap-2 border-t border-naki-steel pt-3">
-          <button
+          <Link
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               activeCategory === "Semua"
                 ? "bg-naki-primary text-white"
                 : "bg-naki-frost text-naki-smoke hover:text-naki-primary"
             }`}
             onClick={() => onCategoryChange("Semua")}
-            type="button"
+            to={getTemplateCategoryPath("Semua")}
           >
             Semua
-          </button>
+          </Link>
           {categories
             .filter((c) => c !== "Semua")
             .map((cat) => (
-              <button
+              <Link
                 key={cat}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   activeCategory === cat
@@ -92,17 +94,17 @@ export function TemplateFilterBar({
                     : "bg-naki-frost text-naki-smoke hover:text-naki-primary"
                 }`}
                 onClick={() => onCategoryChange(cat)}
-                type="button"
+                to={getTemplateCategoryPath(cat)}
               >
                 {cat}
-              </button>
+              </Link>
             ))}
         </div>
       </div>
 
       {/* Result count */}
       <p className="mt-4 text-sm text-naki-smoke">
-        Menampilkan <strong className="text-naki-primary">{resultCount}</strong> template
+        Menampilkan <strong className="text-naki-primary">{resultCount}</strong> design
       </p>
     </div>
   );
