@@ -103,6 +103,7 @@ export function AdminCategoriesSection({
         }
       }
       await refreshAdminCategories().catch(() => undefined);
+      setError("");
       handleCloseModal();
     } catch (err) {
       setError(getApiErrorMessage(err, "Gagal menyimpan kategori."));
@@ -131,6 +132,7 @@ export function AdminCategoriesSection({
         onCategoriesChange(categories.filter((category) => category.id !== deletedId));
       }
       await refreshAdminCategories().catch(() => undefined);
+      setError("");
       setIsDeleteOpen(false);
       setDeleteTarget(null);
       toast.addToast('success', 'Kategori berhasil dihapus');

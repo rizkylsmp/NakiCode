@@ -99,6 +99,7 @@ export function AdminTestimonialsSection({
     searchQuery.trim().length > 0 ||
     featuredFilter !== "all" ||
     sourceFilter !== "all";
+  const canReorder = !hasActiveFilters;
 
   function resetFilters() {
     setSearchQuery("");
@@ -214,14 +215,27 @@ export function AdminTestimonialsSection({
     e.preventDefault();
     if (!adminToken) return;
 
-    setIsLoading(true);
     setError("");
+
+    const payload = {
+      ...formData,
+      customer_name: formData.customer_name.trim(),
+      customer_role: formData.customer_role.trim(),
+      quote: formData.quote.trim(),
+    };
+
+    if (!payload.customer_name || !payload.quote) {
+      setError("Nama customer dan testimoni wajib diisi.");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       if (editingTestimonial) {
         const response = await apiPut<{ testimonial: TestimonialItem }>(
           `/api/testimonials/${editingTestimonial.id}`,
-          formData
+          payload
         );
         onTestimonialsChange(
           testimonials.map((t) =>
@@ -232,7 +246,7 @@ export function AdminTestimonialsSection({
       } else {
         const response = await apiPost<{ testimonial: TestimonialItem }>(
           "/api/testimonials",
-          formData
+          payload
         );
         onTestimonialsChange([response.testimonial, ...testimonials]);
         toast.addToast('success', 'Testimonial berhasil ditambahkan');
@@ -302,11 +316,18 @@ export function AdminTestimonialsSection({
   };
 
   const handleDragStart = (e: React.DragEvent, id: number) => {
+    if (!canReorder) {
+      e.preventDefault();
+      return;
+    }
+
     setDraggedId(id);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e: React.DragEvent, id: number) => {
+    if (!canReorder) return;
+
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverId(id);
@@ -318,7 +339,7 @@ export function AdminTestimonialsSection({
 
   const handleDrop = async (e: React.DragEvent, targetId: number) => {
     e.preventDefault();
-    if (!adminToken || draggedId === null || draggedId === targetId) {
+    if (!canReorder || !adminToken || draggedId === null || draggedId === targetId) {
       setDraggedId(null);
       setDragOverId(null);
       return;
@@ -336,21 +357,25 @@ export function AdminTestimonialsSection({
     const newOrder = [...testimonials];
     const [draggedItem] = newOrder.splice(draggedIndex, 1);
     newOrder.splice(targetIndex, 0, draggedItem);
+    const orderedTestimonials = newOrder.map((testimonial, index) => ({
+      ...testimonial,
+      sort_order: index,
+    }));
 
     // Update UI immediately
-    onTestimonialsChange(newOrder);
+    onTestimonialsChange(orderedTestimonials);
 
     // Update sort_order in backend
     try {
-      const updates = newOrder.map((t, index) =>
-        apiPut(`/api/testimonials/${t.id}`, { sort_order: index })
+      const updates = orderedTestimonials.map((testimonial) =>
+        apiPut(`/api/testimonials/${testimonial.id}`, { sort_order: testimonial.sort_order })
       );
       await Promise.all(updates);
       toast.addToast('success', 'Urutan testimonial berhasil diubah');
     } catch {
       toast.addToast('error', 'Gagal mengubah urutan testimonial');
       // Reload to restore original order
-      const data = await apiGet<{ testimonials: TestimonialItem[] }>("/api/testimonials/admin");
+      const data = await apiGet<{ testimonials: TestimonialItem[] }>("/api/testimonials/admin?limit=100");
       onTestimonialsChange(data.testimonials);
     }
 
@@ -456,10 +481,16 @@ export function AdminTestimonialsSection({
           Menampilkan{" "}
           <strong className="text-naki-primary">{filteredTestimonials.length}</strong>{" "}
           dari {testimonials.length} testimoni.
+          {hasActiveFilters ? " Reset filter untuk mengubah urutan." : ""}
         </p>
       </div>
 
-      {testimonials.length === 0 ? (
+      {isRefreshing && testimonials.length === 0 ? (
+        <div className="rounded-lg border border-naki-steel bg-naki-page-bg p-12 text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-naki-primary border-t-transparent" />
+          <p className="text-naki-smoke">Memuat testimoni...</p>
+        </div>
+      ) : testimonials.length === 0 ? (
         <div className="rounded-lg border border-naki-steel bg-naki-page-bg p-12 text-center">
           <MessageSquareQuote className="mx-auto h-12 w-12 text-naki-smoke mb-4" />
           <p className="text-naki-smoke">Belum ada testimonial</p>
@@ -494,7 +525,7 @@ export function AdminTestimonialsSection({
                   ? 'opacity-50 border-naki-steel'
                   : 'border-naki-steel'
               }`}
-              draggable
+              draggable={canReorder}
               onDragStart={(e) => handleDragStart(e, testimonial.id)}
               onDragOver={(e) => handleDragOver(e, testimonial.id)}
               onDragLeave={handleDragLeave}
@@ -503,8 +534,16 @@ export function AdminTestimonialsSection({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1">
                   <div
-                    className="cursor-grab active:cursor-grabbing text-naki-smoke hover:text-naki-primary mt-1"
-                    title="Drag untuk mengubah urutan"
+                    className={`mt-1 text-naki-smoke ${
+                      canReorder
+                        ? "cursor-grab hover:text-naki-primary active:cursor-grabbing"
+                        : "cursor-not-allowed opacity-50"
+                    }`}
+                    title={
+                      canReorder
+                        ? "Drag untuk mengubah urutan"
+                        : "Reset filter untuk mengubah urutan"
+                    }
                   >
                     <GripVertical className="h-5 w-5" />
                   </div>
@@ -515,7 +554,7 @@ export function AdminTestimonialsSection({
                       </h3>
                       {testimonial.customer_role && (
                         <span className="text-sm text-naki-smoke">
-                          • {testimonial.customer_role}
+                          / {testimonial.customer_role}
                         </span>
                       )}
                       <span

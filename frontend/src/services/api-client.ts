@@ -79,9 +79,11 @@ apiClient.interceptors.response.use(
     }`;
 
     if (error.response?.data && typeof error.response.data === "object") {
-      const data = error.response.data as { message?: unknown };
+      const data = error.response.data as { error?: unknown; message?: unknown };
       if (typeof data.message === "string") {
         errorMessage = data.message;
+      } else if (typeof data.error === "string") {
+        errorMessage = data.error;
       }
     }
 
@@ -99,10 +101,17 @@ export function getApiErrorMessage(
     const data = error.response?.data;
 
     if (data && typeof data === "object") {
-      const message = (data as { message?: unknown }).message;
+      const { error: apiError, message } = data as {
+        error?: unknown;
+        message?: unknown;
+      };
 
       if (typeof message === "string") {
         return message;
+      }
+
+      if (typeof apiError === "string") {
+        return apiError;
       }
     }
 

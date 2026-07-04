@@ -142,6 +142,13 @@ export async function deleteTemplateCategory(id: number) {
     };
   }
 
+  await pool.query(
+    `UPDATE templates
+    SET category_id = NULL
+    WHERE category_id = ? AND deleted_at IS NOT NULL`,
+    [id],
+  );
+
   const [result] = await pool.query<ResultSetHeader>(
     "DELETE FROM template_categories WHERE id = ?",
     [id],

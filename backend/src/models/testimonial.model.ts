@@ -69,6 +69,9 @@ export async function createTestimonial(data: {
     throw new Error('Customer role must be 100 characters or less');
   }
 
+  const sortOrder =
+    typeof data.sort_order === 'number' ? data.sort_order : await getNextSortOrder();
+
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO testimonials (source_type, customer_name, customer_role, quote, rating, is_featured, sort_order)
      VALUES ('manual', ?, ?, ?, ?, ?, ?)`,
@@ -78,7 +81,7 @@ export async function createTestimonial(data: {
       data.quote.trim(),
       data.rating || 5,
       data.is_featured !== undefined ? data.is_featured : true,
-      data.sort_order || 0,
+      sortOrder,
     ]
   );
 
@@ -116,17 +119,26 @@ export async function createFromRating(ratingId: number): Promise<Testimonial> {
     throw new Error('Rating already used as testimonial');
   }
 
+  const quote = String(rating.message ?? '').trim();
+
+  if (!quote) {
+    throw new Error('Rating message is required');
+  }
+
+  const sortOrder = await getNextSortOrder();
+
   // Create testimonial
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO testimonials (source_type, rating_id, customer_name, customer_role, quote, rating, template_id, is_featured)
-     VALUES ('rating', ?, ?, ?, ?, ?, ?, TRUE)`,
+    `INSERT INTO testimonials (source_type, rating_id, customer_name, customer_role, quote, rating, template_id, is_featured, sort_order)
+     VALUES ('rating', ?, ?, ?, ?, ?, ?, TRUE, ?)`,
     [
       ratingId,
       rating.customer_name,
       null, // role will be null for ratings
-      rating.message || '',
+      quote,
       rating.rating,
       rating.template_id,
+      sortOrder,
     ]
   );
 
@@ -218,9 +230,19 @@ export async function findAvailableRatings(): Promise<any[]> {
        SELECT rating_id FROM testimonials
        WHERE rating_id IS NOT NULL AND deleted_at IS NULL
      )
+     AND tr.message IS NOT NULL
+     AND TRIM(tr.message) <> ''
      ORDER BY tr.created_at DESC`
   );
   return rows;
+}
+
+async function getNextSortOrder(): Promise<number> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM testimonials WHERE deleted_at IS NULL'
+  );
+
+  return Number(rows[0]?.next_order ?? 0);
 }
 
 function normalizeTestimonial(row: TestimonialRow): Testimonial {

@@ -355,6 +355,12 @@ export function AdminTemplatesPage({
     () => templates.find((template) => template.id === selectedId),
     [selectedId, templates],
   );
+
+  const syncCategoriesWithIds = useCallback((nextCategories: Array<{ id: number; name: string }>) => {
+    setCategoriesWithIds(nextCategories);
+    onCategoriesChange(["Semua", ...nextCategories.map((category) => category.name)]);
+  }, [onCategoriesChange]);
+
   const filteredAdminTemplates = useMemo(() => {
     const normalizedSearch = templateSearch.trim().toLowerCase();
 
@@ -692,7 +698,7 @@ export function AdminTemplatesPage({
     try {
       const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
       const categories = response.categories ?? [];
-      setCategoriesWithIds(categories);
+      syncCategoriesWithIds(categories);
       setCategoryStatus(
         categories.length > 0
           ? `${categories.length} kategori ditemukan.`
@@ -748,7 +754,7 @@ export function AdminTemplatesPage({
 
       onCategoriesChange(data.categories);
       if (Array.isArray(data.adminCategories)) {
-        setCategoriesWithIds(data.adminCategories);
+        syncCategoriesWithIds(data.adminCategories);
       } else {
         setCategoriesWithIds((currentCategories) =>
           currentCategories.map((category) =>
@@ -758,7 +764,7 @@ export function AdminTemplatesPage({
           ),
         );
       }
-      await refreshCategoriesWithIds();
+      await refreshCategoriesWithIds().catch(() => undefined);
       setEditingCategory(null);
       setEditingCategoryId(null);
       setEditingCategoryName("");
@@ -800,9 +806,9 @@ export function AdminTemplatesPage({
 
       onCategoriesChange(data.categories);
       if (Array.isArray(data.adminCategories)) {
-        setCategoriesWithIds(data.adminCategories);
+        syncCategoriesWithIds(data.adminCategories);
       }
-      await refreshCategoriesWithIds();
+      await refreshCategoriesWithIds().catch(() => undefined);
       setCategoryName("");
       setCategoryStatus(data.message ?? `Kategori "${name}" berhasil ditambahkan.`);
       setIsCategoryModalOpen(false);
@@ -849,13 +855,13 @@ export function AdminTemplatesPage({
         setTemplateCategoryFilter("all");
       }
       if (Array.isArray(data.adminCategories)) {
-        setCategoriesWithIds(data.adminCategories);
+        syncCategoriesWithIds(data.adminCategories);
       } else {
         setCategoriesWithIds((currentCategories) =>
           currentCategories.filter((currentCategory) => currentCategory.id !== category.id),
         );
       }
-      await refreshCategoriesWithIds();
+      await refreshCategoriesWithIds().catch(() => undefined);
       setCategoryStatus(data.message ?? `Kategori "${categoryName}" berhasil dihapus.`);
     } catch (error) {
       const errorMessage = getApiErrorMessage(error, "Gagal menghapus kategori.");
@@ -1375,7 +1381,7 @@ export function AdminTemplatesPage({
               categories={categoriesWithIds}
               isRefreshing={isLoadingCategories}
               status={categoryStatus}
-              onCategoriesChange={setCategoriesWithIds}
+              onCategoriesChange={syncCategoriesWithIds}
               onRefresh={() => void refreshCategoriesWithIds()}
             />
           )}

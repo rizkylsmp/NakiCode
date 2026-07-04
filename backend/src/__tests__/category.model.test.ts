@@ -84,10 +84,17 @@ describe('category model', () => {
       .mockResolvedValueOnce([[{ name: 'Unused' }]])
       .mockResolvedValueOnce([[{ count: 0 }]])
       .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
       .mockResolvedValueOnce([[{ name: 'Portfolio' }]]);
 
     const result = await deleteTemplateCategory(4);
 
+    expect(query).toHaveBeenCalledWith(
+      `UPDATE templates
+    SET category_id = NULL
+    WHERE category_id = ? AND deleted_at IS NOT NULL`,
+      [4],
+    );
     expect(query).toHaveBeenCalledWith(
       'DELETE FROM template_categories WHERE id = ?',
       [4],
