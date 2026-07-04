@@ -5,6 +5,11 @@ import { getApiErrorMessage } from "../../services/api-client";
 import { useToast } from "../../components/ui/Toast";
 
 type CategoryWithId = { id: number; name: string };
+type CategoryMutationResponse = {
+  categories?: string[];
+  adminCategories?: CategoryWithId[];
+  message?: string;
+};
 
 type AdminCategoriesSectionProps = {
   adminToken: string | null;
@@ -75,17 +80,29 @@ export function AdminCategoriesSection({
 
     try {
       if (editingCategory) {
-        await apiPut(
+        const data = await apiPut<CategoryMutationResponse>(
           `/api/categories/${editingCategory.id}`,
           { name }
         );
+        if (Array.isArray(data.adminCategories)) {
+          onCategoriesChange(data.adminCategories);
+        } else {
+          onCategoriesChange(
+            categories.map((category) =>
+              category.id === editingCategory.id ? { ...category, name } : category,
+            ),
+          );
+        }
       } else {
-        await apiPost(
+        const data = await apiPost<CategoryMutationResponse>(
           "/api/categories",
           { name }
         );
+        if (Array.isArray(data.adminCategories)) {
+          onCategoriesChange(data.adminCategories);
+        }
       }
-      await refreshAdminCategories();
+      await refreshAdminCategories().catch(() => undefined);
       handleCloseModal();
     } catch (err) {
       setError(getApiErrorMessage(err, "Gagal menyimpan kategori."));
@@ -104,10 +121,16 @@ export function AdminCategoriesSection({
 
     setIsLoading(true);
     try {
-      await apiDelete(
+      const deletedId = deleteTarget.id;
+      const data = await apiDelete<CategoryMutationResponse>(
         `/api/categories/${deleteTarget.id}`
       );
-      await refreshAdminCategories();
+      if (Array.isArray(data.adminCategories)) {
+        onCategoriesChange(data.adminCategories);
+      } else {
+        onCategoriesChange(categories.filter((category) => category.id !== deletedId));
+      }
+      await refreshAdminCategories().catch(() => undefined);
       setIsDeleteOpen(false);
       setDeleteTarget(null);
       toast.addToast('success', 'Kategori berhasil dihapus');

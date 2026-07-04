@@ -75,8 +75,9 @@ export type ProjectMutationResponse = {
 };
 
 export type CategoryMutationResponse = {
-  category: TemplateCategory;
+  category?: TemplateCategory;
   categories: TemplateCategory[];
+  adminCategories?: Array<{ id: number; name: string }>;
   message?: string;
 };
 

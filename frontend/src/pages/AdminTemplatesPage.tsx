@@ -747,6 +747,17 @@ export function AdminTemplatesPage({
       });
 
       onCategoriesChange(data.categories);
+      if (Array.isArray(data.adminCategories)) {
+        setCategoriesWithIds(data.adminCategories);
+      } else {
+        setCategoriesWithIds((currentCategories) =>
+          currentCategories.map((category) =>
+            category.id === editingCategoryId
+              ? { ...category, name: newName }
+              : category,
+          ),
+        );
+      }
       await refreshCategoriesWithIds();
       setEditingCategory(null);
       setEditingCategoryId(null);
@@ -788,6 +799,9 @@ export function AdminTemplatesPage({
       });
 
       onCategoriesChange(data.categories);
+      if (Array.isArray(data.adminCategories)) {
+        setCategoriesWithIds(data.adminCategories);
+      }
       await refreshCategoriesWithIds();
       setCategoryName("");
       setCategoryStatus(data.message ?? `Kategori "${name}" berhasil ditambahkan.`);
@@ -831,6 +845,16 @@ export function AdminTemplatesPage({
       );
 
       onCategoriesChange(data.categories);
+      if (templateCategoryFilter === categoryName) {
+        setTemplateCategoryFilter("all");
+      }
+      if (Array.isArray(data.adminCategories)) {
+        setCategoriesWithIds(data.adminCategories);
+      } else {
+        setCategoriesWithIds((currentCategories) =>
+          currentCategories.filter((currentCategory) => currentCategory.id !== category.id),
+        );
+      }
       await refreshCategoriesWithIds();
       setCategoryStatus(data.message ?? `Kategori "${categoryName}" berhasil dihapus.`);
     } catch (error) {

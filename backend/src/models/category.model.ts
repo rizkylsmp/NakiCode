@@ -40,6 +40,7 @@ export async function createTemplateCategory(name: string) {
     wasCreated: result.affectedRows > 0,
     category: normalizedName,
     categories: await findTemplateCategories(),
+    adminCategories: await findTemplateCategoriesWithIds(),
   };
 }
 
@@ -62,7 +63,11 @@ export async function updateTemplateCategory(
   }
 
   if (updates.length === 0) {
-    return { updated: false, categories: await findTemplateCategories() };
+    return {
+      updated: false,
+      categories: await findTemplateCategories(),
+      adminCategories: await findTemplateCategoriesWithIds(),
+    };
   }
 
   const connection = await pool.getConnection();
@@ -78,7 +83,11 @@ export async function updateTemplateCategory(
 
     if (!previousName) {
       await connection.rollback();
-      return { updated: false, categories: await findTemplateCategories() };
+      return {
+        updated: false,
+        categories: await findTemplateCategories(),
+        adminCategories: await findTemplateCategoriesWithIds(),
+      };
     }
 
     await connection.query<ResultSetHeader>(
@@ -104,6 +113,7 @@ export async function updateTemplateCategory(
   return {
     updated: true,
     categories: await findTemplateCategories(),
+    adminCategories: await findTemplateCategoriesWithIds(),
   };
 }
 
@@ -115,11 +125,21 @@ export async function deleteTemplateCategory(id: number) {
   const categoryName = categoryRows[0]?.name;
 
   if (!categoryName) {
-    return { deleted: false, inUse: false, categories: await findTemplateCategories() };
+    return {
+      deleted: false,
+      inUse: false,
+      categories: await findTemplateCategories(),
+      adminCategories: await findTemplateCategoriesWithIds(),
+    };
   }
 
   if (await isCategoryInUseById(id, categoryName)) {
-    return { deleted: false, inUse: true, categories: await findTemplateCategories() };
+    return {
+      deleted: false,
+      inUse: true,
+      categories: await findTemplateCategories(),
+      adminCategories: await findTemplateCategoriesWithIds(),
+    };
   }
 
   const [result] = await pool.query<ResultSetHeader>(
@@ -131,6 +151,7 @@ export async function deleteTemplateCategory(id: number) {
     deleted: result.affectedRows > 0,
     inUse: false,
     categories: await findTemplateCategories(),
+    adminCategories: await findTemplateCategoriesWithIds(),
   };
 }
 

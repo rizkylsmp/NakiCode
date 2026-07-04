@@ -74,6 +74,7 @@ categoriesRouter.post("/", requireAdmin, async (request, response) => {
       source: "mysql",
       category: result.category,
       categories: result.categories,
+      adminCategories: result.adminCategories,
       message: result.wasCreated
         ? "Kategori berhasil ditambahkan."
         : "Kategori sudah tersedia.",
@@ -121,6 +122,7 @@ categoriesRouter.put("/:id", requireAdmin, async (request, response) => {
     response.json({
       source: "mysql",
       categories: result.categories,
+      adminCategories: result.adminCategories,
       message: "Kategori berhasil diperbarui.",
     });
   } catch (error) {
@@ -161,6 +163,7 @@ categoriesRouter.delete("/:id", requireAdmin, async (request, response) => {
     response.json({
       source: "mysql",
       categories: result.categories,
+      adminCategories: result.adminCategories,
       message: "Kategori berhasil dihapus.",
     });
   } catch (error) {
