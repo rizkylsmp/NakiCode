@@ -12,6 +12,7 @@ type PortfolioAdminPanelProps = {
   isSaving: boolean;
   isModalOpen: boolean;
   deletingProjectId: number | null;
+  deleteCandidateProject?: PortfolioItem | null;
   adminToken: string | null;
   onStartEdit: (project: PortfolioItem) => void;
   onReset: () => void;
@@ -31,6 +32,7 @@ export function PortfolioAdminPanel({
   isSaving,
   isModalOpen,
   deletingProjectId,
+  deleteCandidateProject = null,
   adminToken,
   onStartEdit,
   onReset,
@@ -108,7 +110,7 @@ export function PortfolioAdminPanel({
         onUpdateField={onUpdateField}
       />
 
-      {deletingProjectId !== null ? createPortal(
+      {deleteCandidateProject ? createPortal(
         <div
           className="fixed inset-0 z-9999 flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
           role="dialog"
@@ -121,6 +123,7 @@ export function PortfolioAdminPanel({
               </h2>
               <button
                 className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
+                disabled={deletingProjectId !== null}
                 onClick={onCancelDelete}
                 type="button"
                 aria-label="Tutup dialog"
@@ -130,22 +133,25 @@ export function PortfolioAdminPanel({
             </div>
             <div className="p-5">
               <p className="text-sm text-naki-smoke leading-relaxed">
-                Portofolio akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan.
+                Portofolio "{deleteCandidateProject.title}" akan dihapus secara permanen.
+                Tindakan ini tidak bisa dibatalkan.
               </p>
               <div className="mt-5 flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
                 <button
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
+                  disabled={deletingProjectId !== null}
                   onClick={onCancelDelete}
                   type="button"
                 >
                   Batal
                 </button>
                 <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-medium text-white transition hover:opacity-90"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={deletingProjectId !== null}
                   onClick={onConfirmDelete}
                   type="button"
                 >
-                  Hapus
+                  {deletingProjectId !== null ? "Menghapus..." : "Hapus"}
                 </button>
               </div>
             </div>

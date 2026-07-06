@@ -184,24 +184,24 @@ export function OrdersPanel({
     <div className="space-y-6">
       {/* Stats */}
       {ordersStats && (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-6">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Total Orders</p>
             <p className="mt-2 text-2xl font-bold text-naki-primary">{ordersStats.totalOrders}</p>
           </div>
-          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-6">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Revenue</p>
             <p className="mt-2 text-2xl font-bold text-naki-primary">{formatRupiah(ordersStats.totalRevenue)}</p>
           </div>
-          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-6">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Paid</p>
             <p className="mt-2 text-2xl font-bold text-naki-primary">{ordersStats.paidOrders}</p>
           </div>
-          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-6">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">New</p>
             <p className="mt-2 text-2xl font-bold text-naki-secondary">{ordersStats.newOrders}</p>
           </div>
-          <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-6">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Failed Payments</p>
             <p className="mt-2 text-2xl font-bold text-naki-secondary">{ordersStats.failedPayments}</p>
           </div>
@@ -209,7 +209,7 @@ export function OrdersPanel({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-naki-primary">Orders</h1>
           <p className="mt-1 text-sm text-naki-smoke">
@@ -260,7 +260,7 @@ export function OrdersPanel({
       )}
 
       {/* Filters */}
-      <div className="rounded-xl border border-naki-steel bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-5">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <p className="text-sm font-semibold text-naki-primary">Filter orders</p>
@@ -320,7 +320,7 @@ export function OrdersPanel({
             onChange={updatePaymentStatusFilter}
           />
         </div>
-        <div className="mt-5 flex flex-col gap-3 border-t border-naki-steel pt-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-5 flex flex-col gap-3 border-t border-naki-steel pt-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <button
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:border-naki-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
@@ -335,9 +335,9 @@ export function OrdersPanel({
               {selectedVisibleOrderIds.length} selected on this page
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end xl:justify-start">
             <select
-              className="h-9 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-xs font-medium text-naki-primary outline-none transition focus:border-naki-primary"
+              className="h-9 min-w-[132px] rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-xs font-medium text-naki-primary outline-none transition focus:border-naki-primary"
               onChange={(event) => setBulkStatus(event.target.value as OrderStatus)}
               value={bulkStatus}
             >

@@ -832,11 +832,9 @@ export function AdminTemplatesPage({
   async function handleConfirmDeleteCategory(categoryName: string) {
     setDeleteCandidateCategory(null);
 
-    // Refresh categoriesWithIds to ensure we have the latest data
-    const refreshedCategories = await refreshCategoriesWithIds();
-
-    // Find category from refreshed data
-    const category = refreshedCategories.find((c) => c.name === categoryName);
+    const category =
+      categoriesWithIds.find((currentCategory) => currentCategory.name === categoryName) ??
+      (await refreshCategoriesWithIds()).find((currentCategory) => currentCategory.name === categoryName);
     if (!category) {
       setCategoryStatus(`Kategori "${categoryName}" tidak ditemukan.`);
       return;
@@ -861,7 +859,6 @@ export function AdminTemplatesPage({
           currentCategories.filter((currentCategory) => currentCategory.id !== category.id),
         );
       }
-      await refreshCategoriesWithIds().catch(() => undefined);
       setCategoryStatus(data.message ?? `Kategori "${categoryName}" berhasil dihapus.`);
     } catch (error) {
       const errorMessage = getApiErrorMessage(error, "Gagal menghapus kategori.");
@@ -1323,6 +1320,7 @@ export function AdminTemplatesPage({
               isSaving={isSavingPortfolio}
               isModalOpen={isPortfolioModalOpen}
               deletingProjectId={deletingProjectId}
+              deleteCandidateProject={deleteCandidatePortfolio}
               adminToken={adminToken}
               onStartEdit={startEditPortfolio}
               onReset={resetPortfolioForm}

@@ -27,8 +27,8 @@ export function AdminLayout({
         adminUsername={adminUsername}
         onLogout={onLogout}
       />
-      <main className="ml-60">
-        <div className="p-6">{children}</div>
+      <main className="ml-56 xl:ml-60">
+        <div className="p-4 lg:p-5 xl:p-6">{children}</div>
       </main>
     </div>
   );

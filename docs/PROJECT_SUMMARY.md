@@ -1,16 +1,16 @@
 # Naki Code Project Summary
 
-Konteks tunggal untuk AI/dev saat bekerja di aplikasi Naki Code. File ini menggantikan `README.md`, `AGENTS.md`, dan dokumen lama di `docs/`.
+Sumber konteks utama untuk AI/dev saat bekerja di aplikasi Naki Code. File ini dirujuk oleh `AGENTS.md` dan menggantikan dokumentasi project lama yang tersebar di `README.md` maupun `docs/`.
 
 ## Instruksi Wajib untuk AI
 
 1. **Baca file ini sebelum mengerjakan task apa pun di repo ini.**
-2. **Setelah selesai mengerjakan task**, tambahkan 1 item checklist baru di bagian **AI Task Checklist / Changelog**.
-3. Format checklist wajib:
+2. **Setelah selesai mengerjakan task**, tambahkan 1 item checklist baru di `docs/CHANGELOG.md`.
+3. Format entri changelog wajib:
    - `- [x] YYYY-MM-DD - <ringkasan task selesai> - files: <path penting>`
 4. Jika task belum selesai atau ada blocker, tambahkan:
    - `- [ ] YYYY-MM-DD - <task tertunda/blocker> - reason: <alasan>`
-5. Jangan hapus checklist lama kecuali duplikat/salah.
+5. Jangan hapus entri changelog lama kecuali duplikat/salah.
 6. Jika mengubah arsitektur, endpoint, env, workflow, atau fitur besar, update bagian ringkasan terkait di file ini juga.
 7. Jangan simpan secret, token, password asli, atau data sensitif di file ini.
 8. Gunakan `rtk` untuk operasi shell bila hook mengubah command Bash otomatis.
@@ -19,24 +19,21 @@ Konteks tunggal untuk AI/dev saat bekerja di aplikasi Naki Code. File ini mengga
 
 ## Identitas Produk
 
-Naki Code adalah toko template coding dan jasa custom website. Produk utama:
+Naki Code adalah penyedia jasa pembuatan website dengan katalog design sebagai referensi awal. Pelanggan memilih arah visual dan fitur yang disukai, lalu tim Naki Code menyesuaikannya dengan identitas brand, konten, dan kebutuhan bisnis pelanggan.
 
-- Template Portfolio
-- Template E-commerce
-- Template Top up games
-- Template Web Bucin
-- Template CRUD/admin input data
-- Template Company profile
-- Pesanan custom website
+Katalog design berfungsi sebagai inspirasi dan titik awal konsultasi, bukan batas hasil akhir. Pelanggan tetap dapat meminta perubahan tampilan, struktur halaman, fitur, konten, dan integrasi. Source code juga tetap dapat dibeli pada design yang mendukung opsi tersebut.
+
+Catatan istilah teknis: beberapa nama internal seperti entitas database `templates`, route `/template`, dan komponen berawalan `Template` masih dipertahankan untuk kompatibilitas kode. Pada komunikasi dan UI yang dilihat pelanggan, gunakan istilah **design**.
 
 Inspirasi fungsi/menu berasal dari Web Ekspor, tetapi Naki Code **tidak** menyediakan domain, cek domain, atau paket hosting/domain.
 
 Target UX:
 
-- User cepat menemukan template cocok.
-- User bisa filter/search, compare, wishlist, lihat demo/detail, lalu beli atau konsultasi.
-- User paham perbedaan template siap pakai vs jasa custom.
-- Admin mudah mengelola template, kategori, order, blog, portofolio, dan status pembayaran.
+- User cepat menemukan design yang sesuai sebagai inspirasi website.
+- User bisa filter/search, compare, wishlist, melihat demo/detail, lalu konsultasi atau membeli source code jika tersedia.
+- User memahami bahwa design dapat diedit dan dikembangkan sesuai kebutuhan, bukan produk siap pakai yang kaku.
+- User memahami perbedaan antara jasa pembuatan website dan opsi pembelian source code.
+- Admin mudah mengelola design, kategori, order, blog, portofolio, dan status pembayaran.
 
 ---
 
@@ -78,7 +75,7 @@ Target UX:
 - Runtime migrations: `backend/src/runtime-migrations.ts` jalan otomatis saat API init/cold start.
 - SQL file migrations: `backend/database/migrations/*.sql` dijalankan manual via `npm run migrate:sql --workspace backend`.
 - Bootstrap DB: `backend/src/db.ts` -> create database dari `MYSQL_DATABASE`, apply baseline schema, ensure columns, run runtime migrations.
-- Kategori template dinormalisasi via `templates.category_id` -> `template_categories.id`; `templates.category` masih dipertahankan sebagai compatibility/display fallback.
+- Kategori design dinormalisasi secara teknis via `templates.category_id` -> `template_categories.id`; `templates.category` masih dipertahankan sebagai compatibility/display fallback.
 - MySQL wajib tersedia. Backend harus gagal start jika DB init gagal.
 - Query manual dipisah di `backend/src/models/*`; route sebaiknya tidak menulis query besar langsung kecuali endpoint kecil/statistik.
 
@@ -124,8 +121,8 @@ Jangan commit `.env`.
 ## Route Frontend Utama
 
 - `/` - home/storefront
-- `/template` - katalog via home element + query kategori/search
-- `/templates/:slug` - detail template
+- `/template` - katalog design via home element + query kategori/search
+- `/templates/:slug` - detail design
 - `/login` - login/register user + admin
 - `/forgot-password` - reset password via OTP email
 - `/verify-email` - verifikasi email via OTP
@@ -134,8 +131,8 @@ Jangan commit `.env`.
 - `/pesanan-saya` - order user, butuh login
 - `/checkout/:orderId` - checkout/payment, butuh login
 - `/akun-saya` dan `/profile` - profil user
-- `/wishlist` - template favorit user
-- `/compare` - compare 2-3 template
+- `/wishlist` - design favorit user
+- `/compare` - compare 2-3 design
 - `/admin/dashboard`, `/admin/templates`, `/admin/orders`, `/admin/portfolio` - admin panel, butuh role admin
 
 ---
@@ -188,7 +185,7 @@ Admin:
 
 - `GET /api/orders` (admin)
 - `PATCH /api/orders/:id/status` (admin)
-- Template/category/project/blog CRUD routes
+- Design/category/project/blog CRUD routes (nama endpoint design masih memakai `/templates`)
 - `GET /api/admin/stats`
 - `POST /api/uploads/images` (admin)
 
@@ -213,7 +210,7 @@ Business:
 - Global 401 handler auto logout.
 - Backend pakai `helmet`, rate limit global API, auth rate limit lebih ketat, CORS allowlist dari `CLIENT_ORIGINS`.
 - Admin action penting masuk `admin_audit_logs`.
-- Template/order/project/blog memakai soft delete via `deleted_at`.
+- Design/order/project/blog memakai soft delete via `deleted_at`.
 
 Production notes:
 
@@ -252,7 +249,7 @@ Mode:
 - Webhook Midtrans validasi `signature_key`, lalu set paid untuk `settlement` atau `capture` fraud `accept`.
 - Manual/dev confirm tetap ada sebagai fallback.
 - Source code/panduan dikunci sampai `payment_status = paid`.
-- Rating template hanya diterima jika user punya order paid untuk template itu.
+- Rating design hanya diterima jika user punya order paid untuk design itu.
 
 ---
 
@@ -269,7 +266,7 @@ Mode:
 
 ## Upload & Image
 
-- Preview image template **tidak boleh** disimpan sebagai base64 di MySQL.
+- Preview image design **tidak boleh** disimpan sebagai base64 di MySQL.
 - Admin upload via `POST /api/uploads/images`.
 - Jika `CLOUDINARY_URL` tersedia, gambar masuk Cloudinary.
 - Jika tidak, fallback local `/uploads`.
@@ -294,7 +291,7 @@ Mode:
   - `shadow-naki-soft`
   - `shadow-naki-card`
 - Background utama memakai class global `naki-frosted-grid` dari `frontend/src/styles.css`.
-- App harus terasa seperti katalog/template store siap pakai, bukan landing kosong.
+- App harus terasa seperti katalog jasa pembuatan website berbasis design referensi, bukan katalog produk siap pakai atau landing kosong.
 - Form status/error utama perlu `aria-live` region.
 
 ---
@@ -303,15 +300,15 @@ Mode:
 
 Core/storefront:
 
-- Katalog template
+- Katalog design
 - Filter kategori
-- Search template
-- Detail template
-- Related templates
+- Search design
+- Detail design
+- Related designs
 - Breadcrumb
 - Rating/review buyer
 - Wishlist/favorites
-- Compare template
+- Compare design
 - Social sharing/copy link/Web Share API
 - Search history/recently viewed
 - Blog DB real (`/blog`, `/blog/:slug`)
@@ -332,15 +329,15 @@ User/auth:
 Admin:
 
 - Admin route `/admin/dashboard`
-- CRUD templates
+- CRUD design
 - CRUD categories
 - CRUD projects/portfolio
 - Blog/tutorial management API
 - Order management tab
 - Filter/update order status
-- Soft delete template/order/project/blog
+- Soft delete design/order/project/blog
 - Audit trail admin
-- Admin stats endpoint: total orders, revenue, orders by status, top templates, recent orders, weekly revenue
+- Admin stats endpoint: total orders, revenue, orders by status, top designs, recent orders, weekly revenue
 
 Backend/platform:
 
@@ -382,7 +379,7 @@ Done:
 - Blog SEO baseline
 - Analytics provider abstraction
 - PWA/service worker
-- Template compare
+- Design compare
 - CI/CD pipeline
 - Error boundary fallback
 - Integration tests
@@ -402,7 +399,7 @@ Improvement backlog:
 - [x] Task 2 - Rapikan CI/test coverage agar root test menjalankan frontend dan backend; test frontend saat ini perlu provider wrapper untuk Header/Auth/QueryClient.
 - [x] Task 3 - Siapkan production payment readiness: webhook sandbox, idempotency, logging failure, dan dashboard alasan gagal bayar.
 - [x] Task 4 - Polish admin UX: bulk action, table density, keyboard-friendly search/filter, dan state kosong/error konsisten.
-- [x] Task 5 - Tingkatkan SEO dan conversion katalog: schema product/review, CTA detail template, related templates, dan halaman kategori indexable.
+- [x] Task 5 - Tingkatkan SEO dan conversion katalog: schema product/review, CTA detail design, related designs, dan halaman kategori indexable.
 - [ ] Task 6 - Perkuat observability production dengan release tagging, request ID, structured logs, dan health dashboard kecil.
 
 ---
@@ -435,16 +432,3 @@ npm run backup:db --workspace backend
 npm run backup:list --workspace backend
 npm run payment:webhook:sandbox --workspace backend -- <payment_reference> <settlement|pending|deny|cancel|expire|failure> <amount> [webhook_url]
 ```
-
----
-
-## AI Task Checklist / Changelog
-
-- [x] 2026-07-04 - Hardening admin kategori dan testimoni: sinkronisasi state kategori setelah mutasi, validasi API testimonial dengan Zod, cegah testimonial dari review kosong, stabilkan reorder saat filter aktif, tampilkan loading testimoni, perbaiki pesan error API, dan longgarkan delete kategori yang hanya direferensikan design soft-delete - files: backend/src/models/category.model.ts, backend/src/models/testimonial.model.ts, backend/src/routes/testimonials.ts, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/pages/admin/AdminCategoriesSection.tsx, frontend/src/pages/admin/AdminTestimonialsSection.tsx, frontend/src/services/api-client.ts, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Task 1 bundle optimization frontend: lazy load auth/not-found routes, defer Sentry, split vendor chunks, dan ganti zxcvbn frontend dengan strength heuristic ringan; main entry turun dari 926.56 kB ke 35.47 kB - files: frontend/src/App.tsx, frontend/src/main.tsx, frontend/src/ErrorBoundary.tsx, frontend/src/components/PasswordStrengthIndicator.tsx, frontend/vite.config.ts, frontend/vite.config.js, frontend/package.json, package-lock.json, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Task 2 CI/test coverage: root npm test menjalankan frontend dan backend, test frontend memakai provider wrapper Auth/QueryClient/Router, webhook payment test backend diisolasi dari bootstrap DB, dan backend typecheck CI dibersihkan; root test lulus 122 test - files: package.json, frontend/package.json, .github/workflows/ci.yml, frontend/src/test/render.tsx, frontend/src/test/setup.ts, frontend/src/pages/__tests__/UserLoginPage.test.tsx, frontend/src/components/__tests__/Header.test.tsx, backend/src/__tests__/payments.integration.test.ts, backend/package.json, backend/src/routes/uploads.ts, backend/src/security.ts, backend/src/server.ts, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Task 3 production payment readiness: tambah tabel payment_webhook_events untuk idempotency webhook Midtrans, simpan failure reason/code/last webhook di orders, tambah script sandbox signed webhook, tampilkan alasan pembayaran gagal di admin dashboard/orders, dan stabilkan test single-worker; root test lulus 123 test - files: backend/database/schema.sql, backend/src/db.ts, backend/src/migrations.ts, backend/src/models/order.model.ts, backend/src/models/payment-webhook-event.model.ts, backend/src/routes/payments.ts, backend/src/routes/orders-stats.ts, backend/src/scripts/midtrans-webhook-sandbox.ts, backend/src/__tests__/payments.integration.test.ts, backend/src/__tests__/templates.integration.test.ts, backend/package.json, frontend/package.json, frontend/src/order-types.ts, frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/AdminDashboardHome.tsx, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Task 4 admin UX polish: tambah selection dan bulk status update di Orders, density switch comfort/compact, search current page dengan Escape-to-clear, status/empty state konsisten, dan template search reset yang keyboard-friendly - files: frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/TemplatesPanel.tsx, frontend/src/pages/admin/AdminTemplateWorkspace.tsx, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Task 5 SEO dan conversion katalog: tambah route kategori indexable `/template/kategori/:categorySlug`, canonical/meta/ItemList/Breadcrumb schema untuk katalog, Product review schema dan breadcrumb kategori di detail template, related templates berbasis kategori/stack, CTA trust list di sidebar checkout, serta sitemap kategori; build frontend lulus - files: frontend/src/App.tsx, frontend/src/template-url.ts, frontend/src/pages/TemplateCatalogPage.tsx, frontend/src/pages/TemplateDetailPage.tsx, frontend/src/components/TemplateFilterBar.tsx, frontend/src/components/TemplateCatalog.tsx, frontend/scripts/generate-sitemap.mjs, frontend/public/sitemap.xml, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Admin testimoni polish: tambah summary, pencarian, filter status/sumber, tombol refresh dan status loading di menu Testimoni; label admin dilokalkan, z-index modal diperbaiki, chart tooltip dashboard dibuat lint-safe, dan backend testimonial soft-delete tidak lagi muncul di endpoint public/available rating - files: frontend/src/pages/admin/AdminTestimonialsSection.tsx, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/components/admin/AdminSidebar.tsx, frontend/src/pages/admin/AdminDashboardPage.tsx, frontend/src/pages/admin/AdminTemplateWorkspace.tsx, backend/src/models/testimonial.model.ts, docs/PROJECT_SUMMARY.md
-- [x] 2026-07-03 - Normalisasi karakter Unicode di dokumentasi ke ASCII agar changelog dan project summary tidak tampil mojibake di terminal Windows/RTK - files: docs/CHANGELOG.md, docs/PROJECT_SUMMARY.md

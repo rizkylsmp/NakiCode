@@ -131,7 +131,6 @@ export function AdminCategoriesSection({
       } else {
         onCategoriesChange(categories.filter((category) => category.id !== deletedId));
       }
-      await refreshAdminCategories().catch(() => undefined);
       setError("");
       setIsDeleteOpen(false);
       setDeleteTarget(null);
