@@ -216,6 +216,17 @@ html[data-theme="dark"] .hover\:border-naki-primary\/40:hover {
   z-index: 300;
 }
 
+.naki-logo-image {
+  display: block;
+  filter: drop-shadow(0 1px 1px rgb(15 23 42 / 0.12));
+}
+
+html[data-theme="dark"] .naki-logo-image,
+.naki-logo-image-on-dark {
+  filter: invert(1) brightness(1.35) contrast(1.08)
+    drop-shadow(0 1px 1px rgb(0 0 0 / 0.25));
+}
+
 button {
   cursor: pointer;
 }

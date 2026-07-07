@@ -1,17 +1,19 @@
-import { Code2 } from "lucide-react";
-
 type LogoMarkProps = {
   className?: string;
   size?: number;
 };
 
 export function LogoMark({
-  className = "grid size-10 place-items-center rounded-lg bg-blue-500/10",
-  size = 22,
+  className = "naki-logo-image h-10 w-auto object-contain",
+  size = 40,
 }: LogoMarkProps) {
   return (
-    <span className={className}>
-      <Code2 className="text-blue-500" size={size} />
-    </span>
+    <img
+      className={className}
+      src="/logo.png"
+      alt="Naki Code"
+      width={size}
+      height={size}
+    />
   );
 }

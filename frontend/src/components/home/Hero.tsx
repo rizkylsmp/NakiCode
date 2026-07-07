@@ -18,32 +18,34 @@ export function Hero({
       {/* Subtle gradient glow at top */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-50/80 via-transparent to-transparent" />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-3 py-8 sm:px-5 md:px-8 md:py-10 lg:py-12 xl:px-12 2xl:px-16">
-        <div className="grid gap-8 md:grid-cols-2 md:items-center md:gap-12">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-7 sm:px-5 md:px-8 md:py-10 lg:py-12 xl:px-12 2xl:px-16">
+        <div className="grid gap-7 md:grid-cols-2 md:items-center md:gap-12">
           {/* Left: Text content */}
-          <div className="lg:pr-8">
+          <div className="text-center md:text-left lg:pr-8">
             {/* Badge */}
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-600">
+            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 sm:px-4 sm:text-sm">
               <Sparkles size={14} />
-              {totalTemplates}+ design website siap disesuaikan
+              <span className="truncate">
+                {totalTemplates}+ design website siap disesuaikan
+              </span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-naki-primary md:text-5xl lg:text-6xl">
+            <h1 className="text-3xl font-extrabold leading-[1.08] tracking-tight text-naki-primary sm:text-4xl md:text-5xl lg:text-6xl">
               Wujudkan Website{" "}
               <span className="text-blue-500">Sesuai Brand</span> dari Design
               Pilihanmu
             </h1>
 
             {/* Subtitle */}
-            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-naki-smoke md:text-lg lg:mx-0">
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-naki-smoke sm:text-base md:text-lg lg:mx-0">
               Pilih design sebagai inspirasi, lalu kami sesuaikan tampilan,
               konten, dan fiturnya menjadi website yang benar-benar cocok untuk
               kebutuhanmu.
             </p>
 
             {/* CTA Buttons */}
-            <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row">
+            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:justify-start">
               <a
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
                 href="/template"
@@ -60,7 +62,7 @@ export function Hero({
             </div>
 
             {/* Social Proof */}
-            <div className="mt-8 flex items-center gap-2 text-sm text-naki-smoke">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm text-naki-smoke md:justify-start">
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4].map((i) => (
                   <span
@@ -71,7 +73,7 @@ export function Hero({
                   </span>
                 ))}
               </div>
-              <span className="font-medium">
+              <span className="max-w-[260px] font-medium sm:max-w-none">
                 Dipercaya{" "}
                 <strong className="text-naki-primary">
                   {totalDevelopers}+
@@ -81,12 +83,11 @@ export function Hero({
             </div>
 
             {/* Feature checks */}
-            <div className="mt-8 grid grid-cols-2 gap-4">
+            <div className="mx-auto mt-7 grid max-w-sm gap-3 text-left sm:max-w-none sm:grid-cols-3 md:mx-0">
               {[
                 "Design siap edit",
                 "Revisi terarah",
                 "Website responsif",
-                "Source code opsional",
               ].map((item) => (
                 <span
                   key={item}
@@ -100,10 +101,10 @@ export function Hero({
           </div>
 
           {/* Right: Character visual */}
-          <div className="relative order-first min-h-[320px] sm:min-h-[390px] md:order-none md:min-h-[400px] lg:pl-4">
+          <div className="relative min-h-[300px] sm:min-h-[360px] md:min-h-[400px] lg:pl-4">
             <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible sm:top-8 lg:left-8 lg:right-0">
               <img
-                className="absolute bottom-0 left-1/2 h-[370px] max-w-none -translate-x-1/2 object-contain object-bottom sm:h-[420px] md:bottom-auto md:-top-8 md:h-[470px] lg:-top-12 lg:h-[500px]"
+                className="absolute bottom-0 left-1/2 h-[330px] max-w-none -translate-x-1/2 object-contain object-bottom sm:h-[400px] md:bottom-auto md:-top-8 md:h-[470px] lg:-top-12 lg:h-[500px]"
                 src="/images/hero-naki-character.png"
                 alt="Karakter Naki Code sebagai visual hero"
                 width="1080"
@@ -113,11 +114,11 @@ export function Hero({
               />
             </div>
 
-            <div className="absolute left-0 top-8 rounded-xl border border-naki-steel/70 bg-white px-5 py-3 shadow-lg sm:left-2">
+            <div className="absolute left-0 top-5 rounded-xl border border-naki-steel/70 bg-white px-4 py-2.5 shadow-lg sm:left-2 sm:top-8 sm:px-5 sm:py-3">
               <p className="text-[11px] font-semibold uppercase text-naki-smoke">
                 Design Bulan Ini
               </p>
-              <p className="mt-1 text-lg font-bold text-naki-primary">
+              <p className="mt-1 text-base font-bold text-naki-primary sm:text-lg">
                 {totalTemplates}+ Referensi
               </p>
             </div>
@@ -151,22 +152,14 @@ export function Hero({
               </div>
             </div>
 
-            <div className="absolute bottom-24 right-2 hidden rounded-xl border border-naki-steel/70 bg-white px-5 py-3 shadow-lg sm:block sm:right-6">
-              <p className="text-[11px] font-semibold text-naki-smoke">
-                Source code
-              </p>
-              <p className="mt-1 text-lg font-bold text-naki-primary">
-                Opsional
-              </p>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Row */}
       <div className="border-y border-naki-steel/60 bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
-          <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-5 md:px-8 md:py-12 xl:px-12 2xl:px-16">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-7 md:grid-cols-4 md:gap-10">
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
                 {totalTemplates}+

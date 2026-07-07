@@ -43,7 +43,7 @@ Target UX:
 
 - Root npm workspaces: `frontend` dan `backend`.
 - Root build: `npm run build`.
-- Dev: `npm run dev` atau `dev.cmd` di Windows.
+- Dev: `npm run dev` atau `dev.cmd` di Windows. Root dev script otomatis memilih port kosong berikutnya jika port default frontend (`5173`) atau backend (`3001`) sedang dipakai, lalu mengirim `VITE_API_URL`, `PORT`, dan CORS local yang sesuai. Override default local bisa memakai env `FRONTEND_PORT` dan `BACKEND_PORT`.
 
 ### Frontend
 

@@ -32,7 +32,7 @@ export function TemplateFilterBar({
   resultCount,
 }: TemplateFilterBarProps) {
   return (
-    <div className="mx-auto max-w-7xl px-5 md:px-8 xl:px-12 2xl:px-16">
+    <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
       <div className="rounded-xl border border-naki-steel bg-white px-4 py-3 shadow-sm md:px-6 md:py-4">
         {/* Top row: search + sort */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -57,7 +57,7 @@ export function TemplateFilterBar({
               <SlidersHorizontal size={16} />
             </span>
             <select
-              className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none focus:border-blue-400"
+              className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none focus:border-blue-400 md:w-auto"
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
             >
@@ -71,9 +71,9 @@ export function TemplateFilterBar({
         </div>
 
         {/* Bottom row: category pills */}
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-naki-steel pt-3">
+        <div className="mt-3 flex gap-2 overflow-x-auto border-t border-naki-steel pt-3 pb-1">
           <Link
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+            className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               activeCategory === "Semua"
                 ? "bg-naki-primary text-white"
                 : "bg-naki-frost text-naki-smoke hover:text-naki-primary"
@@ -88,7 +88,7 @@ export function TemplateFilterBar({
             .map((cat) => (
               <Link
                 key={cat}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   activeCategory === cat
                     ? "bg-naki-primary text-white"
                     : "bg-naki-frost text-naki-smoke hover:text-naki-primary"

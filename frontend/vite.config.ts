@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { visualizer } from 'rollup-plugin-visualizer';
 
+const devPort = Number(process.env.VITE_DEV_PORT || 5173);
+const apiTarget = process.env.VITE_API_URL || 'http://localhost:3001';
+
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
@@ -59,10 +62,10 @@ export default defineConfig(({ mode }) => ({
     },
   },
   server: {
-    port: 5173,
+    port: devPort,
     proxy: {
-      '/api': 'http://localhost:3001',
-      '/uploads': 'http://localhost:3001',
+      '/api': apiTarget,
+      '/uploads': apiTarget,
     },
   },
 }));

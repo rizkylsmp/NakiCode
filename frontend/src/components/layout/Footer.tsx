@@ -1,4 +1,4 @@
-import { Code2, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 
 // Simple inline SVG icons for social links since lucide-react doesn't export brand icons
 function GitHubIcon() {
@@ -63,14 +63,14 @@ export function Footer() {
           <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
             {/* Brand + Socials */}
             <div className="sm:col-span-2 lg:col-span-1">
-              <a className="flex items-center gap-2.5" href="/">
-                <span className="grid size-9 place-items-center rounded-lg bg-blue-500/20">
-                  <Code2 className="text-blue-400" size={20} />
-                </span>
-                <span className="text-lg font-bold tracking-tight">
-                  <span className="text-white">Naki</span>
-                  <span className="text-blue-400">Code</span>
-                </span>
+              <a className="inline-flex items-center" href="/" aria-label="NakiCode home">
+                <img
+                  className="naki-logo-image naki-logo-image-on-dark h-12 w-auto object-contain"
+                  src="/logo.png"
+                  alt="Naki Code"
+                  width="1024"
+                  height="1024"
+                />
               </a>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
                 Jasa pembuatan website dengan design referensi yang siap disesuaikan.

@@ -112,7 +112,7 @@ export function TemplateCard({
           ) : null}
         </div>
 
-        <div className="mt-3 flex items-end justify-between">
+        <div className="mt-3 flex items-end justify-between gap-3">
           <div>
             <p className="text-xs text-naki-smoke">Opsi source code</p>
             <p className="text-lg font-bold text-naki-primary">
@@ -120,7 +120,7 @@ export function TemplateCard({
             </p>
           </div>
           <Link
-            className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-500 transition hover:bg-blue-100"
+            className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-500 transition hover:bg-blue-100"
             to={`/templates/${template.slug}`}
             aria-label={`Lihat design ${template.title}`}
           >

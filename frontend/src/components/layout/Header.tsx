@@ -110,10 +110,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-[60] border-b border-naki-steel/60 bg-white">
-      <div className="flex w-full items-center justify-between gap-4 px-5 py-3 md:px-8 xl:px-12 2xl:px-16">
+      <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
         <SiteLogo />
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {headerNavItems.map((item) => (
             <Link
               key={item.label}
@@ -129,7 +129,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <button
             className="grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
             type="button"
@@ -189,7 +189,7 @@ export function Header() {
         </div>
 
         <button
-          className="grid size-10 place-items-center rounded-lg text-naki-primary md:hidden"
+          className="grid size-10 place-items-center rounded-lg text-naki-primary lg:hidden"
           aria-expanded={isMobileMenuOpen}
           aria-label="Buka menu"
           onClick={() => setIsMobileMenuOpen((current) => !current)}
@@ -202,11 +202,13 @@ export function Header() {
       {isMobileMenuOpen ? (
         <MobileMenu
           activeProfile={activeProfile}
+          isDarkMode={isDarkMode}
           isActiveNav={isActiveNav}
           loginNext={loginNext}
           navItems={headerNavItems}
           onClose={closeMobileMenu}
           onLogout={handleLogout}
+          onToggleTheme={() => setIsDarkMode((current) => !current)}
         />
       ) : null}
     </header>
