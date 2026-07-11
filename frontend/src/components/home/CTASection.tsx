@@ -42,8 +42,8 @@ export function CTASection() {
                 </p>
                 <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row md:justify-start">
                   <a
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
-                    href="/template"
+                    className="naki-inverse-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
+                    href="/design"
                   >
                     Jelajahi Design
                     <ArrowRight size={16} />

@@ -153,7 +153,7 @@ export function AdminDashboardPage({
       color: "blue",
       change: "+2",
       changeType: "up" as const,
-      view: "templates" as DashboardView,
+      view: "design" as DashboardView,
     },
     {
       label: "Total Orders",
@@ -196,7 +196,7 @@ export function AdminDashboardPage({
       label: "Kelola Design",
       desc: "Add, edit, or delete catalog products",
       icon: FileText,
-      view: "templates" as DashboardView,
+      view: "design" as DashboardView,
       color: "blue",
     },
     {

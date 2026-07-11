@@ -20,7 +20,7 @@ export function PortfolioSection({ items, isLoading = false }: PortfolioSectionP
                 Portofolio
               </p>
               <h2 className="mt-1 text-2xl font-bold text-naki-primary md:text-3xl">
-                Karya Developer Kami
+                Website yang sudah kami kerjakan
               </h2>
               <p className="mt-2 max-w-xl text-sm text-naki-smoke">
                 Contoh website yang kami kerjakan dari design referensi maupun brief custom.
@@ -28,9 +28,9 @@ export function PortfolioSection({ items, isLoading = false }: PortfolioSectionP
             </div>
             <a
               className="inline-flex items-center gap-1 text-sm font-medium text-blue-500 transition hover:text-blue-600"
-              href="#layanan"
+              href="#cara-kerja"
             >
-              Request mirip ini
+              Lihat cara kerjanya
               <ArrowRight size={14} />
             </a>
           </div>

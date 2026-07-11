@@ -2,10 +2,14 @@ import { Router } from 'express';
 import * as Sentry from '@sentry/node';
 import { z } from 'zod';
 import {
+  createCoupon,
+  deleteCoupon,
+  findCoupons,
   findActiveTemplateBundles,
-  trackReferralClick,
+  updateCoupon,
   validateCoupon,
 } from '../models/business.model';
+import { requireAdmin } from '../auth';
 import { parseBody, parseParams } from '../validation';
 
 export const businessRouter = Router();
@@ -15,8 +19,18 @@ const couponBodySchema = z.object({
   amount: z.coerce.number().int().positive(),
 });
 
-const referralParamsSchema = z.object({
-  code: z.string().trim().min(1).max(80),
+const couponParamsSchema = z.object({ id: z.coerce.number().int().positive() });
+const couponMutationSchema = z.object({
+  code: z.string().trim().min(2).max(60).regex(/^[A-Za-z0-9_-]+$/),
+  description: z.string().trim().min(3).max(255),
+  discountType: z.enum(['percent', 'fixed']),
+  discountValue: z.coerce.number().int().positive(),
+  active: z.boolean().default(true),
+  expiresAt: z.string().datetime().nullable().default(null),
+}).superRefine((value, context) => {
+  if (value.discountType === 'percent' && value.discountValue > 100) {
+    context.addIssue({ code: 'custom', path: ['discountValue'], message: 'Diskon persen maksimal 100' });
+  }
 });
 
 businessRouter.get('/bundles', async (_request, response) => {
@@ -59,18 +73,51 @@ businessRouter.post('/coupons/validate', async (request, response) => {
   }
 });
 
-businessRouter.post('/referrals/:code/click', async (request, response) => {
-  const params = parseParams(referralParamsSchema, request, response);
-
-  if (!params) {
-    return;
-  }
-
+businessRouter.get('/coupons', requireAdmin, async (_request, response) => {
   try {
-    await trackReferralClick(params.code);
-    response.json({ source: 'mysql', tracked: true });
+    response.json({ source: 'mysql', coupons: await findCoupons() });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mencatat referral' });
+    response.status(500).json({ message: 'Gagal memuat kupon' });
+  }
+});
+
+businessRouter.post('/coupons', requireAdmin, async (request, response) => {
+  const body = parseBody(couponMutationSchema, request, response);
+  if (!body) return;
+  try {
+    const id = await createCoupon(body);
+    response.status(201).json({ source: 'mysql', id, coupons: await findCoupons() });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(409).json({ message: 'Kode kupon sudah digunakan' });
+  }
+});
+
+businessRouter.put('/coupons/:id', requireAdmin, async (request, response) => {
+  const params = parseParams(couponParamsSchema, request, response);
+  const body = parseBody(couponMutationSchema, request, response);
+  if (!params || !body) return;
+  try {
+    if (!(await updateCoupon(params.id, body))) {
+      response.status(404).json({ message: 'Kupon tidak ditemukan' }); return;
+    }
+    response.json({ source: 'mysql', coupons: await findCoupons() });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(409).json({ message: 'Kode kupon sudah digunakan' });
+  }
+});
+
+businessRouter.delete('/coupons/:id', requireAdmin, async (request, response) => {
+  const params = parseParams(couponParamsSchema, request, response);
+  if (!params) return;
+  try {
+    const result = await deleteCoupon(params.id);
+    if (!result.found) { response.status(404).json({ message: 'Kupon tidak ditemukan' }); return; }
+    response.json({ source: 'mysql', archived: result.archived, coupons: await findCoupons() });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: 'Gagal menghapus kupon' });
   }
 });

@@ -30,6 +30,7 @@ import { PortfolioAdminPanel } from "./admin/PortfolioAdminPanel";
 import { BlogAdminPanel } from "./admin/BlogAdminPanel";
 import { AdminTestimonialsSection } from "./admin/AdminTestimonialsSection";
 import { AdminCategoriesSection } from "./admin/AdminCategoriesSection";
+import { AdminCouponsSection } from "./admin/AdminCouponsSection";
 import {
   adminBlogPostsPageSize,
   adminOrdersPageSize,
@@ -155,7 +156,7 @@ export function AdminTemplatesPage({
     pageSize: adminOrdersPageSize,
   });
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(
-    () => routeAdminView === "templates" && window.location.hash === "#new-template",
+    () => routeAdminView === "design" && window.location.hash === "#new-design",
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
@@ -218,7 +219,7 @@ export function AdminTemplatesPage({
 
     setActiveAdminView(routeAdminView);
     setIsTemplateModalOpen(
-      routeAdminView === "templates" && location.hash === "#new-template",
+      routeAdminView === "design" && location.hash === "#new-design",
     );
 
     if (routeAdminView === "orders" && isAdmin && adminToken) {
@@ -260,7 +261,7 @@ export function AdminTemplatesPage({
   useEffect(() => {
     let isActive = true;
 
-    apiGet<TemplatesResponse>("/api/templates")
+    apiGet<TemplatesResponse>("/api/designs")
       .then((data: TemplatesResponse) => {
         if (isActive && Array.isArray(data.templates)) {
           onTemplatesChange(data.templates);
@@ -457,7 +458,7 @@ export function AdminTemplatesPage({
   }
 
   function startCreate() {
-    navigate("/admin/templates#new-template");
+    navigate("/admin/design#new-design");
     setSelectedId(null);
     setForm(defaultFormState);
     setIsTemplateModalOpen(true);
@@ -465,7 +466,7 @@ export function AdminTemplatesPage({
   }
 
   const startEdit = useCallback((template: TemplateItem) => {
-    navigate("/admin/templates");
+    navigate("/admin/design");
     setSelectedId(template.id);
     setForm(templateToForm(template));
     setIsTemplateModalOpen(true);
@@ -474,7 +475,7 @@ export function AdminTemplatesPage({
 
   function closeTemplateModal() {
     if (!isSaving) {
-      navigate("/admin/templates", { replace: true });
+      navigate("/admin/design", { replace: true });
       setIsTemplateModalOpen(false);
     }
   }
@@ -631,10 +632,10 @@ export function AdminTemplatesPage({
     try {
       const data = isEditing
         ? await apiPut<TemplateMutationResponse>(
-            `/api/templates/${selectedTemplate.id}`,
+            `/api/designs/${selectedTemplate.id}`,
             payload,
           )
-        : await apiPost<TemplateMutationResponse>("/api/templates", payload);
+        : await apiPost<TemplateMutationResponse>("/api/designs", payload);
       const nextTemplates = isEditing
         ? templates.map((template) =>
             template.id === data.template.id ? data.template : template,
@@ -664,7 +665,7 @@ export function AdminTemplatesPage({
     setLoadingMessage(`Menghapus design ${template.title}...`);
 
     try {
-      await apiDelete(`/api/templates/${template.id}`);
+      await apiDelete(`/api/designs/${template.id}`);
 
       onTemplatesChange(
         templates.filter(
@@ -1239,7 +1240,7 @@ export function AdminTemplatesPage({
             />
           )}
 
-          {activeAdminView === "templates" && (
+          {activeAdminView === "design" && (
             <TemplatesPanel
               templates={templates}
               paginatedTemplates={paginatedAdminTemplates}
@@ -1383,6 +1384,8 @@ export function AdminTemplatesPage({
               onRefresh={() => void refreshCategoriesWithIds()}
             />
           )}
+
+          {activeAdminView === "coupons" && <AdminCouponsSection />}
         </AdminLayout>
       )}
 

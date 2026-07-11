@@ -258,8 +258,8 @@ export function AdminTemplateWorkspace({
             <span className="hidden sm:inline">Dashboard</span>
           </button>
           <button
-            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "templates" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
-            onClick={() => onActiveAdminViewChange("templates")}
+            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition md:px-4 ${activeAdminView === "design" ? "bg-naki-primary text-white" : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"}`}
+            onClick={() => onActiveAdminViewChange("design")}
             type="button"
           >
             <ClipboardList size={16} />

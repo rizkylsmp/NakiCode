@@ -184,7 +184,7 @@ export function OrdersPanel({
     <div className="space-y-6">
       {/* Stats */}
       {ordersStats && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid auto-cols-[minmax(180px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-1 xl:grid-flow-row xl:grid-cols-5 xl:overflow-visible">
           <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-6">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">Total Orders</p>
             <p className="mt-2 text-2xl font-bold text-naki-primary">{ordersStats.totalOrders}</p>
@@ -216,15 +216,20 @@ export function OrdersPanel({
             Permintaan konsultasi dari halaman detail design.
           </p>
         </div>
-        <button
-          className="inline-flex items-center gap-2 rounded-lg border border-naki-steel bg-white px-4 py-2 text-sm font-medium text-naki-smoke transition hover:bg-naki-frost disabled:opacity-50"
-          disabled={isLoadingOrders}
-          onClick={onRefreshOrders}
-          type="button"
-        >
-          <RefreshCw size={14} className={isLoadingOrders ? "animate-spin" : ""} />
-          {isLoadingOrders ? "Loading..." : "Refresh"}
-        </button>
+        <div className="flex gap-2">
+          <button className="inline-flex h-10 items-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90" onClick={() => onOrderFiltersChange({ status: "new", paymentStatus: "all" })} type="button">
+            <Inbox size={15} />Perlu tindakan{ordersStats?.newOrders ? ` (${ordersStats.newOrders})` : ""}
+          </button>
+          <button
+            className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:bg-naki-frost disabled:opacity-50"
+            disabled={isLoadingOrders}
+            onClick={onRefreshOrders}
+            title="Refresh orders"
+            type="button"
+          >
+            <RefreshCw size={15} className={isLoadingOrders ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
       {ordersStatus && (
@@ -260,13 +265,11 @@ export function OrdersPanel({
       )}
 
       {/* Filters */}
-      <div className="rounded-xl border border-naki-steel bg-white p-4 shadow-sm xl:p-5">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+      <div className="rounded-xl border border-naki-steel bg-white p-3 shadow-sm">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
           <div>
             <p className="text-sm font-semibold text-naki-primary">Filter orders</p>
-            <p className="mt-0.5 text-xs text-naki-smoke">
-              {visibleOrders.length} order tampil dari {ordersMeta.total} hasil filter.
-            </p>
+            <p className="mt-0.5 text-xs text-naki-smoke">{visibleOrders.length} dari {ordersMeta.total} order</p>
           </div>
           {(hasActiveFilters || hasActiveSearch || selectedOrderIds.length > 0) && (
             <button
@@ -278,11 +281,9 @@ export function OrdersPanel({
             </button>
           )}
         </div>
-        <div className="mt-5 grid gap-5 xl:grid-cols-[1.1fr_1fr_1fr]">
-          <label className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-naki-smoke">
-              Search current page
-            </span>
+        <div className="mt-3 grid gap-2 md:grid-cols-[minmax(220px,1fr)_160px_180px]">
+          <label>
+            <span className="sr-only">Cari order</span>
             <span className="flex h-10 items-center gap-2 rounded-lg border border-naki-steel bg-naki-page-bg px-3 focus-within:border-naki-primary">
               <Search size={15} className="text-naki-smoke" />
               <input
@@ -307,20 +308,20 @@ export function OrdersPanel({
               )}
             </span>
           </label>
-          <FilterButtonGroup
-            label="Order status"
+          <CompactFilterSelect
+            label="Status order"
             filters={orderStatusFilters}
             activeValue={orderFilters.status}
             onChange={updateStatusFilter}
           />
-          <FilterButtonGroup
-            label="Payment status"
+          <CompactFilterSelect
+            label="Pembayaran"
             filters={paymentStatusFilters}
             activeValue={orderFilters.paymentStatus}
             onChange={updatePaymentStatusFilter}
           />
         </div>
-        <div className="mt-5 flex flex-col gap-3 border-t border-naki-steel pt-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="mt-3 flex flex-col gap-2 border-t border-naki-steel pt-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <button
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:border-naki-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
@@ -329,10 +330,10 @@ export function OrdersPanel({
               type="button"
             >
               <CheckSquare size={14} />
-              {areAllVisibleOrdersSelected ? "Unselect page" : "Select page"}
+              {areAllVisibleOrdersSelected ? "Batalkan pilihan" : "Pilih halaman"}
             </button>
             <span className="text-xs text-naki-smoke">
-              {selectedVisibleOrderIds.length} selected on this page
+              {selectedVisibleOrderIds.length} dipilih di halaman ini
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end xl:justify-start">
@@ -356,7 +357,7 @@ export function OrdersPanel({
               onClick={applyBulkStatusUpdate}
               type="button"
             >
-              {isBulkUpdating ? "Updating..." : "Apply status"}
+              {isBulkUpdating ? "Memperbarui..." : "Terapkan status"}
             </button>
             <div className="inline-flex rounded-lg border border-naki-steel bg-white p-1">
               {(["comfortable", "compact"] as const).map((mode) => (
@@ -370,7 +371,7 @@ export function OrdersPanel({
                   onClick={() => setDensity(mode)}
                   type="button"
                 >
-                  {mode === "comfortable" ? "Comfort" : "Compact"}
+                  {mode === "comfortable" ? "Nyaman" : "Ringkas"}
                 </button>
               ))}
             </div>
@@ -386,13 +387,13 @@ export function OrdersPanel({
           <Inbox className="mx-auto text-naki-steel" size={40} />
           <h3 className="mt-4 text-lg font-bold text-naki-primary">
             {hasActiveFilters || hasActiveSearch
-              ? "No orders match this view."
-              : "No orders yet."}
+              ? "Tidak ada order yang cocok."
+              : "Belum ada order."}
           </h3>
           <p className="mt-2 text-sm text-naki-smoke">
             {hasActiveFilters || hasActiveSearch
-              ? "Try another keyword, select a different status, or reset the view."
-              : "When users submit consultation forms, requests will appear here."}
+              ? "Coba kata kunci atau status lain, atau reset tampilan."
+              : "Permintaan konsultasi dan pembelian akan muncul di sini."}
           </p>
           {(hasActiveFilters || hasActiveSearch) && (
             <button
@@ -400,7 +401,7 @@ export function OrdersPanel({
               onClick={resetOrderTools}
               type="button"
             >
-              Reset view
+              Reset tampilan
             </button>
           )}
         </div>
@@ -409,7 +410,7 @@ export function OrdersPanel({
           {visibleOrders.map((order) => (
             <article
               key={order.id}
-              className={`rounded-xl border border-naki-steel bg-white ${cardPadding} shadow-sm`}
+              className={`rounded-xl border border-l-4 bg-white ${getOrderBorderClass(order.status as OrderStatus)} ${cardPadding} shadow-sm`}
             >
               <div className="grid gap-4 md:grid-cols-[32px_1fr_170px] md:items-start">
                 <label className="flex pt-1">
@@ -429,20 +430,21 @@ export function OrdersPanel({
                     <h3 className="min-w-0 flex-1 truncate text-base font-bold text-naki-primary">
                       {order.customerName}
                     </h3>
+                    <StatusBadge status={order.status as OrderStatus} />
                     <span className="inline-flex h-7 w-fit items-center rounded-md bg-naki-frost px-2.5 text-xs font-medium text-naki-smoke">
                       {order.projectType}
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-5">
-                    <OrderMeta label="Contact" value={order.customerContact} />
+                    <OrderMeta label="Kontak" value={order.customerContact} />
                     <OrderMeta label="Design" value={order.templateTitle} />
                     <OrderMeta label="Budget" value={order.budgetRange} />
                     <OrderMeta
-                      label="Payment"
-                      value={getPaymentStatusLabel(order.paymentStatus)}
+                      label="Pembayaran"
+                      value={<PaymentBadge status={order.paymentStatus} />}
                     />
                     <OrderMeta
-                      label="Created"
+                      label="Dibuat"
                       value={formatOrderDate(order.createdAt)}
                     />
                   </div>
@@ -474,7 +476,7 @@ export function OrdersPanel({
                       Status
                     </span>
                     <select
-                      className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
+                      className={`h-10 rounded-lg border px-3 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 ${getOrderSelectClass(order.status as OrderStatus)}`}
                       disabled={updatingOrderId === order.id}
                       value={order.status}
                       onChange={(event) =>
@@ -497,7 +499,7 @@ export function OrdersPanel({
                     type="button"
                   >
                     <Trash2 size={14} />
-                    Delete
+                    Hapus
                   </button>
                 </div>
               </div>
@@ -529,48 +531,29 @@ export function OrdersPanel({
 
 type OrderMetaProps = {
   label: string;
-  value: string;
+  value: React.ReactNode;
 };
 
-type FilterButtonGroupProps<Value extends string> = {
+type CompactFilterSelectProps<Value extends string> = {
   label: string;
   filters: Array<{ label: string; value: Value }>;
   activeValue: Value;
   onChange: (value: Value) => void;
 };
 
-function FilterButtonGroup<Value extends string>({
+function CompactFilterSelect<Value extends string>({
   label,
   filters,
   activeValue,
   onChange,
-}: FilterButtonGroupProps<Value>) {
+}: CompactFilterSelectProps<Value>) {
   return (
-    <div className="grid gap-2">
-      <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
-        {label}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {filters.map((filter) => {
-          const isActive = activeValue === filter.value;
-
-          return (
-            <button
-              key={filter.value}
-              className={`inline-flex h-9 items-center justify-center rounded-xl px-3 text-xs font-medium transition ${
-                isActive
-                  ? "bg-naki-primary text-white"
-                  : "border border-naki-steel bg-white text-naki-smoke hover:border-naki-primary/40"
-              }`}
-              onClick={() => onChange(filter.value)}
-              type="button"
-            >
-              {filter.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <label>
+      <span className="sr-only">{label}</span>
+      <select className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-xs font-medium text-naki-primary outline-none focus:border-blue-400" value={activeValue} onChange={(event) => onChange(event.target.value as Value)}>
+        {filters.map((filter) => <option key={filter.value} value={filter.value}>{label}: {filter.label}</option>)}
+      </select>
+    </label>
   );
 }
 
@@ -580,11 +563,39 @@ function OrderMeta({ label, value }: OrderMetaProps) {
       <p className="text-[10px] font-medium uppercase text-naki-smoke">
         {label}
       </p>
-      <p className="mt-0.5 truncate text-xs font-medium text-naki-primary">
+      <div className="mt-0.5 truncate text-xs font-medium text-naki-primary">
         {value}
-      </p>
+      </div>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const labels: Record<OrderStatus, string> = { new: "Baru", contacted: "Dihubungi", deal: "Deal", closed: "Selesai" };
+  return <span className={`inline-flex h-7 items-center rounded-full px-2.5 text-xs font-semibold ${getOrderBadgeClass(status)}`}>{labels[status]}</span>;
+}
+
+function PaymentBadge({ status }: { status: OrderItem["paymentStatus"] }) {
+  const classes = status === "paid"
+    ? "bg-green-50 text-green-700"
+    : status === "failed"
+      ? "bg-red-50 text-red-700"
+      : status === "waiting_payment"
+        ? "bg-amber-50 text-amber-700"
+        : "bg-naki-steel text-naki-smoke";
+  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${classes}`}>{getPaymentStatusLabel(status)}</span>;
+}
+
+function getOrderBadgeClass(status: OrderStatus) {
+  return { new: "bg-blue-50 text-blue-700", contacted: "bg-amber-50 text-amber-700", deal: "bg-green-50 text-green-700", closed: "bg-naki-steel text-naki-smoke" }[status];
+}
+
+function getOrderBorderClass(status: OrderStatus) {
+  return { new: "border-blue-300", contacted: "border-amber-300", deal: "border-green-300", closed: "border-naki-steel" }[status];
+}
+
+function getOrderSelectClass(status: OrderStatus) {
+  return { new: "border-blue-200 bg-blue-50 text-blue-700", contacted: "border-amber-200 bg-amber-50 text-amber-700", deal: "border-green-200 bg-green-50 text-green-700", closed: "border-naki-steel bg-naki-frost text-naki-smoke" }[status];
 }
 
 function formatRupiah(amount: number): string {

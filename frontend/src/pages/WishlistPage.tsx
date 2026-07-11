@@ -84,7 +84,7 @@ export function WishlistPage({ templates }: WishlistPageProps) {
                 <div className="flex gap-2 md:flex-col">
                   <Link
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
-                    to={`/templates/${template.slug}`}
+                    to={`/design/${template.slug}`}
                   >
                     Detail
                     <ArrowRight size={15} />

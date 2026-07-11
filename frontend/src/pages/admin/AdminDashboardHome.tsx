@@ -95,7 +95,7 @@ export function AdminDashboardHome({
         <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <button
             className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
-            onClick={() => openView("templates")}
+            onClick={() => openView("design")}
             type="button"
           >
             <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-white">
@@ -131,7 +131,7 @@ export function AdminDashboardHome({
 
           <button
             className="group flex flex-col gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-lg"
-            onClick={() => openView("templates")}
+            onClick={() => openView("design")}
             type="button"
           >
             <span className="grid size-11 place-items-center rounded-xl bg-naki-frost text-naki-secondary transition group-hover:bg-naki-primary group-hover:text-white">

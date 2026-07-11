@@ -1,5 +1,6 @@
 import { ArrowRight, Layout, BarChart3, ShoppingCart, Smartphone, Server, FileText, Code2, Globe, Database, Gamepad2, Heart, Package } from "lucide-react";
 import type { TemplateCategory } from "../../domain/content";
+import { Link } from "react-router-dom";
 import { Skeleton } from "../ui/skeletons/Skeleton";
 
 type CategorySectionProps = {
@@ -68,12 +69,12 @@ export function CategorySection({ categories, isLoading = false }: CategorySecti
             ) : realCategories.map((title) => {
               const Icon = iconMap[title] ?? Code2;
               const description = descriptions[title] ?? `Design kategori ${title}`;
-              const href = `/template?category=${encodeURIComponent(title)}`;
+              const href = `/design?category=${encodeURIComponent(title)}`;
 
               return (
-                <a
+                <Link
                   key={title}
-                  href={href}
+                  to={href}
                   className="group flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur transition hover:bg-white/10"
                 >
                   <span className="grid size-10 place-items-center rounded-lg bg-blue-500/20 text-blue-400">
@@ -86,7 +87,7 @@ export function CategorySection({ categories, isLoading = false }: CategorySecti
                   <span className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-blue-400 transition group-hover:gap-2">
                     Jelajahi <ArrowRight size={14} />
                   </span>
-                </a>
+                </Link>
               );
             })}
           </div>

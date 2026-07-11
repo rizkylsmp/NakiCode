@@ -5,6 +5,7 @@ import {
   Briefcase,
   MessageSquareQuote,
   Tag,
+  TicketPercent,
   BookOpen,
   LogOut,
 } from "lucide-react";
@@ -28,12 +29,13 @@ const MAIN_MENU: MenuItem[] = [
 ];
 
 const APP_MENU: MenuItem[] = [
-  { key: "templates", label: "Design", icon: FileText },
+  { key: "design", label: "Design", icon: FileText },
   { key: "orders", label: "Orders", icon: ShoppingCart },
   { key: "portfolio", label: "Portfolio", icon: Briefcase },
   { key: "blog", label: "Blog", icon: BookOpen },
   { key: "testimonials", label: "Testimoni", icon: MessageSquareQuote },
   { key: "categories", label: "Categories", icon: Tag },
+  { key: "coupons", label: "Coupon", icon: TicketPercent },
 ];
 
 type NavSection = {

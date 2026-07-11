@@ -23,14 +23,14 @@ Naki Code adalah penyedia jasa pembuatan website dengan katalog design sebagai r
 
 Katalog design berfungsi sebagai inspirasi dan titik awal konsultasi, bukan batas hasil akhir. Pelanggan tetap dapat meminta perubahan tampilan, struktur halaman, fitur, konten, dan integrasi. Source code juga tetap dapat dibeli pada design yang mendukung opsi tersebut.
 
-Catatan istilah teknis: beberapa nama internal seperti entitas database `templates`, route `/template`, dan komponen berawalan `Template` masih dipertahankan untuk kompatibilitas kode. Pada komunikasi dan UI yang dilihat pelanggan, gunakan istilah **design**.
+Catatan istilah teknis: route utama menggunakan `/design` dan API utama menggunakan `/api/designs`. Entitas database `templates`, beberapa tipe/komponen internal berawalan `Template`, serta alias endpoint lama tetap dipertahankan sementara untuk kompatibilitas data dan deployment. Pada komunikasi dan UI yang dilihat pelanggan, selalu gunakan istilah **design**.
 
 Inspirasi fungsi/menu berasal dari Web Ekspor, tetapi Naki Code **tidak** menyediakan domain, cek domain, atau paket hosting/domain.
 
 Target UX:
 
 - User cepat menemukan design yang sesuai sebagai inspirasi website.
-- User bisa filter/search, compare, wishlist, melihat demo/detail, lalu konsultasi atau membeli source code jika tersedia.
+- User bisa filter/search, wishlist, melihat demo/detail, lalu konsultasi atau membeli source code jika tersedia.
 - User memahami bahwa design dapat diedit dan dikembangkan sesuai kebutuhan, bukan produk siap pakai yang kaku.
 - User memahami perbedaan antara jasa pembuatan website dan opsi pembelian source code.
 - Admin mudah mengelola design, kategori, order, blog, portofolio, dan status pembayaran.
@@ -121,8 +121,8 @@ Jangan commit `.env`.
 ## Route Frontend Utama
 
 - `/` - home/storefront
-- `/template` - katalog design via home element + query kategori/search
-- `/templates/:slug` - detail design
+- `/design` - katalog design via home element + query kategori/search
+- `/design/:slug` - detail design
 - `/login` - login/register user + admin
 - `/forgot-password` - reset password via OTP email
 - `/verify-email` - verifikasi email via OTP
@@ -132,8 +132,7 @@ Jangan commit `.env`.
 - `/checkout/:orderId` - checkout/payment, butuh login
 - `/akun-saya` dan `/profile` - profil user
 - `/wishlist` - design favorit user
-- `/compare` - compare 2-3 design
-- `/admin/dashboard`, `/admin/templates`, `/admin/orders`, `/admin/portfolio` - admin panel, butuh role admin
+- `/admin/dashboard`, `/admin/design`, `/admin/orders`, `/admin/coupons`, `/admin/portfolio` - admin panel, butuh role admin
 
 ---
 
@@ -146,8 +145,8 @@ Public/core:
 - `GET /api`
 - `GET /api/health`
 - `GET /api/projects`
-- `GET /api/templates`
-- `GET /api/templates/:slug`
+- `GET /api/designs`
+- `GET /api/designs/:slug`
 - `GET /api/categories`
 - `GET /api/blog`
 - `GET /api/blog/:slug`
@@ -185,14 +184,14 @@ Admin:
 
 - `GET /api/orders` (admin)
 - `PATCH /api/orders/:id/status` (admin)
-- Design/category/project/blog CRUD routes (nama endpoint design masih memakai `/templates`)
+- Design/category/project/blog CRUD routes; design memakai `/api/designs` dengan `/api/templates` sebagai alias kompatibilitas sementara
 - `GET /api/admin/stats`
 - `POST /api/uploads/images` (admin)
 
 Business:
 
 - `POST /api/business/coupons/validate`
-- `POST /api/business/referrals/:code/click`
+- Admin coupon CRUD: `GET|POST /api/business/coupons`, `PUT|DELETE /api/business/coupons/:id`
 - `GET /api/business/bundles`
 
 ---
@@ -244,6 +243,12 @@ Mode:
 
 - `PAYMENT_PROVIDER=dev` membuat reference pembayaran lokal/manual.
 - `PAYMENT_PROVIDER=midtrans` memakai Snap redirect URL jika `MIDTRANS_SERVER_KEY` ada.
+- Deployment Vercel production (`VERCEL_ENV=production`) selalu memakai endpoint Midtrans live; preview dan development tetap sandbox kecuali `MIDTRANS_IS_PRODUCTION=true` diaktifkan eksplisit.
+- Checkout menyediakan dua provider: Midtrans dan Lynk.
+- Midtrans mendukung QRIS/DANA, kupon, serta pembaruan status otomatis melalui webhook.
+- Lynk memakai `templates.lynk_url` per design, hanya menerima URL HTTPS pada domain `lynk.id`, dan mencatat sesi checkout eksternal pada order.
+- Tombol `via Lynk` mewajibkan login, membuat order internal terlebih dahulu, lalu mencatat sesi Lynk berstatus `waiting_payment` sebelum redirect; order langsung tampil di Pesanan Saya.
+- Transaksi serta akses produk Lynk mengikuti halaman/akun Lynk; status paid dan delivery internal Naki Code tetap khusus flow Midtrans atau konfirmasi internal.
 - QRIS memakai e-wallet/QRIS gateway.
 - DANA memakai channel DANA jika merchant aktif.
 - Webhook Midtrans validasi `signature_key`, lalu set paid untuk `settlement` atau `capture` fraud `accept`.
@@ -303,12 +308,14 @@ Core/storefront:
 - Katalog design
 - Filter kategori
 - Search design
+- Pencarian design live dari header berdasarkan nama, kategori, deskripsi, dan teknologi
 - Detail design
 - Related designs
 - Breadcrumb
 - Rating/review buyer
 - Wishlist/favorites
-- Compare design
+- Galeri preview design dengan carousel thumbnail dan lightbox overlay
+- Alur jasa tiga langkah di beranda: pilih design, konsultasi, lalu website disiapkan
 - Social sharing/copy link/Web Share API
 - Search history/recently viewed
 - Blog DB real (`/blog`, `/blog/:slug`)
@@ -349,7 +356,7 @@ Backend/platform:
 - Redis cache optional for templates/blog
 - Email queue async
 - Payment dev + Midtrans Snap/webhook
-- Coupons/referrals/bundles schema + endpoints
+- Coupon management/validation/redemption dan bundle endpoints
 - Invoice PDF utility via PDFKit
 - Integration tests for auth/orders/payments/templates/favorites
 - Frontend tests with Vitest/Testing Library
@@ -379,7 +386,6 @@ Done:
 - Blog SEO baseline
 - Analytics provider abstraction
 - PWA/service worker
-- Design compare
 - CI/CD pipeline
 - Error boundary fallback
 - Integration tests

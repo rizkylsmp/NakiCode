@@ -1,37 +1,35 @@
-import { ArrowRight, Code2, GitCompare, Heart, Star } from "lucide-react";
+import { ArrowRight, Code2, Heart, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TemplateItem } from "../../domain/content";
 import { getTemplateCategoryPath } from "../../utils/template-url";
 
 type TemplateCardProps = {
   isAuthenticated: boolean;
-  isCompared: boolean;
   isFavorite: boolean;
   isFavoriteLoading: boolean;
   template: TemplateItem;
-  onToggleCompare: (templateId: number) => void;
   onToggleFavorite: (templateId: number) => void;
 };
 
 export function TemplateCard({
   isAuthenticated,
-  isCompared,
   isFavorite,
   isFavoriteLoading,
   template,
-  onToggleCompare,
   onToggleFavorite,
 }: TemplateCardProps) {
   return (
-    <article className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md">
+    <article className="group overflow-hidden rounded-2xl border border-naki-steel/60 bg-white shadow-sm transition duration-300 hover:border-blue-200 hover:shadow-md">
       <div className="relative aspect-[4/3] overflow-hidden bg-naki-frost">
         {template.preview?.[0]?.image ? (
-          <img
-            className="h-full w-full object-cover transition duration-300"
-            src={template.preview[0].image}
-            alt={template.title}
-            loading="lazy"
-          />
+          <Link to={`/design/${template.slug}`} aria-label={`Lihat design ${template.title}`}>
+            <img
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              src={template.preview[0].image}
+              alt={template.title}
+              loading="lazy"
+            />
+          </Link>
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/5 to-naki-secondary/5">
             <Code2 className="text-naki-steel" size={40} />
@@ -47,26 +45,9 @@ export function TemplateCard({
         </Link>
 
         <div className="absolute right-3 top-3 flex gap-2">
-          <button
-            className={`grid size-8 place-items-center rounded-full transition ${
-              isCompared
-                ? "bg-naki-primary text-white"
-                : "bg-white/90 text-naki-smoke backdrop-blur hover:text-naki-primary"
-            }`}
-            onClick={() => onToggleCompare(template.id)}
-            type="button"
-            aria-label={
-              isCompared
-                ? `Hapus ${template.title} dari compare`
-                : `Bandingkan ${template.title}`
-            }
-          >
-            <GitCompare size={14} />
-          </button>
-
           {isAuthenticated ? (
             <button
-              className={`grid size-8 place-items-center rounded-full transition ${
+              className={`grid size-11 place-items-center rounded-full transition disabled:cursor-wait disabled:opacity-60 ${
                 isFavorite
                   ? "bg-blue-500 text-white"
                   : "bg-white/90 text-naki-smoke backdrop-blur hover:text-naki-primary"
@@ -74,6 +55,7 @@ export function TemplateCard({
               disabled={isFavoriteLoading}
               onClick={() => onToggleFavorite(template.id)}
               type="button"
+              aria-pressed={isFavorite}
               aria-label={
                 isFavorite
                   ? `Hapus ${template.title} dari wishlist`
@@ -95,8 +77,13 @@ export function TemplateCard({
           ))}
         </div>
 
+        <div className="mb-2 inline-flex rounded-md bg-green-50 px-2 py-1 text-[11px] font-semibold text-green-700">
+          Bisa disesuaikan
+        </div>
         <h3 className="text-base font-semibold leading-tight text-naki-primary">
-          {template.title}
+          <Link className="transition hover:text-blue-500" to={`/design/${template.slug}`}>
+            {template.title}
+          </Link>
         </h3>
         <p className="mt-1 line-clamp-2 text-xs text-naki-smoke">
           {template.description}
@@ -114,16 +101,17 @@ export function TemplateCard({
 
         <div className="mt-3 flex items-end justify-between gap-3">
           <div>
-            <p className="text-xs text-naki-smoke">Opsi source code</p>
-            <p className="text-lg font-bold text-naki-primary">
+            <p className="text-xs text-naki-smoke">Source code mulai</p>
+            <p className="text-base font-bold text-naki-primary">
               {template.price}
             </p>
           </div>
           <Link
-            className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-500 transition hover:bg-blue-100"
-            to={`/templates/${template.slug}`}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 text-xs font-semibold text-blue-500 transition hover:bg-blue-100"
+            to={`/design/${template.slug}`}
             aria-label={`Lihat design ${template.title}`}
           >
+            Lihat Design
             <ArrowRight size={16} />
           </Link>
         </div>

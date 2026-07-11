@@ -239,7 +239,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
 
     try {
       const data = await apiPost<RatingResponse>(
-        `/api/templates/${order.templateId}/rating`,
+        `/api/designs/${order.templateId}/rating`,
         form,
       );
 

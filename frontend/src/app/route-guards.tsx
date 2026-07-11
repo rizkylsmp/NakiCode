@@ -28,7 +28,7 @@ export function RequireAdmin({ children }: GuardProps) {
   }
 
   if (!auth.isAdmin) {
-    return <Navigate replace to="/template" />;
+    return <Navigate replace to="/design" />;
   }
 
   return children;

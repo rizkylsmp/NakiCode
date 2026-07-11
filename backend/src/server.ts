@@ -134,6 +134,7 @@ function mountApiRoutes(prefix: string) {
   app.use(`${prefix}/admin/stats`, adminStatsRouter);
   app.use(`${prefix}/projects`, projectsRouter);
   app.use(`${prefix}/templates`, templatesRouter);
+  app.use(`${prefix}/designs`, templatesRouter);
   app.use(`${prefix}/favorites`, favoritesRouter);
   app.use(`${prefix}/notifications`, notificationsRouter);
   app.use(`${prefix}/categories`, categoriesRouter);

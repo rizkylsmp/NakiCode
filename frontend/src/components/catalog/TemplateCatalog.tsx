@@ -1,9 +1,7 @@
 import {
   ArrowRight,
   Code2,
-  X,
 } from "lucide-react";
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { TemplateCategory, TemplateItem } from "../../domain/content";
 import { useAuth } from "../../contexts/auth-context";
@@ -13,34 +11,18 @@ import { TemplateCardSkeleton } from "../ui/skeletons/TemplateCardSkeleton";
 
 type TemplateCatalogProps = {
   templates: TemplateItem[];
-  allTemplates: TemplateItem[];
   activeCategory: TemplateCategory;
   isLoading?: boolean;
 };
 
 export function TemplateCatalog({
   templates,
-  allTemplates,
   activeCategory,
   isLoading,
 }: TemplateCatalogProps) {
   const { isAuthenticated } = useAuth();
   const { favoriteIds, isFavoriteLoading, toggleFavorite } =
     useFavoriteTemplates();
-  const [compareIds, setCompareIds] = useState<number[]>([]);
-  const compareTemplates = allTemplates.filter((template) =>
-    compareIds.includes(template.id),
-  );
-
-  function toggleCompare(templateId: number) {
-    setCompareIds((current) => {
-      if (current.includes(templateId)) {
-        return current.filter((id) => id !== templateId);
-      }
-      return [templateId, ...current].slice(0, 3);
-    });
-  }
-
   return (
     <section
       id="template"
@@ -64,7 +46,7 @@ export function TemplateCatalog({
           </div>
           <Link
             className="inline-flex items-center gap-1 text-sm font-medium text-blue-500 transition hover:text-blue-600"
-            to="/template"
+            to="/design"
           >
             Lihat semua design
             <ArrowRight size={14} />
@@ -92,67 +74,15 @@ export function TemplateCatalog({
               <TemplateCard
                 key={template.id}
                 isAuthenticated={isAuthenticated}
-                isCompared={compareIds.includes(template.id)}
                 isFavorite={favoriteIds.has(template.id)}
                 isFavoriteLoading={isFavoriteLoading}
                 template={template}
-                onToggleCompare={toggleCompare}
                 onToggleFavorite={toggleFavorite}
               />
             ))
           )}
         </div>
 
-        {/* Compare section */}
-        {compareTemplates.length > 0 ? (
-          <section className="mt-8 rounded-2xl border border-naki-steel bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
-                  Compare
-                </p>
-                <h3 className="text-xl font-bold text-naki-primary">
-                  Bandingkan {compareTemplates.length} pilihan
-                </h3>
-              </div>
-              <button
-                className="grid size-9 place-items-center rounded-lg border border-naki-steel text-naki-smoke transition hover:bg-naki-frost"
-                onClick={() => setCompareIds([])}
-                type="button"
-                aria-label="Kosongkan compare"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {compareTemplates.map((template) => (
-                <article
-                  key={template.id}
-                  className="rounded-xl bg-naki-frost p-4"
-                >
-                  <p className="text-xs font-medium text-blue-500">
-                    {template.category}
-                  </p>
-                  <h4 className="mt-1 text-base font-semibold text-naki-primary">
-                    {template.title}
-                  </h4>
-                  <div className="mt-3 grid gap-1.5 text-sm text-naki-smoke">
-                    <span>Source code: {template.price}</span>
-                    <span>Level: {template.level}</span>
-                    <span>Rating: {template.rating || "Baru"}</span>
-                    <span>Stack: {template.stack.slice(0, 3).join(", ")}</span>
-                  </div>
-                  <Link
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-blue-500"
-                    to={`/templates/${template.slug}`}
-                  >
-                    Lihat detail <ArrowRight size={12} />
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </div>
     </section>
   );

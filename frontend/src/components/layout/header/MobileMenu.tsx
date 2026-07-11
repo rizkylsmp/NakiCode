@@ -113,7 +113,7 @@ function AdminMobileLinks({ onClose }: { onClose: () => void }) {
   return (
     <>
       <MobileMenuLink label="Dashboard admin" to="/admin/dashboard" onClose={onClose} />
-      <MobileMenuLink label="Kelola design" to="/admin/templates" onClose={onClose} />
+      <MobileMenuLink label="Kelola design" to="/admin/design" onClose={onClose} />
       <MobileMenuLink label="Order masuk" to="/admin/orders" onClose={onClose} />
       <MobileMenuLink label="Portofolio" to="/admin/portfolio" onClose={onClose} />
     </>

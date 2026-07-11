@@ -2,7 +2,7 @@ import type { HeaderNavItem } from "./types";
 
 export const headerNavItems: HeaderNavItem[] = [
   { label: "Beranda", href: "/" },
-  { label: "Design", href: "/template" },
+  { label: "Design", href: "/design" },
   { label: "Blog", href: "/blog" },
 ];
 

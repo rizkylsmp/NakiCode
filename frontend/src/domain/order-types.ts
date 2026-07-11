@@ -23,6 +23,7 @@ export type OrderItem = {
   paymentLastWebhookAt: string | null;
   paidAt: string | null;
   templatePrice: string | null;
+  templateLynkUrl: string | null;
   deliveryStatus: "locked" | "available";
   sourceCodeItems: string[];
   setupGuide: string | null;
@@ -63,6 +64,10 @@ export function canConfirmPaymentManually(order: OrderItem) {
 }
 
 export function getWaitingPaymentMessage(order: OrderItem) {
+  if (order.paymentMethod?.toLowerCase() === "lynk") {
+    return "Selesaikan transaksi melalui Lynk. Order ini sudah tercatat di Pesanan Saya dan menunggu konfirmasi transaksi.";
+  }
+
   if (canConfirmPaymentManually(order)) {
     return "Mode dev: konfirmasi manual tersedia untuk simulasi pembayaran.";
   }

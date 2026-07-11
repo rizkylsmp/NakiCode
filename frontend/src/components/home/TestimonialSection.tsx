@@ -44,10 +44,10 @@ export function TestimonialSection() {
               Testimoni
             </p>
             <h2 className="mt-2 text-2xl font-bold text-naki-primary md:text-3xl">
-              Apa Kata Developer Kami
+              Cerita dari pelanggan kami
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-sm text-naki-smoke">
-              Bergabung dengan ribuan developer yang sudah mempercayakan workflow mereka.
+              Pengalaman nyata pelanggan yang memilih design lalu menyesuaikannya bersama Naki Code.
             </p>
           </div>
 

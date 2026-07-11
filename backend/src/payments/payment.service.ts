@@ -10,6 +10,31 @@ export type PaymentSession = {
   amount: number;
 };
 
+export class LynkCheckoutUnavailableError extends Error {
+  constructor() {
+    super('Checkout Lynk tidak tersedia untuk design ini');
+    this.name = 'LynkCheckoutUnavailableError';
+  }
+}
+
+export function createLynkPaymentSession(
+  order: OrderItem,
+  amount: number,
+): PaymentSession {
+  const url = normalizeLynkCheckoutUrl(order.templateLynkUrl);
+
+  if (!url) {
+    throw new LynkCheckoutUnavailableError();
+  }
+
+  return {
+    method: 'Lynk',
+    reference: `LYNK-${order.id}-${Date.now().toString(36).toUpperCase()}`,
+    url,
+    amount,
+  };
+}
+
 type PaymentSessionInput = {
   order: OrderItem;
   method: PaymentMethod;
@@ -84,6 +109,22 @@ export function parseCurrencyAmount(value: string | null | undefined) {
   }
 
   return Math.round(numericValue);
+}
+
+function normalizeLynkCheckoutUrl(value: string | null | undefined) {
+  try {
+    const url = new URL(String(value ?? ''));
+    const hostname = url.hostname.toLowerCase();
+    const isLynkDomain = hostname === 'lynk.id' || hostname.endsWith('.lynk.id');
+
+    if (url.protocol !== 'https:' || !isLynkDomain) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 async function createMidtransSnapSession({

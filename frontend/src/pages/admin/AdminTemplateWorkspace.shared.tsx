@@ -181,7 +181,7 @@ export type PaymentStatusFilter =
   | "waiting_payment"
   | "paid"
   | "failed";
-export type DashboardView = "dashboard" | "templates" | "orders" | "portfolio" | "blog" | "testimonials" | "categories";
+export type DashboardView = "dashboard" | "design" | "orders" | "portfolio" | "blog" | "testimonials" | "categories" | "coupons";
 export type AdminOrderFilters = {
   status: OrderStatusFilter;
   paymentStatus: PaymentStatusFilter;
@@ -207,12 +207,13 @@ export function normalizeCoverIndex(
 }
 
 export function normalizeAdminSection(section: string): DashboardView {
-  return section === "templates" ||
+  return section === "design" ||
     section === "orders" ||
     section === "portfolio" ||
     section === "blog" ||
     section === "testimonials" ||
-    section === "categories"
+    section === "categories" ||
+    section === "coupons"
     ? section
     : "dashboard";
 }
@@ -220,7 +221,8 @@ export function normalizeAdminSection(section: string): DashboardView {
 export function legacyHashToAdminView(hash: string): DashboardView | null {
   const view = hash.replace("#", "");
 
-  return view === "templates" || view === "orders" || view === "portfolio" || view === "blog" || view === "testimonials" || view === "categories"
+  if (view === "templates") return "design";
+  return view === "design" || view === "orders" || view === "portfolio" || view === "blog" || view === "testimonials" || view === "categories" || view === "coupons"
     ? view
     : null;
 }

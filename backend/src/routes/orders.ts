@@ -6,7 +6,6 @@ import { config } from '../config';
 import { createAdminAuditLog } from '../models/audit-log.model';
 import {
   recordCouponRedemption,
-  recordReferralConversion,
   validateCoupon,
 } from '../models/business.model';
 import { createNotification } from '../models/notification.model';
@@ -26,7 +25,9 @@ import {
   updateOrderStatus,
 } from '../models/order.model';
 import {
+  createLynkPaymentSession,
   createPaymentSession,
+  LynkCheckoutUnavailableError,
   normalizePaymentMethod,
   parseCurrencyAmount,
 } from '../payments/payment.service';
@@ -59,9 +60,9 @@ const orderBodySchema = z
   .passthrough();
 
 const paymentBodySchema = z.object({
+  provider: z.enum(['midtrans', 'lynk']).optional().default('midtrans'),
   method: z.enum(['qris', 'dana', 'manual']).optional(),
   couponCode: z.string().trim().max(60).optional(),
-  referralCode: z.string().trim().max(80).optional(),
 });
 
 const orderStatusBodySchema = z.object({
@@ -227,16 +228,18 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
       return;
     }
 
-    const paymentMethod = normalizePaymentMethod(body.method);
     const baseAmount = parseCurrencyAmount(existingOrder.templatePrice);
-    const coupon = body.couponCode
+    const coupon = body.provider === 'midtrans' && body.couponCode
       ? await validateCoupon(body.couponCode, baseAmount)
       : null;
-    const paymentSession = await createPaymentSession({
-      order: existingOrder,
-      method: paymentMethod,
-      amount: coupon?.finalAmount ?? baseAmount,
-    });
+    const paymentSession =
+      body.provider === 'lynk'
+        ? createLynkPaymentSession(existingOrder, baseAmount)
+        : await createPaymentSession({
+            order: existingOrder,
+            method: normalizePaymentMethod(body.method),
+            amount: coupon?.finalAmount ?? baseAmount,
+          });
     const order = await startOrderPayment(params.id, user.userId, paymentSession);
 
     if (!order) {
@@ -253,10 +256,6 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
       });
     }
 
-    if (body.referralCode) {
-      await recordReferralConversion(body.referralCode);
-    }
-
     response.json({
       source: 'mysql',
       order,
@@ -269,6 +268,10 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
       },
     });
   } catch (error) {
+    if (error instanceof LynkCheckoutUnavailableError) {
+      response.status(409).json({ message: error.message });
+      return;
+    }
     Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal membuat pembayaran' });
   }

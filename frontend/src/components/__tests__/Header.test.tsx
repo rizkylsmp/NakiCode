@@ -10,7 +10,11 @@ vi.mock('../../services/api-client', async () => {
 
   return {
     ...actual,
-    apiGet: vi.fn(async () => ({ notifications: [] })),
+    apiGet: vi.fn(async (path: string) =>
+      path === '/api/designs'
+        ? { templates: [] }
+        : { notifications: [] },
+    ),
     apiPatch: vi.fn(async () => ({ notifications: [] })),
   };
 });
@@ -60,7 +64,7 @@ describe('Header Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /admin/i }));
 
     expect(screen.getByRole('menuitem', { name: /dashboard admin/i })).toHaveAttribute('href', '/admin/dashboard');
-    expect(screen.getByRole('menuitem', { name: /kelola design/i })).toHaveAttribute('href', '/admin/templates');
+    expect(screen.getByRole('menuitem', { name: /kelola design/i })).toHaveAttribute('href', '/admin/design');
   });
 
   it('renders navigation links', () => {
@@ -69,5 +73,14 @@ describe('Header Component', () => {
     // Check for main navigation links
     const homeLink = screen.getByRole('link', { name: /NakiCode home/i });
     expect(homeLink).toBeInTheDocument();
+  });
+
+  it('opens the design search dialog', () => {
+    renderHeader();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /cari design/i })[0]);
+
+    expect(screen.getByRole('dialog', { name: /cari design/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/company profile/i)).toHaveFocus();
   });
 });

@@ -9,15 +9,17 @@ type CouponRow = RowDataPacket & {
   discount_value: number;
   active: number;
   expires_at?: string | null;
+  created_at: string;
+  redemption_count?: number;
 };
 
-type ReferralRow = RowDataPacket & {
-  id: number;
+export type CouponInput = {
   code: string;
-  owner_name: string;
-  active: number;
-  click_count: number;
-  conversion_count: number;
+  description: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  active: boolean;
+  expiresAt: string | null;
 };
 
 type BundleRow = RowDataPacket & {
@@ -114,38 +116,62 @@ export async function recordCouponRedemption(payload: {
   return result.insertId;
 }
 
-export async function trackReferralClick(code: string) {
-  const normalizedCode = code.trim().toUpperCase();
+function mapCoupon(row: CouponRow) {
+  return {
+    id: row.id,
+    code: row.code,
+    description: row.description,
+    discountType: row.discount_type,
+    discountValue: Number(row.discount_value),
+    active: Boolean(row.active),
+    expiresAt: row.expires_at ?? null,
+    createdAt: row.created_at,
+    redemptionCount: Number(row.redemption_count ?? 0),
+  };
+}
 
-  if (!normalizedCode) {
-    return null;
-  }
-
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE affiliate_referrals
-    SET click_count = click_count + 1
-    WHERE code = ? AND active = TRUE`,
-    [normalizedCode],
+export async function findCoupons() {
+  const [rows] = await pool.query<CouponRow[]>(
+    `SELECT coupons.id, coupons.code, coupons.description,
+      coupons.discount_type, coupons.discount_value, coupons.active,
+      coupons.expires_at, coupons.created_at,
+      COUNT(coupon_redemptions.id) AS redemption_count
+    FROM coupons
+    LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
+    GROUP BY coupons.id
+    ORDER BY coupons.created_at DESC`,
   );
+  return rows.map(mapCoupon);
+}
 
+export async function createCoupon(input: CouponInput) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `INSERT INTO coupons (code, description, discount_type, discount_value, active, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [input.code.toUpperCase(), input.description, input.discountType, input.discountValue, input.active, input.expiresAt],
+  );
+  return result.insertId;
+}
+
+export async function updateCoupon(id: number, input: CouponInput) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE coupons SET code = ?, description = ?, discount_type = ?,
+      discount_value = ?, active = ?, expires_at = ? WHERE id = ?`,
+    [input.code.toUpperCase(), input.description, input.discountType, input.discountValue, input.active, input.expiresAt, id],
+  );
   return result.affectedRows > 0;
 }
 
-export async function recordReferralConversion(code: string) {
-  const normalizedCode = code.trim().toUpperCase();
-
-  if (!normalizedCode) {
-    return null;
-  }
-
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE affiliate_referrals
-    SET conversion_count = conversion_count + 1
-    WHERE code = ? AND active = TRUE`,
-    [normalizedCode],
+export async function deleteCoupon(id: number) {
+  const [usage] = await pool.query<Array<RowDataPacket & { total: number }>>(
+    'SELECT COUNT(*) AS total FROM coupon_redemptions WHERE coupon_id = ?', [id],
   );
-
-  return result.affectedRows > 0;
+  if (Number(usage[0]?.total ?? 0) > 0) {
+    const [result] = await pool.query<ResultSetHeader>('UPDATE coupons SET active = FALSE WHERE id = ?', [id]);
+    return { found: result.affectedRows > 0, archived: true };
+  }
+  const [result] = await pool.query<ResultSetHeader>('DELETE FROM coupons WHERE id = ?', [id]);
+  return { found: result.affectedRows > 0, archived: false };
 }
 
 export async function findActiveTemplateBundles() {

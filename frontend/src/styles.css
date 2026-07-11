@@ -171,7 +171,10 @@ html[data-theme="dark"] .naki-frosted-grid::after {
   );
 }
 
-html[data-theme="dark"] .bg-white {
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-white\/90,
+html[data-theme="dark"] .bg-white\/95,
+html[data-theme="dark"] .hover\:bg-white:hover {
   background-color: #0f172a !important;
 }
 
@@ -186,6 +189,8 @@ html[data-theme="dark"] .hover\:bg-naki-frost:hover {
 
 html[data-theme="dark"] .border-naki-steel,
 html[data-theme="dark"] .border-naki-steel\/60,
+html[data-theme="dark"] .border-naki-steel\/70,
+html[data-theme="dark"] .border-naki-steel\/80,
 html[data-theme="dark"] .hover\:border-naki-steel\/80:hover {
   border-color: var(--color-naki-steel) !important;
 }
@@ -199,9 +204,150 @@ html[data-theme="dark"] .text-naki-smoke {
   color: var(--color-naki-smoke) !important;
 }
 
+/* Frost is frequently used as foreground on solid action buttons. */
+html[data-theme="dark"] .text-naki-frost,
+html[data-theme="dark"] .text-naki-frost\/70,
+html[data-theme="dark"] .text-naki-frost\/75,
+html[data-theme="dark"] .text-naki-frost\/80 {
+  color: #f8fafc !important;
+}
+
 html[data-theme="dark"] .border-naki-primary,
 html[data-theme="dark"] .hover\:border-naki-primary\/40:hover {
   border-color: #60a5fa !important;
+}
+
+/* Light semantic badges become dark tinted surfaces with readable text. */
+html[data-theme="dark"] .bg-blue-50,
+html[data-theme="dark"] .bg-blue-50\/95,
+html[data-theme="dark"] .hover\:bg-blue-50:hover,
+html[data-theme="dark"] .hover\:bg-blue-100:hover {
+  background-color: #172554 !important;
+}
+
+html[data-theme="dark"] .bg-blue-100 {
+  background-color: #1e3a8a !important;
+}
+
+html[data-theme="dark"] .border-blue-100,
+html[data-theme="dark"] .border-blue-200,
+html[data-theme="dark"] .border-blue-200\/60 {
+  border-color: #1d4ed8 !important;
+}
+
+html[data-theme="dark"] .text-blue-500,
+html[data-theme="dark"] .text-blue-600,
+html[data-theme="dark"] .text-blue-700,
+html[data-theme="dark"] .text-blue-800 {
+  color: #93c5fd !important;
+}
+
+html[data-theme="dark"] .bg-green-50,
+html[data-theme="dark"] .bg-green-50\/95,
+html[data-theme="dark"] .hover\:bg-green-50:hover {
+  background-color: #052e16 !important;
+}
+
+html[data-theme="dark"] .bg-green-100 {
+  background-color: #14532d !important;
+}
+
+html[data-theme="dark"] .border-green-200 {
+  border-color: #15803d !important;
+}
+
+html[data-theme="dark"] .text-green-600,
+html[data-theme="dark"] .text-green-700,
+html[data-theme="dark"] .text-green-800 {
+  color: #86efac !important;
+}
+
+html[data-theme="dark"] .bg-red-50,
+html[data-theme="dark"] .bg-red-50\/95,
+html[data-theme="dark"] .hover\:bg-red-50:hover {
+  background-color: #450a0a !important;
+}
+
+html[data-theme="dark"] .bg-red-100 {
+  background-color: #7f1d1d !important;
+}
+
+html[data-theme="dark"] .border-red-200 {
+  border-color: #b91c1c !important;
+}
+
+html[data-theme="dark"] .text-red-500,
+html[data-theme="dark"] .text-red-700,
+html[data-theme="dark"] .text-red-800 {
+  color: #fca5a5 !important;
+}
+
+html[data-theme="dark"] .bg-amber-50,
+html[data-theme="dark"] .bg-amber-100,
+html[data-theme="dark"] .bg-yellow-50,
+html[data-theme="dark"] .bg-yellow-100 {
+  background-color: #451a03 !important;
+}
+
+html[data-theme="dark"] .border-amber-200,
+html[data-theme="dark"] .border-yellow-200 {
+  border-color: #b45309 !important;
+}
+
+html[data-theme="dark"] .text-amber-700,
+html[data-theme="dark"] .text-amber-800,
+html[data-theme="dark"] .text-yellow-700,
+html[data-theme="dark"] .text-yellow-800 {
+  color: #fcd34d !important;
+}
+
+html[data-theme="dark"] .bg-emerald-100 {
+  background-color: #064e3b !important;
+}
+
+html[data-theme="dark"] .text-emerald-700 {
+  color: #6ee7b7 !important;
+}
+
+html[data-theme="dark"] .bg-gray-200 {
+  background-color: #334155 !important;
+}
+
+html[data-theme="dark"] .text-slate-500,
+html[data-theme="dark"] .text-gray-500,
+html[data-theme="dark"] .text-gray-600,
+html[data-theme="dark"] .text-gray-700 {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] :is(input, textarea, select, option) {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] :is(input, textarea, select):-webkit-autofill,
+html[data-theme="dark"] :is(input, textarea, select):-webkit-autofill:hover,
+html[data-theme="dark"] :is(input, textarea, select):-webkit-autofill:focus {
+  -webkit-text-fill-color: #e5e7eb;
+  box-shadow: 0 0 0 1000px #111827 inset;
+  caret-color: #e5e7eb;
+}
+
+/* This CTA intentionally stays light on the dark promotional band. */
+html[data-theme="dark"] .naki-inverse-cta {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="dark"] .naki-inverse-cta:hover {
+  background-color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .naki-hero-glow {
+  background-image: linear-gradient(
+    to bottom,
+    rgb(30 64 175 / 0.16),
+    transparent
+  ) !important;
 }
 
 /* Only apply z-index:1 to direct children that don't have their own stacking context */
@@ -229,6 +375,26 @@ html[data-theme="dark"] .naki-logo-image,
 
 button {
   cursor: pointer;
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--color-naki-secondary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Utility: smooth hover transition for interactive elements */

@@ -9,6 +9,7 @@ import { MobileMenu } from "./header/MobileMenu";
 import { NotificationMenu } from "./header/NotificationMenu";
 import { ProfileMenu } from "./header/ProfileMenu";
 import { SiteLogo } from "./header/SiteLogo";
+import { SearchDialog } from "./header/SearchDialog";
 import { ThemeToggle } from "./header/ThemeToggle";
 import type { HeaderProfile, NotificationsResponse } from "./header/types";
 
@@ -23,6 +24,8 @@ export function Header() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [hasMainContent, setHasMainContent] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = window.localStorage.getItem(themeStorageKey);
     if (savedTheme === "dark") return true;
@@ -108,8 +111,20 @@ export function Header() {
     window.localStorage.setItem(themeStorageKey, theme);
   }, [isDarkMode]);
 
+  useEffect(() => {
+    setHasMainContent(Boolean(document.getElementById("main-content")));
+  }, [location.pathname]);
+
   return (
-    <header className="sticky top-0 z-[60] border-b border-naki-steel/60 bg-white">
+    <header className="naki-site-header sticky top-0 z-[60] border-b border-naki-steel/60 bg-white">
+      {hasMainContent ? (
+        <a
+          className="fixed left-4 top-3 z-[100] -translate-y-24 rounded-lg bg-naki-primary px-4 py-2 text-sm font-semibold text-white transition focus:translate-y-0"
+          href="#main-content"
+        >
+          Lewati ke konten utama
+        </a>
+      ) : null}
       <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
         <SiteLogo />
 
@@ -134,9 +149,7 @@ export function Header() {
             className="grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
             type="button"
             aria-label="Cari design"
-            onClick={() => {
-              window.location.href = "/template";
-            }}
+            onClick={() => setIsSearchOpen(true)}
           >
             <Search size={18} />
           </button>
@@ -181,22 +194,32 @@ export function Header() {
 
           <Link
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-medium text-white transition hover:bg-naki-primary/90"
-            to="/template"
+            to="/design"
           >
             Jelajahi
             <ShoppingBag size={16} />
           </Link>
         </div>
 
-        <button
-          className="grid size-10 place-items-center rounded-lg text-naki-primary lg:hidden"
-          aria-expanded={isMobileMenuOpen}
-          aria-label="Buka menu"
-          onClick={() => setIsMobileMenuOpen((current) => !current)}
-          type="button"
-        >
-          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-1 lg:hidden">
+          <button
+            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:bg-naki-frost"
+            aria-label="Cari design"
+            onClick={() => setIsSearchOpen(true)}
+            type="button"
+          >
+            <Search size={19} />
+          </button>
+          <button
+            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:bg-naki-frost"
+            aria-expanded={isMobileMenuOpen}
+            aria-label={isMobileMenuOpen ? "Tutup menu" : "Buka menu"}
+            onClick={() => setIsMobileMenuOpen((current) => !current)}
+            type="button"
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {isMobileMenuOpen ? (
@@ -211,6 +234,7 @@ export function Header() {
           onToggleTheme={() => setIsDarkMode((current) => !current)}
         />
       ) : null}
+      <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }

@@ -18,8 +18,11 @@ import {
   UserRound,
   UsersRound,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -138,10 +141,21 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     "Buat order lalu lanjut ke halaman checkout.",
   );
   const [, setShareStatus] = useState("");
-  const [expandedPreview, setExpandedPreview] = useState<{
-    image: string;
-    caption: string;
-  } | null>(null);
+  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const previewImages = template?.preview.filter((item) => item.image) ?? [];
+
+  const showPreviousPreview = useCallback(() => {
+    setActivePreviewIndex((current) =>
+      previewImages.length ? (current - 1 + previewImages.length) % previewImages.length : 0,
+    );
+  }, [previewImages.length]);
+
+  const showNextPreview = useCallback(() => {
+    setActivePreviewIndex((current) =>
+      previewImages.length ? (current + 1) % previewImages.length : 0,
+    );
+  }, [previewImages.length]);
 
   useEffect(() => {
     function syncUserSession() {
@@ -160,6 +174,8 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
 
   useEffect(() => {
     if (template) {
+      setActivePreviewIndex(0);
+      setIsPreviewOpen(false);
       saveRecentlyViewedTemplate(template);
       trackEvent("template_viewed", {
         template_id: template.id,
@@ -172,14 +188,16 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   }, [template]);
 
   useEffect(() => {
-    if (!expandedPreview) return;
+    if (!isPreviewOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setExpandedPreview(null);
+      if (event.key === "Escape") setIsPreviewOpen(false);
+      if (event.key === "ArrowLeft") showPreviousPreview();
+      if (event.key === "ArrowRight") showNextPreview();
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [expandedPreview]);
+  }, [isPreviewOpen, showNextPreview, showPreviousPreview]);
 
   if (!template) {
     return (
@@ -194,7 +212,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
           </p>
           <Link
             className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-medium text-white"
-            to="/template"
+            to="/design"
           >
             <ArrowLeft size={16} />
             Kembali ke katalog
@@ -227,7 +245,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   const whatsappMessage = encodeURIComponent(
     `Halo Naki Code, saya tertarik membuat website menggunakan design ${selectedTemplate.title} sebagai referensi.`,
   );
-  const shareUrl = `${window.location.origin}/templates/${selectedTemplate.slug}`;
+  const shareUrl = `${window.location.origin}/design/${selectedTemplate.slug}`;
   const shareText = encodeURIComponent(
     `${selectedTemplate.title} dari Naki Code`,
   );
@@ -549,7 +567,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
           {/* Back link */}
           <Link
             className="inline-flex items-center gap-1.5 text-sm font-medium text-naki-smoke transition hover:text-naki-primary"
-            to="/template"
+            to="/design"
           >
             <ArrowLeft size={16} />
             Kembali ke katalog
@@ -560,35 +578,42 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
             {/* Left: Preview + Details */}
             <div>
               {/* Preview images */}
-              <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                {selectedTemplate.preview[0]?.image ? (
-                  <img
-                    className="h-64 w-full object-cover md:h-80 lg:h-96"
-                    src={selectedTemplate.preview[0].image}
-                    alt={selectedTemplate.title}
-                  />
+              <div className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-sm">
+                {previewImages[activePreviewIndex]?.image ? (
+                  <div className="group relative aspect-[16/10] overflow-hidden bg-naki-frost">
+                    <button className="block h-full w-full cursor-zoom-in" onClick={() => setIsPreviewOpen(true)} type="button" aria-label="Buka preview layar penuh">
+                      <img
+                        className="h-full w-full object-contain"
+                        src={previewImages[activePreviewIndex].image}
+                        alt={previewImages[activePreviewIndex].caption || selectedTemplate.title}
+                      />
+                    </button>
+                    <span className="pointer-events-none absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-white/90 text-naki-primary opacity-0 shadow-sm transition group-hover:opacity-100"><Maximize2 size={17} /></span>
+                    {previewImages.length > 1 ? <>
+                      <PreviewArrow direction="previous" onClick={showPreviousPreview} />
+                      <PreviewArrow direction="next" onClick={showNextPreview} />
+                      <span className="absolute bottom-3 right-3 rounded-full bg-naki-primary/85 px-3 py-1 text-xs font-semibold text-white">{activePreviewIndex + 1} / {previewImages.length}</span>
+                    </> : null}
+                  </div>
                 ) : (
                   <div className="flex h-64 items-center justify-center bg-gradient-to-br from-naki-frost to-naki-steel/50 md:h-80 lg:h-96">
                     <Code2 className="text-naki-steel" size={64} />
                   </div>
                 )}
                 {/* Thumbnail row */}
-                {selectedTemplate.preview.length > 1 && (
-                  <div className="flex gap-2 border-t border-naki-steel/60 p-3">
-                    {selectedTemplate.preview.slice(1, 5).map((item, index) =>
+                {previewImages.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto border-t border-naki-steel/60 p-3">
+                    {previewImages.map((item, index) =>
                       item.image ? (
                         <button
                           key={index}
-                          className="h-16 w-24 overflow-hidden rounded-lg border border-naki-steel transition hover:border-blue-400"
-                          onClick={() =>
-                            setExpandedPreview({
-                              image: item.image,
-                              caption: item.caption || `${selectedTemplate.title} preview ${index + 2}`,
-                            })
-                          }
+                          className={`h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${activePreviewIndex === index ? "border-blue-500" : "border-transparent opacity-65 hover:opacity-100"}`}
+                          onClick={() => setActivePreviewIndex(index)}
                           type="button"
+                          aria-label={`Tampilkan preview ${index + 1}`}
+                          aria-current={activePreviewIndex === index}
                         >
-                          <img className="h-full w-full object-cover" src={item.image} alt="" />
+                          <img className="h-full w-full object-cover" src={item.image} alt={item.caption || ""} />
                         </button>
                       ) : null,
                     )}
@@ -768,7 +793,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                       <Link
                         key={item.id}
                         className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
-                        to={`/templates/${item.slug}`}
+                        to={`/design/${item.slug}`}
                       >
                         {item.preview[0]?.image ? (
                           <img className="h-36 w-full object-cover" src={item.preview[0].image} alt={item.title} />
@@ -832,46 +857,34 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                   ))}
                 </div>
 
-                {selectedTemplate.lynkUrl ? (
-                  <div className="mt-5 space-y-3">
-                    <a
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 text-sm font-semibold text-white transition hover:bg-blue-600"
-                      href={selectedTemplate.lynkUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      <BadgeCheck size={18} />
-                      Beli source code via Lynk
-                    </a>
-                    <div className="flex items-center justify-center gap-2 text-xs text-naki-smoke">
-                      <ShieldCheck className="text-green-500" size={16} />
-                      <span>Pembayaran aman & instan via Lynk.id</span>
-                    </div>
-                  </div>
-                ) : userToken ? (
-                  <div className="mt-5">
+                <div className="mt-5">
+                  {userToken ? (
                     <button
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:bg-naki-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={isStartingCheckout}
                       onClick={() => void startDirectCheckout()}
                       type="button"
                     >
                       <CreditCard size={17} />
-                      {isStartingCheckout ? "Memproses..." : "Beli source code"}
+                      {isStartingCheckout ? "Memproses..." : "Checkout"}
                     </button>
-                    <p className="mt-2 text-xs text-naki-smoke" aria-live="polite">
-                      {checkoutStatus}
-                    </p>
-                  </div>
-                ) : (
-                  <Link
-                    className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
-                    to={appendNextParam("/login", nextTarget)}
-                  >
-                    <LogIn size={17} />
-                    Login untuk beli source code
-                  </Link>
-                )}
+                  ) : (
+                    <Link
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                      to={appendNextParam("/login", nextTarget)}
+                    >
+                      <LogIn size={17} />
+                      Checkout
+                    </Link>
+                  )}
+                </div>
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-naki-smoke">
+                  <ShieldCheck className="text-green-500" size={16} />
+                  <span>Pembayaran aman melalui checkout Naki Code</span>
+                </div>
+                <p className="mt-2 text-xs text-naki-smoke" aria-live="polite">
+                  {checkoutStatus}
+                </p>
               </div>
 
               {/* Auth / Consultation */}
@@ -975,35 +988,34 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
       </div>
 
       {/* Expanded Preview Modal */}
-      {expandedPreview && (
+      {isPreviewOpen && previewImages[activePreviewIndex]?.image && (
         <div
-          className="fixed inset-0 z-[500] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[500] grid place-items-center bg-black/85 p-3 backdrop-blur-sm md:p-6"
           role="dialog"
           aria-modal="true"
-          onClick={() => setExpandedPreview(null)}
+          aria-label="Galeri preview design"
+          onClick={() => setIsPreviewOpen(false)}
         >
           <div
-            className="relative grid max-h-[92vh] w-full max-w-6xl gap-3 rounded-2xl bg-white p-4 shadow-xl"
+            className="relative flex h-full max-h-[94vh] w-full max-w-7xl flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-naki-primary text-white"
-              onClick={() => setExpandedPreview(null)}
+              className="absolute right-2 top-2 z-20 grid size-11 place-items-center rounded-full bg-white/90 text-naki-primary shadow-sm transition hover:bg-white"
+              onClick={() => setIsPreviewOpen(false)}
               type="button"
               aria-label="Tutup preview"
             >
               <X size={18} />
             </button>
-            <img
-              className="max-h-[76vh] w-full rounded-xl object-contain"
-              src={expandedPreview.image}
-              alt={expandedPreview.caption}
-              loading="eager"
-              decoding="async"
-            />
-            <p className="rounded-xl bg-naki-frost px-4 py-3 text-sm font-medium text-naki-primary">
-              {expandedPreview.caption}
-            </p>
+            <div className="relative min-h-0 flex-1">
+              <img className="h-full w-full object-contain" src={previewImages[activePreviewIndex].image} alt={previewImages[activePreviewIndex].caption || selectedTemplate.title} loading="eager" decoding="async" />
+              {previewImages.length > 1 ? <><PreviewArrow direction="previous" onClick={showPreviousPreview} overlay /><PreviewArrow direction="next" onClick={showNextPreview} overlay /></> : null}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-4 rounded-lg bg-white/95 px-4 py-3 text-sm text-naki-primary">
+              <p className="min-w-0 truncate font-medium">{previewImages[activePreviewIndex].caption || `${selectedTemplate.title} - preview ${activePreviewIndex + 1}`}</p>
+              <span className="shrink-0 text-xs font-semibold text-naki-smoke">{activePreviewIndex + 1} / {previewImages.length}</span>
+            </div>
           </div>
         </div>
       )}
@@ -1204,6 +1216,11 @@ async function copyShareLink(url: string, setStatus: (value: string) => void) {
 }
 
 type DetailBlockProps = { title: string; items: string[] };
+
+function PreviewArrow({ direction, onClick, overlay = false }: { direction: "previous" | "next"; onClick: () => void; overlay?: boolean }) {
+  const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
+  return <button className={`absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full shadow-sm transition ${direction === "previous" ? "left-3" : "right-3"} ${overlay ? "bg-white/90 text-naki-primary hover:bg-white" : "bg-naki-primary/85 text-white hover:bg-naki-primary"}`} onClick={(event) => { event.stopPropagation(); onClick(); }} type="button" aria-label={direction === "previous" ? "Preview sebelumnya" : "Preview berikutnya"}><Icon size={22} /></button>;
+}
 
 function DetailBlock({ title, items }: DetailBlockProps) {
   return (

@@ -115,7 +115,7 @@ export function UserLoginPage() {
         window.dispatchEvent(new Event(userSessionEvent));
         setVerificationUrl("");
         navigate(
-          data.user.role === "admin" ? "/admin/dashboard" : "/template",
+          data.user.role === "admin" ? "/admin/dashboard" : "/design",
           { replace: true },
         );
         return;

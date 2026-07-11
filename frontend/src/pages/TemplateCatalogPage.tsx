@@ -90,7 +90,7 @@ export function TemplateCatalogPage({
     itemListElement: filteredTemplates.slice(0, 20).map((template, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      url: `${window.location.origin}/templates/${template.slug}`,
+      url: `${window.location.origin}/design/${template.slug}`,
       name: template.title,
     })),
   };
@@ -109,7 +109,7 @@ export function TemplateCatalogPage({
         "@type": "ListItem",
         position: 2,
         name: "Design",
-        item: `${window.location.origin}/template`,
+        item: `${window.location.origin}/design`,
       },
       ...(isCategoryPage
         ? [
@@ -141,6 +141,7 @@ export function TemplateCatalogPage({
       <Header />
 
       {/* Dark navy hero */}
+      <main id="main-content" tabIndex={-1}>
       <section className="bg-naki-primary px-5 py-14 text-center md:px-8 xl:px-12 2xl:px-16">
         <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
           {isCategoryPage ? `Kategori ${activeCategory}` : "Koleksi Design"}
@@ -156,7 +157,7 @@ export function TemplateCatalogPage({
       </section>
 
       {/* Floating filter bar */}
-      <section className="relative z-10 -mt-6 px-5 md:px-8 xl:px-12 2xl:px-16">
+      <section className="relative z-10 -mt-6">
         <TemplateFilterBar
           categories={categories}
           activeCategory={activeCategory}
@@ -170,14 +171,14 @@ export function TemplateCatalogPage({
       </section>
 
       {/* Design grid */}
-      <section className="bg-naki-page-bg px-5 pb-16 pt-8 md:px-8 xl:px-12 2xl:px-16">
+      <section className="bg-naki-page-bg pb-8">
         <TemplateCatalog
           templates={filteredTemplates}
-          allTemplates={templates}
           activeCategory={activeCategory}
           isLoading={isLoading}
         />
       </section>
+      </main>
 
       <Footer />
     </div>

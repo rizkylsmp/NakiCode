@@ -363,7 +363,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
     : [];
 
   const shareUrl = template
-    ? `${window.location.origin}/templates/${template.slug}`
+    ? `${window.location.origin}/design/${template.slug}`
     : "";
   const shareText = template
     ? encodeURIComponent(`${template.title} dari Naki Code`)

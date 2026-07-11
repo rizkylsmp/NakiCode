@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { trackPageView } from "../services/analytics";
 import { apiGet } from "../services/api-client";
 import {
@@ -22,6 +22,11 @@ import { getTemplateCategoryFromSlug } from "../utils/template-url";
  * If the reload doesn't fix it we let the ErrorBoundary catch the error.
  */
 const STALE_CHUNK_KEY = "naki-stale-chunk-reloaded";
+
+function LegacyDesignDetailRedirect() {
+  const { slug = "" } = useParams();
+  return <Navigate replace to={`/design/${encodeURIComponent(slug)}`} />;
+}
 
 // React.lazy needs to preserve each page component's own props.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,11 +117,6 @@ const WishlistPage = lazyWithReload(() =>
     default: module.WishlistPage,
   })),
 );
-const ComparePage = lazyWithReload(() =>
-  import("../pages/ComparePage").then((module) => ({
-    default: module.ComparePage,
-  })),
-);
 const UserLoginPage = lazyWithReload(() =>
   import("../pages/UserLoginPage").then((module) => ({
     default: module.UserLoginPage,
@@ -194,8 +194,8 @@ function App() {
 
   useEffect(() => {
     if (
-      location.pathname !== "/template" &&
-      !location.pathname.startsWith("/template/kategori/")
+      location.pathname !== "/design" &&
+      !location.pathname.startsWith("/design/kategori/")
     ) {
       return;
     }
@@ -203,7 +203,7 @@ function App() {
     const params = new URLSearchParams(location.search);
     const requestedCategory = params.get("category");
     const requestedQuery = params.get("q");
-    const categorySlug = location.pathname.startsWith("/template/kategori/")
+    const categorySlug = location.pathname.startsWith("/design/kategori/")
       ? location.pathname.split("/").pop()
       : undefined;
 
@@ -272,7 +272,7 @@ function App() {
   }
 
   const homePageElement = (
-    <main className="naki-frosted-grid min-h-screen text-naki-primary">
+    <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <HomePage
         templates={templates}
         categories={categories}
@@ -283,7 +283,7 @@ function App() {
         isLoading={isLoading || isError}
         onQueryChange={setQuery}
       />
-    </main>
+    </div>
   );
 
   return (
@@ -314,7 +314,7 @@ function App() {
         <Routes>
         <Route path="/" element={homePageElement} />
         <Route
-          path="/template"
+          path="/design"
           element={
             <TemplateCatalogPage
               templates={templates}
@@ -328,7 +328,7 @@ function App() {
           }
         />
         <Route
-          path="/template/kategori/:categorySlug"
+          path="/design/kategori/:categorySlug"
           element={
             <TemplateCatalogPage
               templates={templates}
@@ -342,9 +342,13 @@ function App() {
           }
         />
         <Route
-          path="/templates/:slug"
+          path="/design/:slug"
           element={<TemplateDetailPage templates={templates} />}
         />
+        <Route path="/template" element={<Navigate replace to="/design" />} />
+        <Route path="/template/kategori/:categorySlug" element={<Navigate replace to="/design" />} />
+        <Route path="/templates/:slug" element={<LegacyDesignDetailRedirect />} />
+        <Route path="/admin/templates" element={<Navigate replace to="/admin/design" />} />
         <Route path="/login" element={<UserLoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -381,10 +385,6 @@ function App() {
               <WishlistPage templates={templates} />
             </RequireAuth>
           }
-        />
-        <Route
-          path="/compare"
-          element={<ComparePage templates={templates} />}
         />
         <Route
           path="/profile"
@@ -426,7 +426,7 @@ function App() {
 
 async function fetchAppBootstrap() {
   const [templates, categories, projects] = await Promise.all([
-    apiGet<TemplatesResponse>("/api/templates"),
+    apiGet<TemplatesResponse>("/api/designs"),
     apiGet<CategoriesResponse>("/api/categories"),
     apiGet<ProjectsResponse>("/api/projects"),
   ]);

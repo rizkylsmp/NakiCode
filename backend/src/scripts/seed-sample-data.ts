@@ -25,7 +25,6 @@ async function main() {
   await seedProjects();
   await seedBlogPosts();
   await seedCoupons();
-  await seedAffiliateReferrals();
   await seedBundles();
   await seedTestimonials();
   await seedWebhookEvents();
@@ -46,7 +45,6 @@ async function main() {
     'blog_posts',
     'coupons',
     'coupon_redemptions',
-    'affiliate_referrals',
     'testimonials',
     'template_bundles',
     'template_bundle_items',
@@ -483,25 +481,6 @@ async function seedCoupons() {
       discount_value = VALUES(discount_value),
       active = VALUES(active),
       expires_at = VALUES(expires_at)`,
-  );
-}
-
-async function seedAffiliateReferrals() {
-  await pool.query(
-    `INSERT INTO affiliate_referrals (
-      code,
-      owner_name,
-      active,
-      click_count,
-      conversion_count
-    ) VALUES
-      ('SAMPLEPARTNER', 'Sample Partner', TRUE, 24, 3),
-      ('SAMPLECREATOR', 'Sample Creator', TRUE, 12, 1)
-    ON DUPLICATE KEY UPDATE
-      owner_name = VALUES(owner_name),
-      active = VALUES(active),
-      click_count = VALUES(click_count),
-      conversion_count = VALUES(conversion_count)`,
   );
 }
 

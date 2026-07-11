@@ -117,7 +117,7 @@ function AdminProfileLinks({ onClose }: { onClose: () => void }) {
       <ProfileMenuLink
         icon={<ShoppingBag size={16} />}
         label="Kelola design"
-        to="/admin/templates"
+        to="/admin/design"
         onClose={onClose}
       />
       <ProfileMenuLink

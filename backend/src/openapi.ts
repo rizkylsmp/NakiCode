@@ -4,7 +4,7 @@ export const openApiDocument = {
     title: 'Naki Code API',
     version: '1.0.0',
     description:
-      'API Naki Code untuk katalog design, order jasa website, payment, wishlist, notifikasi, blog, coupon, referral, dan bundle.',
+      'API Naki Code untuk katalog design, order jasa website, payment, wishlist, notifikasi, blog, coupon, dan bundle.',
   },
   servers: [
     {
@@ -111,12 +111,6 @@ export const openApiDocument = {
       get: {
         summary: 'List paket bundle design',
         responses: { 200: { description: 'Daftar bundle' } },
-      },
-    },
-    '/business/referrals/{code}/click': {
-      post: {
-        summary: 'Track klik referral affiliate',
-        responses: { 200: { description: 'Referral tracked' } },
       },
     },
   },

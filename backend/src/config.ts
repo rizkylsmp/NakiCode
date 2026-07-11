@@ -8,6 +8,7 @@ const envSchema = z.object({
   // Server configuration
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   CLIENT_ORIGIN: z.string().url().default('http://localhost:5173'),
   CLIENT_ORIGINS: z.string().default('http://localhost:5173'),
 
@@ -100,6 +101,10 @@ try {
   process.exit(1);
 }
 
+const isProductionDeployment =
+  env.VERCEL_ENV === 'production' ||
+  (env.NODE_ENV === 'production' && !env.VERCEL_ENV);
+
 // Export validated and typed configuration
 export const config = {
   port: env.PORT,
@@ -143,7 +148,8 @@ export const config = {
   payment: {
     provider: env.PAYMENT_PROVIDER,
     midtransServerKey: env.MIDTRANS_SERVER_KEY || '',
-    midtransIsProduction: env.MIDTRANS_IS_PRODUCTION,
+    midtransIsProduction:
+      isProductionDeployment || env.MIDTRANS_IS_PRODUCTION,
   },
   storefront: {
     whatsappNumber: env.STOREFRONT_WHATSAPP_NUMBER || '',

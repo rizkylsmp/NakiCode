@@ -6,7 +6,6 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './app/App';
 import { ErrorBoundary } from './app/ErrorBoundary';
 import { AuthProvider } from './contexts/auth-context';
-import { CompareProvider } from './contexts/compare-context';
 import { initializeAnalytics } from './services/analytics';
 import { setUnauthorizedHandler } from './services/api-client';
 import { registerServiceWorker } from './services/pwa';
@@ -63,9 +62,7 @@ createRoot(document.getElementById('root')!).render(
         <HelmetProvider>
           <BrowserRouter>
             <AuthProvider>
-              <CompareProvider>
-                <App />
-              </CompareProvider>
+              <App />
             </AuthProvider>
           </BrowserRouter>
         </HelmetProvider>

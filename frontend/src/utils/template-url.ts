@@ -1,7 +1,7 @@
 import type { TemplateCategory } from "../domain/content";
 
-export const templateCatalogPath = "/template";
-export const templateCategoryBasePath = "/template/kategori";
+export const templateCatalogPath = "/design";
+export const templateCategoryBasePath = "/design/kategori";
 
 export function slugifyTemplateCategory(category: string) {
   return category

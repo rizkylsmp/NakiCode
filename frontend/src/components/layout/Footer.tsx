@@ -26,10 +26,10 @@ function InstagramIcon() {
 }
 
 const productLinks = [
-  { label: "Semua Design", href: "/template" },
-  { label: "Landing Page", href: "/template?category=Landing%20Page" },
-  { label: "Dashboard", href: "/template?category=Dashboard" },
-  { label: "E-commerce", href: "/template?category=E-commerce" },
+  { label: "Semua Design", href: "/design" },
+  { label: "Landing Page", href: "/design?category=Landing%20Page" },
+  { label: "Dashboard", href: "/design?category=Dashboard" },
+  { label: "E-commerce", href: "/design?category=E-commerce" },
 ];
 
 const resourceLinks = [

@@ -5,6 +5,7 @@ import { FaqSection } from "../components/home/FaqSection";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import { Hero } from "../components/home/Hero";
+import { HowItWorksSection } from "../components/home/HowItWorksSection";
 import { LearningSection } from "../components/home/LearningSection";
 import { PortfolioSection } from "../components/home/PortfolioSection";
 import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
@@ -63,9 +64,8 @@ export function HomePage({
 
   const blogPosts = blogData?.posts ?? [];
 
-  // Calculate real stats from templates data
+  // Calculate stats only from data that is available to the storefront.
   const totalTemplates = templates.length;
-  const totalDevelopers = templates.reduce((sum, t) => sum + (t.buyerCount || 0), 0);
   const totalTransactions = templates.reduce((sum, t) => sum + (t.buyerCount || 0), 0);
   const averageRating = templates.length > 0
     ? templates.reduce((sum, t) => sum + (t.rating || 0), 0) / templates.length
@@ -74,30 +74,34 @@ export function HomePage({
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Header />
-      <Hero
-        totalTemplates={totalTemplates}
-        totalDevelopers={totalDevelopers}
-        totalTransactions={totalTransactions}
-        averageRating={averageRating}
-      />
-      <TemplateCatalog
-        templates={filteredTemplates}
-        allTemplates={templates}
-        activeCategory={activeCategory}
-        isLoading={isLoading}
-      />
-      <CategorySection categories={categories} isLoading={isLoading} />
-      <TestimonialSection />
-      <PortfolioSection
-        items={portfolioItems}
-        isLoading={isLoading}
-      />
-      <LearningSection
-        blogPosts={blogPosts}
-        isLoading={isLoadingBlogPosts || isBlogPostsError}
-      />
-      <FaqSection faqs={faqs} />
-      <CTASection />
+      <main id="main-content" tabIndex={-1}>
+        <Hero
+          totalTemplates={totalTemplates}
+          totalProjects={portfolioItems.length}
+          totalTransactions={totalTransactions}
+          averageRating={averageRating}
+        />
+        <CategorySection categories={categories} isLoading={isLoading} />
+        <div id="cara-kerja">
+          <HowItWorksSection />
+        </div>
+        <TemplateCatalog
+          templates={filteredTemplates}
+          activeCategory={activeCategory}
+          isLoading={isLoading}
+        />
+        <PortfolioSection
+          items={portfolioItems}
+          isLoading={isLoading}
+        />
+        <TestimonialSection />
+        <LearningSection
+          blogPosts={blogPosts}
+          isLoading={isLoadingBlogPosts || isBlogPostsError}
+        />
+        <FaqSection faqs={faqs} />
+        <CTASection />
+      </main>
       <Footer />
     </div>
   );

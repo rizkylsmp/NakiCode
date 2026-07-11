@@ -38,6 +38,7 @@ export function TemplateFilterBar({
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           {/* Search */}
           <label className="relative flex-1">
+            <span className="sr-only">Cari design</span>
             <Search
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-naki-smoke"
               size={18}
@@ -60,6 +61,7 @@ export function TemplateFilterBar({
               className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none focus:border-blue-400 md:w-auto"
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
+              aria-label="Urutkan design"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>

@@ -25,6 +25,7 @@ type OrderRow = RowDataPacket & {
   paid_at?: string | null;
   created_at?: string;
   template_price?: string | null;
+  template_lynk_url?: string | null;
   included_files?: string | string[] | null;
   license?: string | null;
   support?: string | null;
@@ -54,6 +55,7 @@ export type OrderItem = {
   paymentLastWebhookAt: string | null;
   paidAt: string | null;
   templatePrice: string | null;
+  templateLynkUrl: string | null;
   deliveryStatus: 'locked' | 'available';
   sourceCodeItems: string[];
   setupGuide: string | null;
@@ -102,6 +104,7 @@ const orderSelect = `SELECT
   orders.paid_at,
   orders.created_at,
   templates.price AS template_price,
+  templates.lynk_url AS template_lynk_url,
   templates.included_files,
   templates.license,
   templates.support,
@@ -223,6 +226,7 @@ export async function createOrder(payload: OrderPayload) {
     id: result.insertId,
     ...payload,
     templatePrice: null,
+    templateLynkUrl: null,
     deliveryStatus: 'locked' as const,
     sourceCodeItems: [],
     setupGuide: null,
@@ -482,6 +486,7 @@ export function normalizeOrderPayload(
     paymentLastWebhookAt: null,
     paidAt: null,
     templatePrice: null,
+    templateLynkUrl: null,
     deliveryStatus: 'locked',
     sourceCodeItems: [],
     setupGuide: null,
@@ -517,6 +522,7 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     paymentLastWebhookAt: row.payment_last_webhook_at ?? null,
     paidAt: row.paid_at ?? null,
     templatePrice: row.template_price ?? null,
+    templateLynkUrl: row.template_lynk_url ?? null,
     deliveryStatus: isPaid ? 'available' : 'locked',
     sourceCodeItems,
     setupGuide: isPaid && guideParts.length > 0 ? guideParts.join('\n\n') : null,

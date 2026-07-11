@@ -1,22 +1,24 @@
-import { ArrowRight, Check, Code2, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Code2, MessageCircle, Sparkles } from "lucide-react";
 
 type HeroProps = {
   totalTemplates: number;
-  totalDevelopers: number;
+  totalProjects: number;
   totalTransactions: number;
   averageRating: number;
 };
 
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
+
 export function Hero({
   totalTemplates,
-  totalDevelopers,
+  totalProjects,
   totalTransactions,
   averageRating,
 }: HeroProps) {
   return (
     <section className="relative z-0 w-full overflow-hidden">
       {/* Subtle gradient glow at top */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-50/80 via-transparent to-transparent" />
+      <div className="naki-hero-glow pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-50/80 via-transparent to-transparent" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-7 sm:px-5 md:px-8 md:py-10 lg:py-12 xl:px-12 2xl:px-16">
         <div className="grid gap-7 md:grid-cols-2 md:items-center md:gap-12">
@@ -48,37 +50,34 @@ export function Hero({
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:justify-start">
               <a
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
-                href="/template"
+                href="/design"
               >
-                Pilih Design
+                Jelajahi Design
                 <ArrowRight size={17} />
               </a>
               <a
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
-                href="/template"
+                href={
+                  WHATSAPP_NUMBER
+                    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo Naki Code, saya ingin konsultasi pembuatan website.")}`
+                    : "#cara-kerja"
+                }
+                rel={WHATSAPP_NUMBER ? "noreferrer" : undefined}
+                target={WHATSAPP_NUMBER ? "_blank" : undefined}
               >
-                Lihat Referensi
+                <MessageCircle size={17} />
+                Konsultasi Gratis
               </a>
             </div>
 
             {/* Social Proof */}
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm text-naki-smoke md:justify-start">
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <span
-                    key={i}
-                    className="grid size-8 place-items-center rounded-full border-2 border-white bg-naki-steel text-[10px] font-semibold text-naki-smoke"
-                  >
-                    {String.fromCharCode(64 + i)}
-                  </span>
-                ))}
-              </div>
               <span className="max-w-[260px] font-medium sm:max-w-none">
-                Dipercaya{" "}
+                Dibangun dari pengalaman mengerjakan{" "}
                 <strong className="text-naki-primary">
-                  {totalDevelopers}+
+                  {totalProjects}
                 </strong>{" "}
-                pelanggan dan developer
+                project portofolio
               </span>
             </div>
 
@@ -128,11 +127,11 @@ export function Hero({
                 <Code2 size={18} />
               </span>
               <p className="mt-2 text-2xl font-extrabold text-naki-primary">
-                {totalDevelopers}+
+                {totalProjects}
               </p>
               <p className="text-xs font-medium text-naki-smoke">
                 <span className="sm:hidden">Project</span>
-                <span className="hidden sm:inline">Project dikerjakan</span>
+                <span className="hidden sm:inline">Project portofolio</span>
               </p>
             </div>
 
@@ -170,10 +169,10 @@ export function Hero({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
-                {totalDevelopers}+
+                {totalProjects}
               </div>
               <div className="mt-1 text-sm text-naki-smoke">
-                Project Dikerjakan
+                Project Portofolio
               </div>
             </div>
             <div className="text-center">
@@ -181,7 +180,7 @@ export function Hero({
                 {totalTransactions}+
               </div>
               <div className="mt-1 text-sm text-naki-smoke">
-                Transaksi Sukses
+                Pesanan Design
               </div>
             </div>
             <div className="text-center">
