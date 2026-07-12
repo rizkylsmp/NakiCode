@@ -99,3 +99,4 @@ Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 ## 2026-07-11
 
 - [x] 2026-07-11 - Aktifkan alur compare design dengan state persisten yang tervalidasi, batas minimal dua pilihan, loading state saat data katalog dimuat, dan halaman perbandingan side-by-side; hapus tombol via Lynk dari purchase card halaman preview agar checkout utama menjadi satu aksi yang jelas - files: frontend/src/contexts/compare-context.tsx, frontend/src/components/catalog/CompareTray.tsx, frontend/src/pages/ComparePage.tsx, frontend/src/pages/TemplateDetailPage.tsx, frontend/src/app/App.tsx, docs/CHANGELOG.md
+- [x] 2026-07-12 - Menambahkan drag and drop serta paste file clipboard pada upload source code design - files: frontend/src/pages/admin/AdminTemplateWorkspace.shared.tsx, frontend/src/pages/admin/TemplateFormModal.tsx

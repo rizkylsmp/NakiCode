@@ -1048,21 +1048,38 @@ export type SourceCodeUploadProps = {
 
 export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   function addSourceFiles(files: File[]) {
+    if (isUploading || !files.length) {
+      return;
+    }
+
+    const packageFiles = files.filter((file) => /\.(zip|rar)$/i.test(file.name));
+
+    if (!packageFiles.length) {
+      setUploadStatus("File harus berformat ZIP atau RAR.");
+      return;
+    }
+
     setIsUploading(true);
+    setUploadStatus("Memproses file source code...");
 
     // Simulate upload delay
     setTimeout(() => {
-      const packageItems = files
-        .filter((file) => /\.(zip|rar)$/i.test(file.name))
-        .map(
-          (file) => `${file.name} (${formatFileSize(file.size)})`,
-        );
+      const packageItems = packageFiles.map(
+        (file) => `${file.name} (${formatFileSize(file.size)})`,
+      );
 
-      if (packageItems.length) {
-        onChange(appendLines(value, packageItems));
-      }
+      onChange(appendLines(value, packageItems));
+      setUploadStatus(
+        `${packageItems.length} file berhasil ditambahkan${
+          packageFiles.length < files.length
+            ? ". File selain ZIP/RAR diabaikan."
+            : "."
+        }`,
+      );
       setIsUploading(false);
     }, 1000);
   }
@@ -1072,7 +1089,39 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
   return (
     <section className="grid gap-3">
       {/* Upload Area */}
-      <div className="flex flex-col justify-between gap-3 rounded-xl border border-naki-steel bg-naki-frost p-4 sm:flex-row sm:items-center">
+      <div
+        className={`flex flex-col justify-between gap-3 rounded-xl border-2 border-dashed p-4 outline-none transition sm:flex-row sm:items-center ${
+          isDragging
+            ? "border-naki-primary bg-white shadow-naki-soft"
+            : "border-naki-steel bg-naki-frost"
+        }`}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          if (!isUploading) setIsDragging(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setIsDragging(false);
+          }
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setIsDragging(false);
+          addSourceFiles(Array.from(event.dataTransfer.files));
+        }}
+        onPaste={(event) => {
+          const files = Array.from(event.clipboardData.files);
+          if (files.length) {
+            event.preventDefault();
+            addSourceFiles(files);
+          }
+        }}
+        tabIndex={0}
+      >
         <div className="flex items-center gap-3">
           <span className="grid size-11 place-items-center rounded-xl bg-white text-naki-secondary">
             <FileArchive size={20} />
@@ -1082,7 +1131,7 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
               Upload Source Code
             </p>
             <p className="mt-1 text-sm text-naki-smoke">
-              ZIP atau RAR codingan.
+              Drag & drop, paste file dari clipboard, atau pilih ZIP/RAR.
             </p>
           </div>
         </div>
@@ -1115,6 +1164,12 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
           />
         </label>
       </div>
+
+      {uploadStatus && (
+        <p className="text-sm text-naki-smoke" aria-live="polite">
+          {uploadStatus}
+        </p>
+      )}
 
       {/* Uploaded Files List */}
       {uploadedFiles.length > 0 && (

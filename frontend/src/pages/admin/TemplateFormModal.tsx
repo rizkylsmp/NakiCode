@@ -252,7 +252,7 @@ export function TemplateFormModal({
             <div>
               <h2 className="text-2xl font-bold text-naki-primary">Source Code</h2>
               <p className="mt-1 text-sm text-naki-smoke">
-                Upload file source code design dalam format ZIP atau RAR.
+                Tambahkan ZIP atau RAR melalui pilihan file, drag & drop, atau paste dari clipboard.
               </p>
             </div>
             <SourceCodeUpload
