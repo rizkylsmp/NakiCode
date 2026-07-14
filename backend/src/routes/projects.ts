@@ -8,6 +8,7 @@ import {
   deleteProject,
   findProjectById,
   findProjects,
+  findProjectsPage,
   normalizeProjectPayload,
   updateProject,
 } from "../models/project.model";
@@ -17,6 +18,11 @@ export const projectsRouter = Router();
 
 const idParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
+});
+
+const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(30).default(9),
 });
 
 const projectBodySchema = z.object({
@@ -45,9 +51,31 @@ const projectBodySchema = z.object({
 });
 
 
-projectsRouter.get("/", async (_request, response) => {
+projectsRouter.get("/", async (request, response) => {
   try {
-    response.json({ source: "mysql", projects: await findProjects() });
+    const usesPagination =
+      typeof request.query.page !== "undefined" ||
+      typeof request.query.pageSize !== "undefined";
+
+    if (!usesPagination) {
+      response.json({ source: "mysql", projects: await findProjects() });
+      return;
+    }
+
+    const query = paginationQuerySchema.safeParse(request.query);
+
+    if (!query.success) {
+      response.status(400).json({
+        message: "Parameter pagination tidak valid",
+        errors: query.error.flatten(),
+      });
+      return;
+    }
+
+    response.json({
+      source: "mysql",
+      ...(await findProjectsPage(query.data.page, query.data.pageSize)),
+    });
   } catch (error) {
     Sentry.captureException(error);
     response.status(503).json({

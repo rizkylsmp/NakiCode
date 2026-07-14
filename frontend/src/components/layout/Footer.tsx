@@ -41,6 +41,7 @@ const resourceLinks = [
 
 const companyLinks = [
   { label: "Tentang Kami", href: "#" },
+  { label: "Portofolio", href: "/portofolio" },
   { label: "Karir", href: "#" },
   { label: "Kontak", href: "#" },
   { label: "Partner", href: "#" },

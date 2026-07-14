@@ -14,6 +14,10 @@ type ProjectRow = RowDataPacket & {
   created_at?: string;
 };
 
+type ProjectCountRow = RowDataPacket & {
+  total: number;
+};
+
 export type ProjectPayload = {
   title: string;
   category: string;
@@ -52,6 +56,32 @@ export async function findProjects() {
   );
 
   return rows.map(normalizeProjectRow);
+}
+
+export async function findProjectsPage(page = 1, pageSize = 9) {
+  const safePageSize = Math.max(1, Math.min(30, Math.floor(pageSize)));
+  const safePage = Math.max(1, Math.floor(page));
+  const offset = (safePage - 1) * safePageSize;
+  const [[countRow], [rows]] = await Promise.all([
+    pool.query<ProjectCountRow[]>(
+      "SELECT COUNT(*) AS total FROM projects WHERE deleted_at IS NULL",
+    ),
+    pool.query<ProjectRow[]>(
+      `${projectSelect}
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?`,
+      [safePageSize, offset],
+    ),
+  ]);
+  const total = Number(countRow[0]?.total ?? 0);
+
+  return {
+    projects: rows.map(normalizeProjectRow),
+    page: safePage,
+    pageSize: safePageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
 }
 
 export async function findProjectById(id: number) {

@@ -18,12 +18,13 @@ const slugifyCategory = (category) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 const categoryRoutes = categories.map(
-  (category) => `/template/kategori/${slugifyCategory(category)}`,
+  (category) => `/design/kategori/${slugifyCategory(category)}`,
 );
 const routes = [
   '/',
-  '/template',
+  '/design',
   ...categoryRoutes,
+  '/portofolio',
   '/blog',
   '/login',
   '/forgot-password',

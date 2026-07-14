@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import type { PortfolioItem } from "../../domain/content";
 import { normalizeCoverIndex } from "../../pages/admin/AdminTemplateWorkspace.shared";
 import { Skeleton, SkeletonText } from "../ui/skeletons/Skeleton";
@@ -26,29 +27,40 @@ export function PortfolioSection({ items, isLoading = false }: PortfolioSectionP
                 Contoh website yang kami kerjakan dari design referensi maupun brief custom.
               </p>
             </div>
-            <a
+            <Link
               className="inline-flex items-center gap-1 text-sm font-medium text-blue-500 transition hover:text-blue-600"
-              href="#cara-kerja"
+              to="/portofolio"
             >
-              Lihat cara kerjanya
+              Lihat semua portofolio
               <ArrowRight size={14} />
-            </a>
+            </Link>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-            {isLoading ? (
-              <PortfolioSkeletonGrid />
-            ) : items.length === 0 ? (
-              <div className="col-span-full rounded-xl border border-naki-steel/60 bg-white p-10 text-center text-sm text-naki-smoke">
-                Belum ada portofolio yang dipublikasikan.
-              </div>
-            ) : items.map((item) => (
-              <PortfolioCard key={item.id ?? item.title} item={item} />
-            ))}
-          </div>
+          <PortfolioGrid items={items.slice(0, 6)} isLoading={isLoading} />
         </div>
       </div>
     </section>
+  );
+}
+
+export function PortfolioGrid({
+  items,
+  isLoading = false,
+}: PortfolioSectionProps) {
+  return (
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {isLoading ? (
+        <PortfolioSkeletonGrid />
+      ) : items.length === 0 ? (
+        <div className="col-span-full rounded-xl border border-naki-steel/60 bg-white p-10 text-center text-sm text-naki-smoke">
+          Belum ada portofolio yang dipublikasikan.
+        </div>
+      ) : (
+        items.map((item) => (
+          <PortfolioCard key={item.id ?? item.title} item={item} />
+        ))
+      )}
+    </div>
   );
 }
 

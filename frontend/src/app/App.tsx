@@ -117,6 +117,11 @@ const WishlistPage = lazyWithReload(() =>
     default: module.WishlistPage,
   })),
 );
+const PortfolioPage = lazyWithReload(() =>
+  import("../pages/PortfolioPage").then((module) => ({
+    default: module.PortfolioPage,
+  })),
+);
 const UserLoginPage = lazyWithReload(() =>
   import("../pages/UserLoginPage").then((module) => ({
     default: module.UserLoginPage,
@@ -369,6 +374,7 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogDetailPage />} />
+        <Route path="/portofolio" element={<PortfolioPage />} />
         <Route
           path="/pesanan-saya"
           element={

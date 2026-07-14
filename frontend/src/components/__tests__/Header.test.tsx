@@ -73,6 +73,10 @@ describe('Header Component', () => {
     // Check for main navigation links
     const homeLink = screen.getByRole('link', { name: /NakiCode home/i });
     expect(homeLink).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Portofolio' })).toHaveAttribute(
+      'href',
+      '/portofolio',
+    );
   });
 
   it('opens the design search dialog', () => {

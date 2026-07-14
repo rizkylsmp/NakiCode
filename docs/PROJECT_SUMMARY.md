@@ -128,6 +128,7 @@ Jangan commit `.env`.
 - `/verify-email` - verifikasi email via OTP
 - `/blog` - blog list
 - `/blog/:slug` - detail blog
+- `/portofolio` - daftar portofolio publik dengan pagination
 - `/pesanan-saya` - order user, butuh login
 - `/checkout/:orderId` - checkout/payment, butuh login
 - `/akun-saya` dan `/profile` - profil user
@@ -315,6 +316,7 @@ Core/storefront:
 - Rating/review buyer
 - Wishlist/favorites
 - Galeri preview design dengan carousel thumbnail dan lightbox overlay
+- Halaman portofolio publik dengan pagination server-side
 - Alur jasa tiga langkah di beranda: pilih design, konsultasi, lalu website disiapkan
 - Social sharing/copy link/Web Share API
 - Search history/recently viewed
