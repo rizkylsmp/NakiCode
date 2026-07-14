@@ -161,13 +161,23 @@ function App() {
   const [activeCategory, setActiveCategory] =
     useState<TemplateCategory>("Semua");
   const [query, setQuery] = useState("");
-  const {
-    data: bootstrapData,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["app-bootstrap"],
-    queryFn: fetchAppBootstrap,
+  const templatesQuery = useQuery({
+    queryKey: ["app-templates"],
+    queryFn: () => apiGet<TemplatesResponse>("/api/designs"),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const categoriesQuery = useQuery({
+    queryKey: ["app-categories"],
+    queryFn: () => apiGet<CategoriesResponse>("/api/categories"),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const projectsQuery = useQuery({
+    queryKey: ["app-projects"],
+    queryFn: () => apiGet<ProjectsResponse>("/api/projects"),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
@@ -221,25 +231,28 @@ function App() {
   }, [categories, location.pathname, location.search]);
 
   useEffect(() => {
-    if (!bootstrapData) {
+    if (Array.isArray(templatesQuery.data?.templates)) {
+      setTemplates(templatesQuery.data.templates);
+    }
+  }, [templatesQuery.data]);
+
+  useEffect(() => {
+    if (!Array.isArray(categoriesQuery.data?.categories)) {
       return;
     }
 
-    if (Array.isArray(bootstrapData.templates.templates)) {
-      setTemplates(bootstrapData.templates.templates);
-    }
+    const nextCategories = categoriesQuery.data.categories;
+    setCategories(nextCategories);
+    setActiveCategory((currentCategory) =>
+      nextCategories.includes(currentCategory) ? currentCategory : "Semua",
+    );
+  }, [categoriesQuery.data]);
 
-    if (Array.isArray(bootstrapData.categories.categories)) {
-      setCategories(bootstrapData.categories.categories);
-      if (!bootstrapData.categories.categories.includes(activeCategory)) {
-        setActiveCategory("Semua");
-      }
+  useEffect(() => {
+    if (Array.isArray(projectsQuery.data?.projects)) {
+      setPortfolioItems(projectsQuery.data.projects);
     }
-
-    if (Array.isArray(bootstrapData.projects.projects)) {
-      setPortfolioItems(bootstrapData.projects.projects);
-    }
-  }, [activeCategory, bootstrapData]);
+  }, [projectsQuery.data]);
 
   const filteredTemplates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -280,7 +293,9 @@ function App() {
         portfolioItems={portfolioItems}
         activeCategory={activeCategory}
         query={query}
-        isLoading={isLoading || isError}
+        isLoadingCategories={categoriesQuery.isPending}
+        isLoadingProjects={projectsQuery.isPending}
+        isLoadingTemplates={templatesQuery.isPending}
         onQueryChange={setQuery}
       />
     </div>
@@ -321,7 +336,7 @@ function App() {
               categories={categories}
               activeCategory={activeCategory}
               query={query}
-              isLoading={isLoading || isError}
+              isLoading={templatesQuery.isPending}
               onCategoryChange={setActiveCategory}
               onQueryChange={setQuery}
             />
@@ -335,7 +350,7 @@ function App() {
               categories={categories}
               activeCategory={activeCategory}
               query={query}
-              isLoading={isLoading || isError}
+              isLoading={templatesQuery.isPending}
               onCategoryChange={setActiveCategory}
               onQueryChange={setQuery}
             />
@@ -422,16 +437,6 @@ function App() {
       </ToastProvider>
     </Suspense>
   );
-}
-
-async function fetchAppBootstrap() {
-  const [templates, categories, projects] = await Promise.all([
-    apiGet<TemplatesResponse>("/api/designs"),
-    apiGet<CategoriesResponse>("/api/categories"),
-    apiGet<ProjectsResponse>("/api/projects"),
-  ]);
-
-  return { templates, categories, projects };
 }
 
 function RouteLoading() {

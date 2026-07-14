@@ -25,7 +25,9 @@ type HomePageProps = {
   portfolioItems: PortfolioItem[];
   activeCategory: TemplateCategory;
   query: string;
-  isLoading?: boolean;
+  isLoadingCategories?: boolean;
+  isLoadingProjects?: boolean;
+  isLoadingTemplates?: boolean;
   onQueryChange: (value: string) => void;
 };
 
@@ -49,7 +51,9 @@ export function HomePage({
   portfolioItems,
   activeCategory,
   query: _query,
-  isLoading,
+  isLoadingCategories,
+  isLoadingProjects,
+  isLoadingTemplates,
   onQueryChange: _onQueryChange,
 }: HomePageProps) {
   const {
@@ -81,18 +85,18 @@ export function HomePage({
           totalTransactions={totalTransactions}
           averageRating={averageRating}
         />
-        <CategorySection categories={categories} isLoading={isLoading} />
+        <CategorySection categories={categories} isLoading={isLoadingCategories} />
         <div id="cara-kerja">
           <HowItWorksSection />
         </div>
         <TemplateCatalog
           templates={filteredTemplates}
           activeCategory={activeCategory}
-          isLoading={isLoading}
+          isLoading={isLoadingTemplates}
         />
         <PortfolioSection
           items={portfolioItems}
-          isLoading={isLoading}
+          isLoading={isLoadingProjects}
         />
         <TestimonialSection />
         <LearningSection

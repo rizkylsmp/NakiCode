@@ -38,7 +38,7 @@ export function useFavoriteTemplates() {
 
   return {
     favoriteIds,
-    isFavoriteLoading: query.isFetching || mutation.isPending,
+    isFavoriteLoading: query.isPending || mutation.isPending,
     toggleFavorite: (templateId: number) =>
       mutation.mutate({
         templateId,

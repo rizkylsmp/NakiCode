@@ -10,6 +10,12 @@ Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
 ---
 
+## 2026-07-14
+
+- [x] 2026-07-14 - Optimalkan loading skeleton agar homepage memuat section kategori, design, dan portofolio secara terpisah, serta hindari skeleton wishlist muncul lagi saat favorit sedang re-fetch di background - files: frontend/src/app/App.tsx, frontend/src/pages/HomePage.tsx, frontend/src/hooks/useFavorites.ts, docs/CHANGELOG.md
+
+---
+
 ## 2026-07-11
 
 - [x] 2026-07-11 - Hapus fitur compare beserta context, tray, tombol kartu dan route; tingkatkan preview detail design menjadi carousel gambar utuh dengan thumbnail, navigasi panah, penghitung, keyboard, dan lightbox overlay yang dapat digeser - files: frontend/src/main.tsx, frontend/src/app/App.tsx, frontend/src/components/catalog/TemplateCatalog.tsx, frontend/src/components/catalog/TemplateCard.tsx, frontend/src/pages/TemplateDetailPage.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
