@@ -231,6 +231,17 @@ const runtimeMigrations: Migration[] = [
       `);
     },
   },
+  {
+    id: '004_coupon_max_redemptions',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'coupons', 'max_redemptions'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('coupons')}
+          ADD COLUMN ${connection.escapeId('max_redemptions')} INT NULL AFTER ${connection.escapeId('expires_at')}`,
+        );
+      }
+    },
+  },
 ];
 
 export async function runRuntimeMigrations(connection: Connection) {

@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS coupons (
   discount_value INT NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   expires_at TIMESTAMP NULL,
+  max_redemptions INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -471,16 +471,18 @@ async function seedCoupons() {
       discount_type,
       discount_value,
       active,
-      expires_at
+      expires_at,
+      max_redemptions
     ) VALUES
-      ('SAMPLE10', 'Diskon sample 10 persen', 'percent', 10, TRUE, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 30 DAY)),
-      ('SAMPLE50K', 'Diskon sample Rp50K', 'fixed', 50000, TRUE, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 30 DAY))
+      ('SAMPLE10', 'Diskon sample 10 persen', 'percent', 10, TRUE, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 30 DAY), NULL),
+      ('SAMPLE50K', 'Diskon sample Rp50K', 'fixed', 50000, TRUE, NULL, 10)
     ON DUPLICATE KEY UPDATE
       description = VALUES(description),
       discount_type = VALUES(discount_type),
       discount_value = VALUES(discount_value),
       active = VALUES(active),
-      expires_at = VALUES(expires_at)`,
+      expires_at = VALUES(expires_at),
+      max_redemptions = VALUES(max_redemptions)`,
   );
 }
 

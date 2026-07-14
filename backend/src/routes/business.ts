@@ -27,9 +27,26 @@ const couponMutationSchema = z.object({
   discountValue: z.coerce.number().int().positive(),
   active: z.boolean().default(true),
   expiresAt: z.string().datetime().nullable().default(null),
+  maxRedemptions: z.coerce.number().int().positive().nullable().default(null),
 }).superRefine((value, context) => {
   if (value.discountType === 'percent' && value.discountValue > 100) {
     context.addIssue({ code: 'custom', path: ['discountValue'], message: 'Diskon persen maksimal 100' });
+  }
+
+  const hasTimeLimit = value.expiresAt !== null;
+  const hasUsageLimit = value.maxRedemptions !== null;
+
+  if (hasTimeLimit === hasUsageLimit) {
+    context.addIssue({
+      code: 'custom',
+      path: ['expiresAt'],
+      message: 'Pilih salah satu batas: waktu atau pemakaian',
+    });
+    context.addIssue({
+      code: 'custom',
+      path: ['maxRedemptions'],
+      message: 'Pilih salah satu batas: waktu atau pemakaian',
+    });
   }
 });
 
@@ -59,7 +76,7 @@ businessRouter.post('/coupons/validate', async (request, response) => {
     const coupon = await validateCoupon(body.code, body.amount);
 
     if (!coupon) {
-      response.status(404).json({ message: 'Kupon tidak valid atau kedaluwarsa' });
+      response.status(404).json({ message: 'Kupon tidak valid, kedaluwarsa, atau habis' });
       return;
     }
 

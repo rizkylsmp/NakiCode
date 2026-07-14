@@ -67,7 +67,10 @@ export function AdminCategoriesSection({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminToken) return;
+    if (!adminToken) {
+      setError("Login admin diperlukan untuk menyimpan kategori.");
+      return;
+    }
 
     const name = categoryName.trim();
     if (name.length < 2) {

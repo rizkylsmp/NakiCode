@@ -9,6 +9,7 @@ type CouponRow = RowDataPacket & {
   discount_value: number;
   active: number;
   expires_at?: string | null;
+  max_redemptions?: number | null;
   created_at: string;
   redemption_count?: number;
 };
@@ -20,6 +21,7 @@ export type CouponInput = {
   discountValue: number;
   active: boolean;
   expiresAt: string | null;
+  maxRedemptions: number | null;
 };
 
 type BundleRow = RowDataPacket & {
@@ -57,11 +59,17 @@ export async function validateCoupon(code: string, amount: number) {
   }
 
   const [rows] = await pool.query<CouponRow[]>(
-    `SELECT id, code, description, discount_type, discount_value, active, expires_at
+    `SELECT coupons.id, coupons.code, coupons.description, coupons.discount_type,
+      coupons.discount_value, coupons.active, coupons.expires_at, coupons.max_redemptions,
+      COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
+    LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
     WHERE code = ?
       AND active = TRUE
       AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+    GROUP BY coupons.id
+    HAVING coupons.max_redemptions IS NULL
+      OR COUNT(coupon_redemptions.id) < coupons.max_redemptions
     LIMIT 1`,
     [normalizedCode],
   );
@@ -125,6 +133,7 @@ function mapCoupon(row: CouponRow) {
     discountValue: Number(row.discount_value),
     active: Boolean(row.active),
     expiresAt: row.expires_at ?? null,
+    maxRedemptions: row.max_redemptions ?? null,
     createdAt: row.created_at,
     redemptionCount: Number(row.redemption_count ?? 0),
   };
@@ -134,7 +143,7 @@ export async function findCoupons() {
   const [rows] = await pool.query<CouponRow[]>(
     `SELECT coupons.id, coupons.code, coupons.description,
       coupons.discount_type, coupons.discount_value, coupons.active,
-      coupons.expires_at, coupons.created_at,
+      coupons.expires_at, coupons.max_redemptions, coupons.created_at,
       COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
     LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
@@ -146,9 +155,17 @@ export async function findCoupons() {
 
 export async function createCoupon(input: CouponInput) {
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO coupons (code, description, discount_type, discount_value, active, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [input.code.toUpperCase(), input.description, input.discountType, input.discountValue, input.active, input.expiresAt],
+    `INSERT INTO coupons (code, description, discount_type, discount_value, active, expires_at, max_redemptions)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.code.toUpperCase(),
+      input.description,
+      input.discountType,
+      input.discountValue,
+      input.active,
+      input.expiresAt,
+      input.maxRedemptions,
+    ],
   );
   return result.insertId;
 }
@@ -156,8 +173,17 @@ export async function createCoupon(input: CouponInput) {
 export async function updateCoupon(id: number, input: CouponInput) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE coupons SET code = ?, description = ?, discount_type = ?,
-      discount_value = ?, active = ?, expires_at = ? WHERE id = ?`,
-    [input.code.toUpperCase(), input.description, input.discountType, input.discountValue, input.active, input.expiresAt, id],
+      discount_value = ?, active = ?, expires_at = ?, max_redemptions = ? WHERE id = ?`,
+    [
+      input.code.toUpperCase(),
+      input.description,
+      input.discountType,
+      input.discountValue,
+      input.active,
+      input.expiresAt,
+      input.maxRedemptions,
+      id,
+    ],
   );
   return result.affectedRows > 0;
 }

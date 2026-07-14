@@ -780,6 +780,7 @@ export function AdminTemplatesPage({
 
   function handleCancelEdit() {
     setEditingCategory(null);
+    setEditingCategoryId(null);
     setEditingCategoryName("");
     setCategoryStatus("Edit kategori dibatalkan.");
   }
@@ -811,6 +812,9 @@ export function AdminTemplatesPage({
       }
       await refreshCategoriesWithIds().catch(() => undefined);
       setCategoryName("");
+      setEditingCategory(null);
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
       setCategoryStatus(data.message ?? `Kategori "${name}" berhasil ditambahkan.`);
       setIsCategoryModalOpen(false);
     } catch (error) {
@@ -878,13 +882,18 @@ export function AdminTemplatesPage({
   }
 
   async function openCategoryModal() {
-    setIsCategoryModalOpen(true);
+    setEditingCategory(null);
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+    setCategoryName("");
     await refreshCategoriesWithIds();
+    setIsCategoryModalOpen(true);
   }
 
   function closeCategoryModal() {
     setIsCategoryModalOpen(false);
     setEditingCategory(null);
+    setEditingCategoryId(null);
     setEditingCategoryName("");
     setCategoryName("");
   }

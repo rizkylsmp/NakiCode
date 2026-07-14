@@ -209,7 +209,7 @@ export function CheckoutPage() {
         `${data.coupon.description}. Diskon Rp${data.coupon.discountAmount.toLocaleString("id-ID")}, total Rp${data.coupon.finalAmount.toLocaleString("id-ID")}.`,
       );
     } catch {
-      setCouponStatus("Kupon tidak valid atau sudah kedaluwarsa.");
+      setCouponStatus("Kupon tidak valid, sudah kedaluwarsa, atau kuotanya habis.");
     }
   }
 

@@ -114,10 +114,14 @@ export function UserLoginPage() {
         window.localStorage.setItem(userRoleKey, data.user.role ?? "user");
         window.dispatchEvent(new Event(userSessionEvent));
         setVerificationUrl("");
-        navigate(
-          data.user.role === "admin" ? "/admin/dashboard" : "/design",
-          { replace: true },
-        );
+        const redirectTarget =
+          nextTarget !== "/"
+            ? nextTarget
+            : data.user.role === "admin"
+              ? "/admin/dashboard"
+              : "/design";
+
+        navigate(redirectTarget, { replace: true });
         return;
       }
 
