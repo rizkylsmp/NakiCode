@@ -63,6 +63,7 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: devPort,
+    strictPort: false,
     proxy: {
       '/api': apiTarget,
       '/uploads': apiTarget,

@@ -316,7 +316,7 @@ Core/storefront:
 - Rating/review buyer
 - Wishlist/favorites
 - Galeri preview design dengan carousel thumbnail dan lightbox overlay
-- Halaman portofolio publik dengan pagination server-side
+- Halaman portofolio publik dengan pagination server-side dan aksi Preview/View, dengan preview capture bergaya masonry/Pinterest
 - Alur jasa tiga langkah di beranda: pilih design, konsultasi, lalu website disiapkan
 - Social sharing/copy link/Web Share API
 - Search history/recently viewed
@@ -340,7 +340,7 @@ Admin:
 - Admin route `/admin/dashboard`
 - CRUD design
 - CRUD categories
-- CRUD projects/portfolio
+- CRUD projects/portfolio dengan multi-foto, cover selection, dan preview asset
 - Blog/tutorial management API
 - Order management tab
 - Filter/update order status

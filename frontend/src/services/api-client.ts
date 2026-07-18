@@ -15,7 +15,9 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
-const fallbackApiBaseUrl = import.meta.env.DEV ? "http://localhost:3001" : "";
+// In dev, prefer same-origin requests so Vite can proxy to the backend.
+// This keeps the app working even when the frontend falls back to another port.
+const fallbackApiBaseUrl = "";
 
 const apiBaseUrl = normalizeApiBaseUrl(
   import.meta.env.VITE_API_URL || fallbackApiBaseUrl,

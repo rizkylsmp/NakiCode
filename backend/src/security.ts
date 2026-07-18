@@ -26,7 +26,19 @@ export const permissionsPolicyHeaders: RequestHandler = (_request, response, nex
 export const corsMiddleware = cors({
   credentials: true,
   origin(origin, callback) {
-    if (!origin || config.clientOrigins.includes(origin)) {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (!isProduction) {
+      callback(null, true);
+      return;
+    }
+
+    if (config.clientOrigins.includes(origin)) {
       callback(null, true);
       return;
     }
