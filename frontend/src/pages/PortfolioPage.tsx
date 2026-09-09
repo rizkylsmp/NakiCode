@@ -8,6 +8,7 @@ import { Header } from "../components/layout/Header";
 import { PaginationControls } from "../components/ui/PaginationControls";
 import type { PortfolioItem } from "../domain/content";
 import { apiGet } from "../services/api-client";
+import { absoluteSiteUrl } from "../utils/seo";
 
 const portfolioPageSize = 9;
 
@@ -42,7 +43,7 @@ export function PortfolioPage() {
   const page = portfolioQuery.data?.page ?? requestedPage;
   const total = portfolioQuery.data?.total ?? 0;
   const totalPages = portfolioQuery.data?.totalPages ?? 1;
-  const canonicalUrl = `${window.location.origin}/portofolio`;
+  const canonicalUrl = absoluteSiteUrl("/portofolio");
 
   useEffect(() => {
     if (portfolioQuery.data && requestedPage > totalPages) {
@@ -73,6 +74,9 @@ export function PortfolioPage() {
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Portofolio Website - Naki Code" />
+        <meta name="twitter:description" content="Kumpulan website yang telah dikerjakan Naki Code untuk berbagai kebutuhan bisnis dan personal." />
       </Helmet>
 
       <Header />

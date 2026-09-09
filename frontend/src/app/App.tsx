@@ -13,6 +13,8 @@ import {
 import { RequireAdmin, RequireAuth } from "./route-guards";
 import { ToastProvider } from "../components/ui/Toast";
 import { getTemplateCategoryFromSlug } from "../utils/template-url";
+import { FloatingActions } from "../components/layout/FloatingActions";
+import { absoluteSiteUrl, getSiteOrigin } from "../utils/seo";
 
 /**
  * One-time stale chunk reload guard.
@@ -66,6 +68,12 @@ function lazyWithReload<T extends LazyComponent>(
     }),
   );
 }
+
+const CouponBannerOverlay = lazyWithReload(() =>
+  import("../components/promotions/CouponBannerOverlay").then((module) => ({
+    default: module.CouponBannerOverlay,
+  })),
+);
 
 const HomePage = lazyWithReload(() =>
   import("../pages/HomePage").then((module) => ({
@@ -122,6 +130,11 @@ const PortfolioPage = lazyWithReload(() =>
     default: module.PortfolioPage,
   })),
 );
+const LegalPage = lazyWithReload(() =>
+  import("../pages/LegalPage").then((module) => ({
+    default: module.LegalPage,
+  })),
+);
 const UserLoginPage = lazyWithReload(() =>
   import("../pages/UserLoginPage").then((module) => ({
     default: module.UserLoginPage,
@@ -160,6 +173,20 @@ type ProjectsResponse = {
 
 function App() {
   const location = useLocation();
+  const siteOrigin = getSiteOrigin();
+  const canonicalHomeUrl = absoluteSiteUrl("/");
+  const isHomePage = location.pathname === "/";
+  const isPrivatePage = [
+    "/admin",
+    "/akun-saya",
+    "/checkout",
+    "/forgot-password",
+    "/login",
+    "/pesanan-saya",
+    "/profile",
+    "/verify-email",
+    "/wishlist",
+  ].some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [categories, setCategories] = useState<TemplateCategory[]>(["Semua"]);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
@@ -310,7 +337,8 @@ function App() {
     <Suspense fallback={<RouteLoading />}>
       <ToastProvider>
         <Helmet>
-          <title>Naki Code</title>
+          <html lang="id" />
+          <title>Naki Code - Jasa Pembuatan Website Berbasis Design</title>
           <meta
             name="description"
             content="Naki Code menyediakan jasa pembuatan website dengan koleksi design referensi yang siap disesuaikan untuk brand, bisnis, dan kebutuhan custom."
@@ -320,16 +348,48 @@ function App() {
             property="og:description"
             content="Pilih design website, konsultasikan kebutuhanmu, lalu kami sesuaikan hingga siap digunakan. Source code juga tersedia sebagai opsi."
           />
-          <meta property="og:image" content="/logo.png" />
+          <meta name="robots" content={isPrivatePage ? "noindex, nofollow" : "index, follow, max-image-preview:large"} />
+          <meta property="og:locale" content="id_ID" />
+          <meta property="og:site_name" content="Naki Code" />
+          <meta property="og:url" content={canonicalHomeUrl} />
+          <meta property="og:image" content={absoluteSiteUrl("/logo.png")} />
           <meta property="og:type" content="website" />
-          <script type="application/ld+json">
-            {JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "ProfessionalService",
-              name: "Naki Code",
-              description: "Jasa pembuatan website dengan design referensi siap edit dan opsi pembelian source code.",
-            })}
-          </script>
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content="Naki Code - Jasa Pembuatan Website Berbasis Design" />
+          <meta name="twitter:description" content="Pilih design website, konsultasikan kebutuhanmu, lalu kami sesuaikan hingga siap digunakan." />
+          <meta name="twitter:image" content={absoluteSiteUrl("/logo.png")} />
+          {isHomePage ? <link rel="canonical" href={canonicalHomeUrl} /> : null}
+          {isHomePage ? (
+            <script type="application/ld+json">
+              {JSON.stringify({
+                "@context": "https://schema.org",
+                "@graph": [
+                  {
+                    "@type": "ProfessionalService",
+                    "@id": `${siteOrigin}/#business`,
+                    name: "Naki Code",
+                    url: canonicalHomeUrl,
+                    logo: absoluteSiteUrl("/logo.png"),
+                    description: "Jasa pembuatan website dengan design referensi yang dapat disesuaikan untuk brand dan kebutuhan bisnis.",
+                    areaServed: { "@type": "Country", name: "Indonesia" },
+                  },
+                  {
+                    "@type": "WebSite",
+                    "@id": `${siteOrigin}/#website`,
+                    url: canonicalHomeUrl,
+                    name: "Naki Code",
+                    inLanguage: "id-ID",
+                    publisher: { "@id": `${siteOrigin}/#business` },
+                    potentialAction: {
+                      "@type": "SearchAction",
+                      target: `${siteOrigin}/design?q={search_term_string}`,
+                      "query-input": "required name=search_term_string",
+                    },
+                  },
+                ],
+              })}
+            </script>
+          ) : null}
         </Helmet>
         <Routes>
         <Route path="/" element={homePageElement} />
@@ -363,7 +423,12 @@ function App() {
         />
         <Route
           path="/design/:slug"
-          element={<TemplateDetailPage templates={templates} />}
+          element={(
+            <TemplateDetailPage
+              templates={templates}
+              isLoading={templatesQuery.isPending}
+            />
+          )}
         />
         <Route path="/template" element={<Navigate replace to="/design" />} />
         <Route path="/template/kategori/:categorySlug" element={<Navigate replace to="/design" />} />
@@ -375,6 +440,10 @@ function App() {
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogDetailPage />} />
         <Route path="/portofolio" element={<PortfolioPage />} />
+        <Route path="/kebijakan-privasi" element={<LegalPage kind="privacy" />} />
+        <Route path="/syarat-ketentuan" element={<LegalPage kind="terms" />} />
+        <Route path="/privacy-policy" element={<Navigate replace to="/kebijakan-privasi" />} />
+        <Route path="/terms" element={<Navigate replace to="/syarat-ketentuan" />} />
         <Route
           path="/pesanan-saya"
           element={
@@ -440,6 +509,8 @@ function App() {
         />
         <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <CouponBannerOverlay />
+        <FloatingActions />
       </ToastProvider>
     </Suspense>
   );

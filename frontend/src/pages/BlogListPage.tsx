@@ -6,6 +6,7 @@ import { apiGet } from "../services/api-client";
 import { BlogCardSkeletonGrid } from "../components/ui/skeletons/BlogCardSkeleton";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
+import { absoluteSiteUrl } from "../utils/seo";
 
 export type BlogPostItem = {
   id: number;
@@ -14,6 +15,7 @@ export type BlogPostItem = {
   excerpt: string;
   content: string;
   author: string;
+  coverImage: string | null;
   status: string;
   publishedAt: string | null;
   createdAt: string;
@@ -29,15 +31,23 @@ export function BlogListPage() {
     queryFn: () => apiGet<BlogPostsResponse>("/api/blog"),
   });
   const posts = data?.posts ?? [];
+  const canonicalUrl = absoluteSiteUrl("/blog");
+  const title = "Blog Website dan Bisnis Digital - Naki Code";
+  const description = "Tutorial dan artikel Naki Code tentang design website, React, Express, MySQL, dan workflow pembuatan website.";
 
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Helmet>
-        <title>Blog - Naki Code</title>
-        <meta
-          name="description"
-          content="Tutorial dan artikel Naki Code tentang design website, React, Express, MySQL, dan workflow pembuatan website."
-        />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
       </Helmet>
       <Header />
 
@@ -74,8 +84,16 @@ export function BlogListPage() {
                   className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md"
                   to={`/blog/${post.slug}`}
                 >
-                  {/* Image placeholder */}
-                  <div className="aspect-video bg-gradient-to-br from-naki-frost to-naki-steel/50" />
+                  <div className="aspect-video overflow-hidden bg-gradient-to-br from-naki-frost to-naki-steel/50">
+                    {post.coverImage ? (
+                      <img
+                        className="h-full w-full object-cover"
+                        src={post.coverImage}
+                        alt={`Cover artikel ${post.title}`}
+                        loading="lazy"
+                      />
+                    ) : null}
+                  </div>
 
                   <div className="p-5">
                     <div className="flex items-center gap-3">

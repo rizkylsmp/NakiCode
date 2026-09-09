@@ -224,10 +224,18 @@ function normalizeProjectImages(source: Record<string, unknown>): string[] {
     source.image_url;
 
   if (Array.isArray(rawImages)) {
-    return rawImages
+    const normalizedImages = rawImages
       .map((imageUrl) => String(imageUrl).trim())
       .filter(Boolean)
+      .filter((imageUrl, index, images) => images.indexOf(imageUrl) === index)
       .slice(0, 12);
+
+    if (normalizedImages.length > 0) {
+      return normalizedImages;
+    }
+
+    const legacyImageUrl = String(source.imageUrl ?? source.image_url ?? "").trim();
+    return legacyImageUrl ? [legacyImageUrl] : [];
   }
 
   if (typeof rawImages === "string") {
@@ -245,6 +253,7 @@ function normalizeProjectImages(source: Record<string, unknown>): string[] {
           return parsed
             .map((imageUrl) => String(imageUrl).trim())
             .filter(Boolean)
+            .filter((imageUrl, index, images) => images.indexOf(imageUrl) === index)
             .slice(0, 12);
         }
       } catch {

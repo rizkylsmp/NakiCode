@@ -1,11 +1,9 @@
 import {
   ChevronDown,
   ClipboardList,
-  Globe2,
   Heart,
   LayoutDashboard,
   LogOut,
-  ShoppingBag,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -112,24 +110,6 @@ function AdminProfileLinks({ onClose }: { onClose: () => void }) {
         icon={<LayoutDashboard size={16} />}
         label="Dashboard admin"
         to="/admin/dashboard"
-        onClose={onClose}
-      />
-      <ProfileMenuLink
-        icon={<ShoppingBag size={16} />}
-        label="Kelola design"
-        to="/admin/design"
-        onClose={onClose}
-      />
-      <ProfileMenuLink
-        icon={<ClipboardList size={16} />}
-        label="Order masuk"
-        to="/admin/orders"
-        onClose={onClose}
-      />
-      <ProfileMenuLink
-        icon={<Globe2 size={16} />}
-        label="Portofolio"
-        to="/admin/portfolio"
         onClose={onClose}
       />
     </>

@@ -6,6 +6,7 @@ import { Footer } from "../components/layout/Footer";
 import { TemplateFilterBar } from "../components/catalog/TemplateFilterBar";
 import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
 import { getTemplateCategoryPath } from "../utils/template-url";
+import { absoluteSiteUrl } from "../utils/seo";
 
 type TemplateCatalogPageProps = {
   templates: TemplateItem[];
@@ -29,7 +30,7 @@ export function TemplateCatalogPage({
   const [sortBy, setSortBy] = useState("popular");
   const isCategoryPage = activeCategory !== "Semua";
   const categoryPath = getTemplateCategoryPath(activeCategory);
-  const canonicalUrl = `${window.location.origin}${categoryPath}`;
+  const canonicalUrl = absoluteSiteUrl(categoryPath);
   const pageTitle = isCategoryPage
     ? `Design ${activeCategory} - Naki Code`
     : "Koleksi Design Website - Naki Code";
@@ -90,7 +91,7 @@ export function TemplateCatalogPage({
     itemListElement: filteredTemplates.slice(0, 20).map((template, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      url: `${window.location.origin}/design/${template.slug}`,
+      url: absoluteSiteUrl(`/design/${template.slug}`),
       name: template.title,
     })),
   };
@@ -103,13 +104,13 @@ export function TemplateCatalogPage({
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: `${window.location.origin}/`,
+        item: absoluteSiteUrl("/"),
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Design",
-        item: `${window.location.origin}/design`,
+        item: absoluteSiteUrl("/design"),
       },
       ...(isCategoryPage
         ? [
@@ -134,6 +135,10 @@ export function TemplateCatalogPage({
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {query.trim() ? <meta name="robots" content="noindex, follow" /> : null}
         <script type="application/ld+json">{JSON.stringify(itemListSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
       </Helmet>

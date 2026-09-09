@@ -7,6 +7,7 @@ import {
   Tag,
   TicketPercent,
   BookOpen,
+  WalletCards,
   LogOut,
 } from "lucide-react";
 import { type DashboardView } from "../../pages/admin/AdminTemplateWorkspace.shared";
@@ -31,6 +32,7 @@ const MAIN_MENU: MenuItem[] = [
 const APP_MENU: MenuItem[] = [
   { key: "design", label: "Design", icon: FileText },
   { key: "orders", label: "Orders", icon: ShoppingCart },
+  { key: "finance", label: "Pembukuan", icon: WalletCards },
   { key: "portfolio", label: "Portfolio", icon: Briefcase },
   { key: "blog", label: "Blog", icon: BookOpen },
   { key: "testimonials", label: "Testimoni", icon: MessageSquareQuote },

@@ -6,6 +6,7 @@ import { apiGet } from "../services/api-client";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import type { BlogPostItem } from "./BlogListPage";
+import { absoluteSiteUrl } from "../utils/seo";
 
 type BlogPostResponse = {
   post: BlogPostItem;
@@ -33,26 +34,30 @@ export function BlogDetailPage() {
         },
         datePublished: post.createdAt,
         dateModified: post.publishedAt || post.createdAt,
+        ...(post.coverImage
+          ? { image: absoluteSiteUrl(post.coverImage) }
+          : {}),
         publisher: {
           "@type": "Organization",
           name: "Naki Code",
           logo: {
             "@type": "ImageObject",
-            url: `${window.location.origin}/logo.png`,
+            url: absoluteSiteUrl("/logo.png"),
           },
         },
       }
     : null;
 
   const canonicalUrl = post
-    ? `${window.location.origin}/blog/${post.slug}`
-    : `${window.location.origin}/blog`;
+    ? absoluteSiteUrl(`/blog/${post.slug}`)
+    : absoluteSiteUrl("/blog");
 
   return (
     <main className="naki-frosted-grid min-h-screen text-naki-primary">
       <Helmet>
         <title>{post ? `${post.title} - Naki Code` : "Blog - Naki Code"}</title>
         {post ? <meta name="description" content={post.excerpt} /> : null}
+        {!isLoading && !post ? <meta name="robots" content="noindex, follow" /> : null}
         <link rel="canonical" href={canonicalUrl} />
         {post ? (
           <>
@@ -65,6 +70,18 @@ export function BlogDetailPage() {
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content={`${post.title} - Naki Code`} />
             <meta name="twitter:description" content={post.excerpt} />
+            {post.coverImage ? (
+              <>
+                <meta
+                  property="og:image"
+                  content={absoluteSiteUrl(post.coverImage)}
+                />
+                <meta
+                  name="twitter:image"
+                  content={absoluteSiteUrl(post.coverImage)}
+                />
+              </>
+            ) : null}
             {articleSchema ? (
               <script type="application/ld+json">
                 {JSON.stringify(articleSchema)}
@@ -117,6 +134,13 @@ export function BlogDetailPage() {
             <p className="mt-5 text-lg leading-8 text-naki-smoke">
               {post.excerpt}
             </p>
+            {post.coverImage ? (
+              <img
+                className="mt-8 aspect-video w-full rounded-2xl object-cover shadow-naki-card"
+                src={post.coverImage}
+                alt={`Cover artikel ${post.title}`}
+              />
+            ) : null}
             <div className="mt-8 whitespace-pre-line rounded-xl border border-naki-steel bg-naki-frost p-6 text-base font-semibold leading-8 text-naki-primary shadow-naki-card">
               {post.content}
             </div>

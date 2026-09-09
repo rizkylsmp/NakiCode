@@ -1,4 +1,5 @@
 import { Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Simple inline SVG icons for social links since lucide-react doesn't export brand icons
 function GitHubIcon() {
@@ -155,18 +156,18 @@ export function Footer() {
               &copy; {currentYear} Naki Code. Seluruh hak cipta dilindungi.
             </p>
             <div className="flex gap-6">
-              <a
+              <Link
                 className="text-sm text-slate-500 transition hover:text-blue-400"
-                href="#"
+                to="/kebijakan-privasi"
               >
                 Kebijakan Privasi
-              </a>
-              <a
+              </Link>
+              <Link
                 className="text-sm text-slate-500 transition hover:text-blue-400"
-                href="#"
+                to="/syarat-ketentuan"
               >
                 Syarat &amp; Ketentuan
-              </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -23,7 +23,7 @@ Naki Code adalah penyedia jasa pembuatan website dengan katalog design sebagai r
 
 Katalog design berfungsi sebagai inspirasi dan titik awal konsultasi, bukan batas hasil akhir. Pelanggan tetap dapat meminta perubahan tampilan, struktur halaman, fitur, konten, dan integrasi. Source code juga tetap dapat dibeli pada design yang mendukung opsi tersebut.
 
-Catatan istilah teknis: route utama menggunakan `/design` dan API utama menggunakan `/api/designs`. Entitas database `templates`, beberapa tipe/komponen internal berawalan `Template`, serta alias endpoint lama tetap dipertahankan sementara untuk kompatibilitas data dan deployment. Pada komunikasi dan UI yang dilihat pelanggan, selalu gunakan istilah **design**.
+Catatan istilah teknis: route utama menggunakan `/design` dan API utama menggunakan `/api/designs`. Beberapa tipe/komponen frontend internal dan alias endpoint lama masih berawalan `Template` untuk kompatibilitas API, tetapi schema database sudah memakai istilah **design**. Pada komunikasi dan UI yang dilihat pelanggan, selalu gunakan istilah **design**.
 
 Inspirasi fungsi/menu berasal dari Web Ekspor, tetapi Naki Code **tidak** menyediakan domain, cek domain, atau paket hosting/domain.
 
@@ -43,7 +43,7 @@ Target UX:
 
 - Root npm workspaces: `frontend` dan `backend`.
 - Root build: `npm run build`.
-- Dev: `npm run dev` atau `dev.cmd` di Windows. Root dev script otomatis memilih port kosong berikutnya jika port default frontend (`5173`) atau backend (`3001`) sedang dipakai, lalu mengirim `VITE_API_URL`, `PORT`, dan CORS local yang sesuai. Override default local bisa memakai env `FRONTEND_PORT` dan `BACKEND_PORT`.
+- Dev: `npm run dev` atau `dev.cmd` di Windows. Root dev script menghentikan process tree sesi Naki Code lokal sebelumnya agar koneksi MySQL lama dilepas, lalu otomatis memilih port kosong berikutnya jika port default frontend (`5173`) atau backend (`3001`) sedang dipakai dan mengirim `VITE_API_URL`, `PORT`, serta CORS local yang sesuai. Override default local bisa memakai env `FRONTEND_PORT` dan `BACKEND_PORT`.
 
 ### Frontend
 
@@ -75,8 +75,9 @@ Target UX:
 - Runtime migrations: `backend/src/runtime-migrations.ts` jalan otomatis saat API init/cold start.
 - SQL file migrations: `backend/database/migrations/*.sql` dijalankan manual via `npm run migrate:sql --workspace backend`.
 - Bootstrap DB: `backend/src/db.ts` -> create database dari `MYSQL_DATABASE`, apply baseline schema, ensure columns, run runtime migrations.
-- Kategori design dinormalisasi secara teknis via `templates.category_id` -> `template_categories.id`; `templates.category` masih dipertahankan sebagai compatibility/display fallback.
+- Data design memakai tabel `designs`, kategori memakai `categories`, dan relasinya melalui `designs.category_id` -> `categories.id`; kolom teks `designs.category` dipertahankan sebagai display fallback.
 - MySQL wajib tersedia. Backend harus gagal start jika DB init gagal.
+- Pool MySQL mode lokal dibatasi hingga 3 koneksi dengan maksimal 1 koneksi idle; shutdown lokal menutup HTTP server dan pool secara graceful untuk mencegah koneksi tertinggal pada database remote.
 - Query manual dipisah di `backend/src/models/*`; route sebaiknya tidak menulis query besar langsung kecuali endpoint kecil/statistik.
 
 ---
@@ -113,6 +114,14 @@ Optional:
 - `CLOUDINARY_URL`
 - `CLOUDINARY_FOLDER`
 - `SENTRY_DSN`
+- `GOOGLE_CLIENT_ID` untuk verifikasi ID token login Google; nilainya sama dengan `VITE_GOOGLE_CLIENT_ID` di frontend
+
+Frontend optional:
+
+- `VITE_GOOGLE_CLIENT_ID` untuk menampilkan tombol Google Identity Services di halaman login
+- `VITE_SITE_URL` untuk origin canonical metadata SEO (default production `https://nakicode.com`)
+- `SITE_URL` untuk origin URL yang dihasilkan oleh script sitemap
+- `SITEMAP_API_URL` agar build production dapat menambahkan route detail design dan blog dari API publik ke sitemap
 
 Jangan commit `.env`.
 
@@ -157,6 +166,7 @@ Auth/user:
 
 - `POST /api/auth/user/register`
 - `POST /api/auth/user/login`
+- `POST /api/auth/user/google`
 - `POST /api/auth/user/verify-email`
 - `POST /api/auth/user/resend-otp`
 - `POST /api/auth/user/forgot-password`
@@ -192,6 +202,7 @@ Admin:
 Business:
 
 - `POST /api/business/coupons/validate`
+- `GET /api/business/coupons/banners` - banner coupon aktif, memiliki gambar, belum kedaluwarsa, dan belum habis pemakaian
 - Admin coupon CRUD: `GET|POST /api/business/coupons`, `PUT|DELETE /api/business/coupons/:id`
 - `GET /api/business/bundles`
 
@@ -206,6 +217,7 @@ Business:
 - Password hash: `scrypt` + salt.
 - Middleware: `requireUser`, `requireAdmin`.
 - Frontend menyimpan token di localStorage lewat `frontend/src/utils/user-session.ts`.
+- Login Google memakai Google Identity Services di frontend dan verifikasi ID token dengan `GOOGLE_CLIENT_ID` di backend; identitas stabil disimpan pada `users.google_sub`.
 - Axios client di `frontend/src/services/api-client.ts` inject `Authorization: Bearer <token>` otomatis.
 - Global 401 handler auto logout.
 - Backend pakai `helmet`, rate limit global API, auth rate limit lebih ketat, CORS allowlist dari `CLIENT_ORIGINS`.
@@ -326,6 +338,7 @@ Core/storefront:
 User/auth:
 
 - Login/register user
+- Login atau daftar otomatis melalui Google Identity Services
 - Admin/user login unified di `/login`
 - `next` redirect supported
 - Email verification OTP
@@ -343,7 +356,11 @@ Admin:
 - CRUD projects/portfolio dengan multi-foto, cover selection, dan preview asset
 - Blog/tutorial management API
 - Order management tab
-- Filter/update order status
+- Filter, pencarian server-side, update individual, dan bulk workflow order
+- Workflow jasa: baru, dihubungi, penawaran, menunggu DP, dikerjakan, revisi, diserahkan, selesai, atau dibatalkan
+- Penawaran harga admin untuk order custom sebelum pelanggan checkout
+- Pembukuan kas admin dengan pemasukan otomatis dari pembayaran, pengeluaran manual, refund parsial/penuh, ringkasan laba, serta ekspor CSV/PDF
+- Invoice bernomor stabil dengan snapshot pelanggan dan nominal transaksi; order bertransaksi tidak dapat dihapus
 - Soft delete design/order/project/blog
 - Audit trail admin
 - Admin stats endpoint: total orders, revenue, orders by status, top designs, recent orders, weekly revenue
@@ -359,6 +376,7 @@ Backend/platform:
 - Email queue async
 - Payment dev + Midtrans Snap/webhook
 - Coupon management/validation/redemption dan bundle endpoints
+- Banner promo coupon bergambar yang tampil sekali per rangkaian banner aktif pada setiap browser dan otomatis menjadi slider saat lebih dari satu banner tersedia
 - Invoice PDF utility via PDFKit
 - Integration tests for auth/orders/payments/templates/favorites
 - Frontend tests with Vitest/Testing Library

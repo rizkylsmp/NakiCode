@@ -1,4 +1,4 @@
-import { LogIn, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { LogIn, Menu, Search, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -191,14 +191,6 @@ export function Header() {
               Login
             </Link>
           )}
-
-          <Link
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-medium text-white transition hover:bg-naki-primary/90"
-            to="/design"
-          >
-            Jelajahi
-            <ShoppingBag size={16} />
-          </Link>
         </div>
 
         <div className="flex items-center gap-1 lg:hidden">
@@ -234,7 +226,10 @@ export function Header() {
           onToggleTheme={() => setIsDarkMode((current) => !current)}
         />
       ) : null}
-      <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchDialog
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </header>
   );
 }

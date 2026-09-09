@@ -1,6 +1,6 @@
 import { Star, Trash2, Edit2, Plus, MessageSquareQuote, X, Save, PenLine, StarIcon, MessageCircle, Eye, GripVertical, RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { apiDelete, apiGet, apiPost, apiPut } from "../../services/api-client";
+import { apiDelete, apiGet, apiPost, apiPut, getApiErrorMessage } from "../../services/api-client";
 import type { TestimonialItem } from "../admin/AdminTemplateWorkspace.shared";
 import { useToast } from "../../components/ui/Toast";
 
@@ -10,7 +10,7 @@ type AvailableRating = {
   rating: number;
   message: string | null;
   created_at: string;
-  template_title: string | null;
+  design_title: string | null;
 };
 
 type AdminTestimonialsSectionProps = {
@@ -141,7 +141,7 @@ export function AdminTestimonialsSection({
       const data = await apiGet<{ ratings: AvailableRating[] }>("/api/testimonials/available-ratings");
       setAvailableRatings(data.ratings ?? []);
     } catch (err) {
-      setRatingError(err instanceof Error ? err.message : "Gagal memuat daftar rating");
+      setRatingError(getApiErrorMessage(err, "Gagal memuat daftar rating"));
     } finally {
       setIsLoadingRatings(false);
     }
@@ -168,7 +168,7 @@ export function AdminTestimonialsSection({
       handleCloseRatingPicker();
       toast.addToast('success', 'Testimonial berhasil ditambahkan dari review');
     } catch (err) {
-      setRatingError(err instanceof Error ? err.message : "Gagal membuat testimonial dari rating");
+      setRatingError(getApiErrorMessage(err, "Gagal membuat testimonial dari rating"));
     } finally {
       setIsLoading(false);
     }
@@ -253,7 +253,7 @@ export function AdminTestimonialsSection({
       }
       handleCloseModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menyimpan testimonial");
+      setError(getApiErrorMessage(err, "Gagal menyimpan testimonial"));
     } finally {
       setIsLoading(false);
     }
@@ -265,15 +265,16 @@ export function AdminTestimonialsSection({
   };
 
   const confirmDelete = async () => {
-    if (!adminToken || !deleteTarget) return;
+    if (!adminToken || !deleteTarget || isLoading) return;
 
+    const target = deleteTarget;
     setIsLoading(true);
     try {
-      await apiDelete(`/api/testimonials/${deleteTarget.id}`);
-      onTestimonialsChange(testimonials.filter((t) => t.id !== deleteTarget.id));
+      await apiDelete(`/api/testimonials/${target.id}`);
+      onTestimonialsChange(testimonials.filter((testimonial) => testimonial.id !== target.id));
       toast.addToast('success', 'Testimonial berhasil dihapus');
     } catch (err) {
-      toast.addToast('error', err instanceof Error ? err.message : "Gagal menghapus testimonial");
+      toast.addToast('error', getApiErrorMessage(err, "Gagal menghapus testimonial"));
     } finally {
       setIsLoading(false);
       setIsDeleteDialogOpen(false);
@@ -282,6 +283,7 @@ export function AdminTestimonialsSection({
   };
 
   const cancelDelete = () => {
+    if (isLoading) return;
     setIsDeleteDialogOpen(false);
     setDeleteTarget(null);
   };
@@ -311,7 +313,7 @@ export function AdminTestimonialsSection({
       );
       toast.addToast('success', `Testimonial ${!testimonial.is_featured ? 'ditampilkan' : 'disembunyikan'}`);
     } catch (err) {
-      toast.addToast('error', err instanceof Error ? err.message : "Gagal mengubah status testimonial");
+      toast.addToast('error', getApiErrorMessage(err, "Gagal mengubah status testimonial"));
     }
   };
 
@@ -763,9 +765,9 @@ export function AdminTestimonialsSection({
                             <span className="font-semibold text-naki-primary">
                               {rating.customer_name}
                             </span>
-                            {rating.template_title && (
+                            {rating.design_title && (
                               <span className="text-xs text-naki-smoke bg-naki-frost px-2 py-0.5 rounded">
-                                {rating.template_title}
+                                {rating.design_title}
                               </span>
                             )}
                           </div>
@@ -1011,7 +1013,7 @@ export function AdminTestimonialsSection({
             </div>
             <div className="p-5">
               <p className="text-sm text-naki-smoke leading-relaxed">
-                Testimonial dari <span className="font-semibold text-naki-primary">{deleteTarget.customer_name}</span> akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
+                Testimonial dari <span className="font-semibold text-naki-primary">{deleteTarget.customer_name}</span> akan dihapus dari website. Tindakan ini tidak dapat dipulihkan melalui halaman admin.
               </p>
               <div className="mt-5 flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
                 <button

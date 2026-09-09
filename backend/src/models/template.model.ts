@@ -71,46 +71,46 @@ export type TemplatePayload = Omit<
 >;
 
 const templateSelect = `SELECT
-  templates.id,
-  templates.slug,
-  templates.title,
-  COALESCE(template_categories.name, templates.category) AS category,
-  templates.category_id,
-  templates.description,
-  templates.price,
-  templates.stack,
-  templates.level,
+  designs.id,
+  designs.slug,
+  designs.title,
+  COALESCE(categories.name, designs.category) AS category,
+  designs.category_id,
+  designs.description,
+  designs.price,
+  designs.stack,
+  designs.level,
   COALESCE(rating_stats.rating, 0) AS rating,
-  templates.accent_class,
-  templates.preview,
-  templates.demo_url,
-  templates.lynk_url,
+  designs.accent_class,
+  designs.preview,
+  designs.demo_url,
+  designs.lynk_url,
   COALESCE(order_stats.buyer_count, 0) AS buyer_count,
-  templates.features,
-  templates.included_files,
-  templates.source_code,
-  templates.suitable_for,
-  templates.license,
-  templates.support
-FROM templates
-LEFT JOIN template_categories ON template_categories.id = templates.category_id
+  designs.features,
+  designs.included_files,
+  designs.source_code,
+  designs.suitable_for,
+  designs.license,
+  designs.support
+FROM designs
+LEFT JOIN categories ON categories.id = designs.category_id
 LEFT JOIN (
-  SELECT template_id, ROUND(AVG(rating), 1) AS rating
-  FROM template_ratings
-  GROUP BY template_id
-) AS rating_stats ON rating_stats.template_id = templates.id
+  SELECT design_id, ROUND(AVG(rating), 1) AS rating
+  FROM design_ratings
+  GROUP BY design_id
+) AS rating_stats ON rating_stats.design_id = designs.id
 LEFT JOIN (
-  SELECT template_id, COUNT(*) AS buyer_count
+  SELECT design_id, COUNT(*) AS buyer_count
   FROM orders
-  WHERE template_id IS NOT NULL AND payment_status = 'paid' AND deleted_at IS NULL
-  GROUP BY template_id
-) AS order_stats ON order_stats.template_id = templates.id`;
+  WHERE design_id IS NOT NULL AND payment_status = 'paid' AND deleted_at IS NULL
+  GROUP BY design_id
+) AS order_stats ON order_stats.design_id = designs.id`;
 
 export async function findTemplates() {
   const [rows] = await pool.query<TemplateRow[]>(
     `${templateSelect}
-    WHERE templates.deleted_at IS NULL
-    ORDER BY templates.id DESC
+    WHERE designs.deleted_at IS NULL
+    ORDER BY designs.id DESC
     LIMIT 60`,
   );
 
@@ -120,7 +120,7 @@ export async function findTemplates() {
 export async function findTemplateBySlugOrId(slug: string) {
   const [rows] = await pool.query<TemplateRow[]>(
     `${templateSelect}
-    WHERE templates.deleted_at IS NULL AND (templates.slug = ? OR templates.id = ?)
+    WHERE designs.deleted_at IS NULL AND (designs.slug = ? OR designs.id = ?)
     LIMIT 1`,
     [slug, Number(slug) || 0],
   );
@@ -135,7 +135,7 @@ export async function findTemplateBySlugOrId(slug: string) {
 export async function createTemplate(payload: TemplatePayload) {
   const category = await resolveTemplateCategory(payload.category);
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO templates (
+    `INSERT INTO designs (
       slug,
       title,
       category,
@@ -164,7 +164,7 @@ export async function createTemplate(payload: TemplatePayload) {
 export async function updateTemplate(id: number, payload: TemplatePayload) {
   const category = await resolveTemplateCategory(payload.category);
   const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE templates SET
+    `UPDATE designs SET
       slug = ?,
       title = ?,
       category = ?,
@@ -196,7 +196,7 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
 
 export async function deleteTemplate(id: number) {
   const [result] = await pool.query<ResultSetHeader>(
-    'UPDATE templates SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
+    'UPDATE designs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
     [id],
   );
 
@@ -300,7 +300,7 @@ function serializeTemplatePayload(
 async function resolveTemplateCategory(categoryName: string) {
   const normalizedName = categoryName.trim();
   const [rows] = await pool.query<(RowDataPacket & { id: number; name: string })[]>(
-    'SELECT id, name FROM template_categories WHERE name = ? LIMIT 1',
+    'SELECT id, name FROM categories WHERE name = ? LIMIT 1',
     [normalizedName],
   );
 

@@ -7,6 +7,7 @@ type BlogPost = {
   title: string;
   excerpt: string;
   author: string;
+  coverImage: string | null;
   publishedAt: string | null;
   createdAt: string;
 };
@@ -65,7 +66,16 @@ export function LearningSection({ blogPosts, isLoading = false }: LearningSectio
                 href={`/blog/${post.slug}`}
                 className="group overflow-hidden rounded-xl border border-naki-steel/60 bg-white transition hover:border-blue-500/50 hover:shadow-lg"
               >
-                <div className="aspect-video bg-linear-to-br from-blue-500/10 to-purple-500/10" />
+                <div className="aspect-video overflow-hidden bg-linear-to-br from-blue-500/10 to-purple-500/10">
+                  {post.coverImage ? (
+                    <img
+                      className="h-full w-full object-cover"
+                      src={post.coverImage}
+                      alt={`Cover artikel ${post.title}`}
+                      loading="lazy"
+                    />
+                  ) : null}
+                </div>
                 <div className="p-5">
                   <div className="mb-3 flex items-center gap-3 text-xs text-naki-smoke">
                     <span className="flex items-center gap-1">

@@ -27,6 +27,22 @@ const idParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+const assetUrlSchema = z.string().trim().max(2048).refine(
+  (value) =>
+    !value || /^https?:\/\//i.test(value) || value.startsWith('/uploads/'),
+  { message: 'URL asset harus berupa HTTP(S) atau path upload lokal' },
+);
+
+const demoUrlSchema = z.string().trim().max(500).refine(
+  (value) => !value || value === '#' || /^https?:\/\//i.test(value),
+  { message: 'URL demo harus diawali http:// atau https://' },
+);
+
+const lynkUrlSchema = z.string().trim().max(500).nullable().optional().refine(
+  (value) => !value || /^https:\/\/(?:www\.)?lynk\.id(?:\/|$)/i.test(value),
+  { message: 'URL Lynk harus menggunakan HTTPS pada domain lynk.id' },
+);
+
 const templateBodySchema = z
   .object({
     slug: z.string().trim().max(180).optional(),
@@ -34,36 +50,49 @@ const templateBodySchema = z
     category: z.string().trim().min(1).max(80),
     description: z.string().trim().min(1).max(10000),
     price: z.string().trim().min(1).max(32).optional(),
-    stack: z.array(z.string().trim().min(1).max(80)).optional(),
+    stack: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
     level: z.string().trim().min(1).max(40).optional(),
     preview: z
       .array(
         z.object({
-          image: z
-            .string()
-            .trim()
-            .max(2048)
-            .refine((value) => !value.startsWith('data:image/'), {
-              message: 'Preview image harus berupa URL, bukan base64',
-            }),
+          image: assetUrlSchema,
           caption: z.string().trim().max(240),
         }),
       )
+      .max(20)
       .optional(),
-    demoUrl: z.string().trim().max(255).optional(),
-    features: z.array(z.string().trim().min(1).max(240)).optional(),
-    includedFiles: z.array(z.string().trim().min(1).max(240)).optional(),
-    suitableFor: z.array(z.string().trim().min(1).max(240)).optional(),
+    demoUrl: demoUrlSchema.optional(),
+    lynkUrl: lynkUrlSchema,
+    accentClass: z.string().trim().max(80).optional(),
+    features: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
+    includedFiles: z.array(z.string().trim().min(1).max(240)).max(100).optional(),
+    sourceCode: z.array(z.string().trim().min(1).max(500)).max(200).optional(),
+    suitableFor: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
     license: z.string().trim().max(2000).optional(),
     support: z.string().trim().max(2000).optional(),
-  })
-  .passthrough();
+  });
 
 const ratingBodySchema = z.object({
   customerName: z.string().trim().max(120).optional(),
   rating: z.coerce.number().int().min(1).max(5),
   message: z.string().trim().max(2000).optional(),
 });
+
+function isDuplicateEntryError(error: unknown) {
+  return Boolean(
+    error && typeof error === 'object' && 'code' in error && error.code === 'ER_DUP_ENTRY',
+  );
+}
+
+async function createDesignAuditLog(
+  payload: Parameters<typeof createAdminAuditLog>[0],
+) {
+  try {
+    await createAdminAuditLog(payload);
+  } catch (error) {
+    Sentry.captureException(error);
+  }
+}
 
 templatesRouter.get('/', async (_request, response) => {
   const cacheKey = 'templates:list';
@@ -104,7 +133,7 @@ templatesRouter.post('/', requireAdmin, async (request, response) => {
   try {
     const template = await createTemplate(payload);
 
-    await createAdminAuditLog({
+    await createDesignAuditLog({
       admin,
       action: 'template.create',
       entityType: 'template',
@@ -121,6 +150,10 @@ templatesRouter.post('/', requireAdmin, async (request, response) => {
       template,
     });
   } catch (error) {
+    if (isDuplicateEntryError(error)) {
+      response.status(409).json({ message: 'Slug design sudah digunakan' });
+      return;
+    }
     const message = error instanceof Error ? error.message : '';
     if (message.includes('tidak ditemukan')) {
       response.status(400).json({ message });
@@ -239,6 +272,7 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
   const payload = normalizeTemplatePayload(body as Partial<TemplateItem>);
 
   try {
+    const previousTemplate = await findTemplateBySlugOrId(String(params.id));
     const template = await updateTemplate(params.id, payload);
 
     if (!template) {
@@ -246,7 +280,7 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
       return;
     }
 
-    await createAdminAuditLog({
+    await createDesignAuditLog({
       admin,
       action: 'template.update',
       entityType: 'template',
@@ -256,13 +290,23 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
         slug: template.slug,
       },
     });
-    await deleteCacheKeys(['templates:list', `templates:detail:${template.slug}`]);
+    await deleteCacheKeys([
+      'templates:list',
+      `templates:detail:${template.slug}`,
+      ...(previousTemplate && previousTemplate.slug !== template.slug
+        ? [`templates:detail:${previousTemplate.slug}`]
+        : []),
+    ]);
 
     response.json({
       source: 'mysql',
       template,
     });
   } catch (error) {
+    if (isDuplicateEntryError(error)) {
+      response.status(409).json({ message: 'Slug design sudah digunakan' });
+      return;
+    }
     const message = error instanceof Error ? error.message : '';
     if (message.includes('tidak ditemukan')) {
       response.status(400).json({ message });
@@ -282,6 +326,7 @@ templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
   }
 
   try {
+    const template = await findTemplateBySlugOrId(String(params.id));
     const wasDeleted = await deleteTemplate(params.id);
 
     if (!wasDeleted) {
@@ -289,13 +334,16 @@ templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
       return;
     }
 
-    await createAdminAuditLog({
+    await createDesignAuditLog({
       admin,
       action: 'template.soft_delete',
       entityType: 'template',
       entityId: params.id,
     });
-    await deleteCacheKeys(['templates:list']);
+    await deleteCacheKeys([
+      'templates:list',
+      ...(template ? [`templates:detail:${template.slug}`] : []),
+    ]);
 
     response.status(204).send();
   } catch (error) {

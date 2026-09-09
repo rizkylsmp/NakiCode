@@ -1,5 +1,15 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
+import path from "node:path";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+const devStatePath = path.resolve(
+  "node_modules/.cache/naki-code/dev-processes.json",
+);
+
+await stopPreviousDevSession();
 
 const defaultFrontendPort = readPort(process.env.FRONTEND_PORT, 5173);
 const defaultBackendPort = readPort(
@@ -34,26 +44,20 @@ const children = [
   }),
 ];
 
+await saveDevState();
+
 let isShuttingDown = false;
 
 for (const child of children) {
   child.on("exit", (code, signal) => {
     if (isShuttingDown) return;
 
-    isShuttingDown = true;
-    stopChildren();
-
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
-    }
-
-    process.exit(code ?? 0);
+    void shutdown(signal ? 1 : (code ?? 0));
   });
 }
 
-process.on("SIGINT", () => shutdown());
-process.on("SIGTERM", () => shutdown());
+process.on("SIGINT", () => void shutdown());
+process.on("SIGTERM", () => void shutdown());
 
 function spawnWorkspace(workspace, options) {
   const { command, args } = createNpmDevCommand(workspace);
@@ -64,7 +68,7 @@ function spawnWorkspace(workspace, options) {
 
   child.on("error", (error) => {
     console.error(`[dev] Failed to start ${workspace}: ${error.message}`);
-    shutdown(1);
+    void shutdown(1);
   });
 
   return child;
@@ -84,19 +88,150 @@ function createNpmDevCommand(workspace) {
   };
 }
 
-function shutdown(exitCode = 0) {
+async function shutdown(exitCode = 0) {
   if (isShuttingDown) return;
 
   isShuttingDown = true;
-  stopChildren();
+  await stopChildren();
+  await stopWorkspacePortProcesses([frontendPort, backendPort]);
+  await removeOwnedDevState();
   process.exit(exitCode);
 }
 
-function stopChildren() {
-  for (const child of children) {
-    if (!child.killed) {
-      child.kill("SIGTERM");
+async function stopChildren() {
+  await Promise.all(
+    children
+      .filter((child) => child.pid && !child.killed)
+      .map((child) => terminateProcessTree(child.pid)),
+  );
+}
+
+async function stopPreviousDevSession() {
+  let state;
+
+  try {
+    state = JSON.parse(await readFile(devStatePath, "utf8"));
+  } catch {
+    return;
+  }
+
+  const previousPid = Number(state?.rootPid);
+  if (!Number.isInteger(previousPid) || previousPid <= 0 || previousPid === process.pid) {
+    await rm(devStatePath, { force: true });
+    return;
+  }
+
+  if (await isNakiDevProcess(previousPid)) {
+    console.log(`[dev] Menghentikan sesi lokal lama (PID ${previousPid}) untuk mereset koneksi database...`);
+    await terminateProcessTree(previousPid);
+  }
+
+  await stopWorkspacePortProcesses([
+    Number(state?.frontendPort),
+    Number(state?.backendPort),
+  ]);
+
+  await rm(devStatePath, { force: true });
+}
+
+async function saveDevState() {
+  await mkdir(path.dirname(devStatePath), { recursive: true });
+  await writeFile(
+    devStatePath,
+    JSON.stringify({
+      rootPid: process.pid,
+      childPids: children.map((child) => child.pid).filter(Boolean),
+      frontendPort,
+      backendPort,
+      startedAt: new Date().toISOString(),
+    }),
+    "utf8",
+  );
+}
+
+async function removeOwnedDevState() {
+  try {
+    const state = JSON.parse(await readFile(devStatePath, "utf8"));
+    if (Number(state?.rootPid) === process.pid) {
+      await rm(devStatePath, { force: true });
     }
+  } catch {
+    // State is already gone or unreadable.
+  }
+}
+
+async function isNakiDevProcess(pid) {
+  try {
+    if (process.platform === "win32") {
+      const { stdout } = await execFileAsync("powershell.exe", [
+        "-NoProfile",
+        "-Command",
+        `(Get-CimInstance Win32_Process -Filter \"ProcessId = ${pid}\").CommandLine`,
+      ]);
+      return /scripts[\\/]dev\.mjs/i.test(stdout);
+    }
+
+    const commandLine = await readFile(`/proc/${pid}/cmdline`, "utf8");
+    return /scripts[\\/]dev\.mjs/i.test(commandLine.replaceAll("\0", " "));
+  } catch {
+    return false;
+  }
+}
+
+async function stopWorkspacePortProcesses(ports) {
+  if (process.platform !== "win32") return;
+
+  const safePorts = ports.filter(
+    (port) => Number.isInteger(port) && port > 0 && port < 65535,
+  );
+  if (safePorts.length === 0) return;
+
+  try {
+    const { stdout } = await execFileAsync("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      `(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in @(${safePorts.join(",")}) }).OwningProcess | Sort-Object -Unique`,
+    ]);
+    const pids = stdout
+      .split(/\s+/)
+      .map(Number)
+      .filter((pid) => Number.isInteger(pid) && pid > 0);
+
+    for (const pid of pids) {
+      if (await isWorkspaceProcess(pid)) {
+        await terminateProcessTree(pid);
+      }
+    }
+  } catch {
+    // A port may already be released by the process tree shutdown.
+  }
+}
+
+async function isWorkspaceProcess(pid) {
+  try {
+    const { stdout } = await execFileAsync("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      `(Get-CimInstance Win32_Process -Filter \"ProcessId = ${pid}\").CommandLine`,
+    ]);
+    return stdout.toLowerCase().includes(process.cwd().toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+async function terminateProcessTree(pid) {
+  if (!pid || pid === process.pid) return;
+
+  try {
+    if (process.platform === "win32") {
+      await execFileAsync("taskkill.exe", ["/PID", String(pid), "/T", "/F"]);
+      return;
+    }
+
+    process.kill(pid, "SIGTERM");
+  } catch {
+    // The process may already have stopped.
   }
 }
 

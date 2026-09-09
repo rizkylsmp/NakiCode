@@ -6,7 +6,7 @@ type DeletePortfolioDialogProps = {
   portfolio: PortfolioItem | null;
   isDeleting: boolean;
   onClose: () => void;
-  onConfirm: (portfolio: PortfolioItem) => void;
+  onConfirm: () => void;
 };
 
 export function DeletePortfolioDialog({
@@ -57,7 +57,8 @@ export function DeletePortfolioDialog({
 
         <div className="grid gap-4 p-5">
           <p className="text-sm leading-relaxed text-naki-smoke">
-            Portofolio ini akan dihapus dari sistem. Tindakan ini tidak dapat dibatalkan.
+            Portofolio "{portfolio.title}" akan dihapus dari website. Tindakan ini
+            tidak dapat dipulihkan melalui halaman admin.
           </p>
 
           <div className="rounded-xl bg-red-50 px-3 py-2.5 text-xs leading-relaxed text-red-700">
@@ -78,7 +79,7 @@ export function DeletePortfolioDialog({
           <button
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400"
             disabled={isDeleting}
-            onClick={() => onConfirm(portfolio)}
+            onClick={onConfirm}
             type="button"
           >
             <Trash2 size={16} />

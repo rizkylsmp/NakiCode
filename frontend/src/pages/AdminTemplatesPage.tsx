@@ -31,6 +31,7 @@ import { BlogAdminPanel } from "./admin/BlogAdminPanel";
 import { AdminTestimonialsSection } from "./admin/AdminTestimonialsSection";
 import { AdminCategoriesSection } from "./admin/AdminCategoriesSection";
 import { AdminCouponsSection } from "./admin/AdminCouponsSection";
+import { AdminFinanceSection } from "./admin/AdminFinanceSection";
 import {
   adminBlogPostsPageSize,
   adminOrdersPageSize,
@@ -71,6 +72,7 @@ function readOrderFiltersFromUrl(search: string): {
   const status = params.get("ordersStatus");
   const paymentStatus = params.get("ordersPaymentStatus");
   const page = params.get("ordersPage");
+  const orderSearch = params.get("ordersSearch") ?? "";
 
   return {
     filters: {
@@ -85,6 +87,7 @@ function readOrderFiltersFromUrl(search: string): {
         paymentStatus === "failed"
           ? paymentStatus
           : "all",
+      search: orderSearch,
     },
     page: page && Number(page) > 0 ? Number(page) : 1,
   };
@@ -190,7 +193,8 @@ export function AdminTemplatesPage({
   const [blogStatus, setBlogStatus] = useState("");
   const [isSavingBlog, setIsSavingBlog] = useState(false);
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
-  const [deletingBlogId, setDeletingBlogId] = useState<number | null>(null);
+  const [deleteCandidateBlog, setDeleteCandidateBlog] = useState<BlogPostItem | null>(null);
+  const [isDeletingBlog, setIsDeletingBlog] = useState(false);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [testimonialsStatus, setTestimonialsStatus] = useState(
     "Login admin diperlukan untuk memuat testimoni.",
@@ -245,7 +249,7 @@ export function AdminTemplatesPage({
 
     // When leaving the orders view, strip order params from the URL.
     const params = new URLSearchParams(location.search);
-    const orderKeys = ["ordersStatus", "ordersPaymentStatus", "ordersPage"];
+    const orderKeys = ["ordersStatus", "ordersPaymentStatus", "ordersSearch", "ordersPage"];
     let changed = false;
     for (const key of orderKeys) {
       if (params.has(key)) {
@@ -514,6 +518,7 @@ export function AdminTemplatesPage({
     if (filters.paymentStatus !== "all") {
       params.set("paymentStatus", filters.paymentStatus);
     }
+    if (filters.search) params.set("search", filters.search);
 
     setIsLoadingOrders(true);
     setOrdersStatus("Memuat request konsultasi...");
@@ -555,6 +560,8 @@ export function AdminTemplatesPage({
     } else {
       params.delete("ordersPaymentStatus");
     }
+    if (nextFilters.search) params.set("ordersSearch", nextFilters.search);
+    else params.delete("ordersSearch");
     params.set("ordersPage", "1");
     navigate({ search: params.toString() }, { replace: true });
   }
@@ -647,8 +654,8 @@ export function AdminTemplatesPage({
       setForm(templateToForm(data.template));
       setIsTemplateModalOpen(false);
       setStatus(`Design ${data.template.title} tersimpan.`);
-    } catch {
-      setStatus("Gagal menyimpan. Pastikan backend aktif.");
+    } catch (error) {
+      setStatus(getApiErrorMessage(error, "Gagal menyimpan design."));
     } finally {
       setIsSaving(false);
       setLoadingMessage(null);
@@ -678,8 +685,8 @@ export function AdminTemplatesPage({
       }
 
       setStatus(`Design ${template.title} dihapus.`);
-    } catch {
-      setStatus("Gagal menghapus. Pastikan backend aktif.");
+    } catch (error) {
+      setStatus(getApiErrorMessage(error, "Gagal menghapus design."));
     } finally {
       setDeleteCandidateTemplate(null);
       setUpdatingTemplateId(null);
@@ -945,8 +952,10 @@ export function AdminTemplatesPage({
       setPortfolioForm(defaultPortfolioFormState);
       setIsPortfolioModalOpen(false);
       setPortfolioStatus(`Portofolio ${data.project.title} tersimpan.`);
-    } catch {
-      setPortfolioStatus("Gagal menyimpan portofolio. Pastikan backend aktif.");
+    } catch (error) {
+      setPortfolioStatus(
+        getApiErrorMessage(error, "Gagal menyimpan portofolio."),
+      );
     } finally {
       setIsSavingPortfolio(false);
       setLoadingMessage(null);
@@ -981,8 +990,10 @@ export function AdminTemplatesPage({
       }
 
       setPortfolioStatus(`Portofolio ${project.title} dihapus.`);
-    } catch {
-      setPortfolioStatus("Gagal menghapus portofolio.");
+    } catch (error) {
+      setPortfolioStatus(
+        getApiErrorMessage(error, "Gagal menghapus portofolio."),
+      );
     } finally {
       setDeletingProjectId(null);
       setDeleteCandidatePortfolio(null);
@@ -1001,8 +1012,8 @@ export function AdminTemplatesPage({
     try {
       const res = await apiGet<{ source: string; posts: BlogPostItem[] }>("/api/blog/admin");
       setBlogPosts(res.posts ?? []);
-    } catch {
-      setBlogStatus("Gagal memuat artikel.");
+    } catch (error) {
+      setBlogStatus(getApiErrorMessage(error, "Gagal memuat artikel."));
     }
   }
 
@@ -1066,6 +1077,11 @@ export function AdminTemplatesPage({
       return;
     }
 
+    if (!blogForm.title.trim() || !blogForm.excerpt.trim() || !blogForm.content.trim()) {
+      setBlogStatus("Judul, ringkasan, dan konten artikel wajib diisi.");
+      return;
+    }
+
     setIsSavingBlog(true);
     setLoadingMessage("Menyimpan artikel...");
 
@@ -1085,8 +1101,8 @@ export function AdminTemplatesPage({
           `/api/blog/${blogForm.id}`,
           payload,
         );
-        setBlogPosts(
-          blogPosts.map((p) => (p.id === res.post.id ? res.post : p)),
+        setBlogPosts((posts) =>
+          posts.map((post) => (post.id === res.post.id ? res.post : post)),
         );
         setBlogStatus("Artikel berhasil diperbarui.");
       } else {
@@ -1094,14 +1110,14 @@ export function AdminTemplatesPage({
           "/api/blog",
           payload,
         );
-        setBlogPosts([res.post, ...blogPosts]);
+        setBlogPosts((posts) => [res.post, ...posts]);
         setBlogStatus("Artikel berhasil dibuat.");
       }
 
       setBlogForm(defaultBlogPostFormState);
       setIsBlogModalOpen(false);
-    } catch {
-      setBlogStatus("Gagal menyimpan artikel.");
+    } catch (error) {
+      setBlogStatus(getApiErrorMessage(error, "Gagal menyimpan artikel."));
     } finally {
       setIsSavingBlog(false);
       setLoadingMessage(null);
@@ -1109,29 +1125,32 @@ export function AdminTemplatesPage({
   }
 
   function deleteBlog(post: BlogPostItem) {
-    setDeletingBlogId(post.id);
+    setDeleteCandidateBlog(post);
   }
 
   async function confirmDeleteBlog() {
-    if (!adminToken || deletingBlogId === null) return;
+    if (!adminToken || !deleteCandidateBlog || isDeletingBlog) return;
 
-    const id = deletingBlogId;
-    setDeletingBlogId(null);
+    const id = deleteCandidateBlog.id;
+    setIsDeletingBlog(true);
     setLoadingMessage("Menghapus artikel...");
 
     try {
       await apiDelete(`/api/blog/${id}`);
-      setBlogPosts(blogPosts.filter((p) => p.id !== id));
+      setBlogPosts((posts) => posts.filter((post) => post.id !== id));
       setBlogStatus("Artikel berhasil dihapus.");
-    } catch {
-      setBlogStatus("Gagal menghapus artikel.");
+    } catch (error) {
+      setBlogStatus(getApiErrorMessage(error, "Gagal menghapus artikel."));
     } finally {
+      setDeleteCandidateBlog(null);
+      setIsDeletingBlog(false);
       setLoadingMessage(null);
     }
   }
 
   function cancelDeleteBlog() {
-    setDeletingBlogId(null);
+    if (isDeletingBlog) return;
+    setDeleteCandidateBlog(null);
   }
 
   // Load blog posts when admin is logged in
@@ -1322,6 +1341,8 @@ export function AdminTemplatesPage({
             />
           )}
 
+          {activeAdminView === "finance" && <AdminFinanceSection />}
+
           {activeAdminView === "portfolio" && (
             <PortfolioAdminPanel
               projects={projects}
@@ -1354,8 +1375,9 @@ export function AdminTemplatesPage({
               selectedId={null}
               status={blogStatus}
               isSaving={isSavingBlog}
+              isDeleting={isDeletingBlog}
               isModalOpen={isBlogModalOpen}
-              deletingId={deletingBlogId}
+              deletingPost={deleteCandidateBlog}
               form={blogForm}
               adminToken={adminToken}
               onSearchChange={setBlogSearch}
@@ -1394,7 +1416,7 @@ export function AdminTemplatesPage({
             />
           )}
 
-          {activeAdminView === "coupons" && <AdminCouponsSection />}
+          {activeAdminView === "coupons" && <AdminCouponsSection adminToken={adminToken} />}
         </AdminLayout>
       )}
 

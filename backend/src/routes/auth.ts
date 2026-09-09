@@ -1,35 +1,39 @@
-import crypto from 'node:crypto';
-import { Router } from 'express';
-import * as Sentry from '@sentry/node';
-import { z } from 'zod';
-import zxcvbn from 'zxcvbn';
+import crypto from "node:crypto";
+import { Router } from "express";
+import * as Sentry from "@sentry/node";
+import { z } from "zod";
+import zxcvbn from "zxcvbn";
+import { OAuth2Client } from "google-auth-library";
 import {
   createUserToken,
   verifyAdminToken,
   verifyPassword,
   verifyUserToken,
-} from '../auth';
-import { config } from '../config';
-import { enqueueEmail } from '../email-queue';
-import { createAdminAuditLog } from '../models/audit-log.model';
+} from "../auth";
+import { config } from "../config";
+import { enqueueEmail } from "../email-queue";
+import { createAdminAuditLog } from "../models/audit-log.model";
 import {
   createUserAccount,
+  createGoogleUserAccount,
   clearUserEmailVerificationOtp,
   clearUserPasswordResetOtp,
   deleteUserAccount,
   findUserById,
   findUserByEmail,
+  findUserByGoogleSub,
   findUserByUsername,
   findUserByUsernameOrEmail,
   markUserEmailVerified,
+  linkGoogleIdentity,
   setUserPasswordResetOtp,
   setUserEmailVerificationOtp,
   verifyUserPasswordResetOtp,
   verifyUserEmailOtp,
   updateUserPassword,
   updateUserProfileName,
-} from '../models/user.model';
-import { parseBody } from '../validation';
+} from "../models/user.model";
+import { parseBody } from "../validation";
 
 export const authRouter = Router();
 
@@ -41,6 +45,10 @@ const loginBodySchema = z.object({
 const userLoginBodySchema = z.object({
   identifier: z.string().trim().min(1).max(160),
   password: z.string().min(1).max(200),
+});
+
+const googleLoginBodySchema = z.object({
+  credential: z.string().trim().min(100).max(10_000),
 });
 
 const registerBodySchema = z.object({
@@ -56,20 +64,23 @@ const emailBodySchema = z.object({
 const resetPasswordBodySchema = z
   .object({
     email: z.email().trim().toLowerCase().max(160),
-    otp: z.string().trim().regex(/^\d{6}$/),
+    otp: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/),
     password: z.string().min(8).max(200), // Updated from 6 to 8
     confirmPassword: z.string().min(8).max(200), // Updated from 6 to 8
   })
   .refine((body) => body.password === body.confirmPassword, {
-    message: 'Konfirmasi password belum sama',
-    path: ['confirmPassword'],
+    message: "Konfirmasi password belum sama",
+    path: ["confirmPassword"],
   });
 
 const updateProfileBodySchema = z.object({
-  username: z.string().trim().min(3).max(80).optional().or(z.literal('')),
-  currentPassword: z.string().max(200).optional().or(z.literal('')),
-  newPassword: z.string().max(200).optional().or(z.literal('')),
-  confirmPassword: z.string().max(200).optional().or(z.literal('')),
+  username: z.string().trim().min(3).max(80).optional().or(z.literal("")),
+  currentPassword: z.string().max(200).optional().or(z.literal("")),
+  newPassword: z.string().max(200).optional().or(z.literal("")),
+  confirmPassword: z.string().max(200).optional().or(z.literal("")),
 });
 
 const deleteAccountBodySchema = z.object({
@@ -79,10 +90,13 @@ const deleteAccountBodySchema = z.object({
 
 const verifyEmailBodySchema = z.object({
   email: z.email().trim().toLowerCase().max(160),
-  otp: z.string().trim().regex(/^\d{6}$/),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
 });
 
-authRouter.post('/login', async (request, response) => {
+authRouter.post("/login", async (request, response) => {
   const body = parseBody(loginBodySchema, request, response);
 
   if (!body) {
@@ -94,17 +108,17 @@ authRouter.post('/login', async (request, response) => {
 
     if (
       !admin ||
-      admin.role !== 'admin' ||
+      admin.role !== "admin" ||
       !(await verifyPassword(body.password, admin.passwordHash))
     ) {
       await createAdminAuditLog({
         admin: null,
-        action: 'login_failed',
-        entityType: 'auth',
-        metadata: { identifier: body.username, ip: request.ip ?? 'unknown' },
+        action: "login_failed",
+        entityType: "auth",
+        metadata: { identifier: body.username, ip: request.ip ?? "unknown" },
       });
 
-      response.status(401).json({ message: 'Username atau password salah' });
+      response.status(401).json({ message: "Username atau password salah" });
       return;
     }
 
@@ -115,9 +129,9 @@ authRouter.post('/login', async (request, response) => {
         role: admin.role,
         exp: 0,
       },
-      action: 'login',
-      entityType: 'auth',
-      metadata: { ip: request.ip ?? 'unknown' },
+      action: "login",
+      entityType: "auth",
+      metadata: { ip: request.ip ?? "unknown" },
     });
 
     response.json({
@@ -129,16 +143,16 @@ authRouter.post('/login', async (request, response) => {
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(503).json({ message: 'Database login belum tersedia' });
+    response.status(503).json({ message: "Database login belum tersedia" });
   }
 });
 
-authRouter.get('/me', (request, response) => {
-  const token = request.header('authorization')?.replace(/^Bearer\s+/i, '');
+authRouter.get("/me", (request, response) => {
+  const token = request.header("authorization")?.replace(/^Bearer\s+/i, "");
   const payload = token ? verifyAdminToken(token) : null;
 
   if (!payload) {
-    response.status(401).json({ message: 'Token tidak valid' });
+    response.status(401).json({ message: "Token tidak valid" });
     return;
   }
 
@@ -151,33 +165,33 @@ authRouter.get('/me', (request, response) => {
   });
 });
 
-authRouter.post('/user/register', async (request, response) => {
+authRouter.post("/user/register", async (request, response) => {
   const body = parseBody(registerBodySchema, request, response);
 
   if (!body) {
     return;
   }
-  
+
   // Validate password strength (minimum score 2 = "somewhat guessable")
   const passwordStrength = zxcvbn(body.password);
-  
+
   if (passwordStrength.score < 2) {
     const suggestions = passwordStrength.feedback.suggestions || [];
-    const warning = passwordStrength.feedback.warning || '';
-    
-    let message = 'Password terlalu lemah untuk keamanan akun.';
-    
+    const warning = passwordStrength.feedback.warning || "";
+
+    let message = "Password terlalu lemah untuk keamanan akun.";
+
     if (warning) {
       message += ` ${warning}`;
     }
-    
+
     if (suggestions.length > 0) {
-      message += ` Saran: ${suggestions.join('. ')}.`;
+      message += ` Saran: ${suggestions.join(". ")}.`;
     } else {
-      message += ' Gunakan kombinasi huruf besar-kecil, angka, dan simbol.';
+      message += " Gunakan kombinasi huruf besar-kecil, angka, dan simbol.";
     }
-    
-    response.status(400).json({ 
+
+    response.status(400).json({
       message,
       passwordStrength: {
         score: passwordStrength.score,
@@ -192,7 +206,9 @@ authRouter.post('/user/register', async (request, response) => {
     const existingEmail = await findUserByUsernameOrEmail(body.email);
 
     if (existingUser || existingEmail) {
-      response.status(409).json({ message: 'Username atau email sudah dipakai' });
+      response
+        .status(409)
+        .json({ message: "Username atau email sudah dipakai" });
       return;
     }
 
@@ -205,10 +221,14 @@ authRouter.post('/user/register', async (request, response) => {
     const expiresAt = new Date(
       Date.now() + config.verification.otpTtlMinutes * 60_000,
     );
-    const otpWasSaved = await setUserEmailVerificationOtp(user.id, otp, expiresAt);
+    const otpWasSaved = await setUserEmailVerificationOtp(
+      user.id,
+      otp,
+      expiresAt,
+    );
 
     if (!otpWasSaved) {
-      response.status(500).json({ message: 'Gagal menyiapkan OTP verifikasi' });
+      response.status(500).json({ message: "Gagal menyiapkan OTP verifikasi" });
       return;
     }
 
@@ -220,7 +240,7 @@ authRouter.post('/user/register', async (request, response) => {
     };
 
     await enqueueEmail({
-      type: 'verification',
+      type: "verification",
       payload: {
         email: user.email,
         username: user.username,
@@ -229,18 +249,18 @@ authRouter.post('/user/register', async (request, response) => {
     });
 
     response.status(201).json({
-      message: 'OTP verifikasi sedang dikirim ke email.',
+      message: "OTP verifikasi sedang dikirim ke email.",
       user: safeUser,
       verificationEmail: user.email,
       verificationUrl: buildVerificationUrl(user.email),
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal membuat akun user' });
+    response.status(500).json({ message: "Gagal membuat akun user" });
   }
 });
 
-authRouter.post('/user/login', async (request, response) => {
+authRouter.post("/user/login", async (request, response) => {
   const body = parseBody(userLoginBodySchema, request, response);
 
   if (!body) {
@@ -251,13 +271,13 @@ authRouter.post('/user/login', async (request, response) => {
     const user = await findUserByUsernameOrEmail(body.identifier);
 
     if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
-      response.status(401).json({ message: 'Akun atau password salah' });
+      response.status(401).json({ message: "Akun atau password salah" });
       return;
     }
 
     if (!user.emailVerifiedAt) {
       response.status(403).json({
-        message: 'Email belum diverifikasi',
+        message: "Email belum diverifikasi",
         verificationEmail: user.email,
         verificationUrl: buildVerificationUrl(user.email),
       });
@@ -275,11 +295,97 @@ authRouter.post('/user/login', async (request, response) => {
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(503).json({ message: 'Database user belum tersedia' });
+    response.status(503).json({ message: "Database user belum tersedia" });
   }
 });
 
-authRouter.post('/user/forgot-password', async (request, response) => {
+authRouter.post("/user/google", async (request, response) => {
+  const body = parseBody(googleLoginBodySchema, request, response);
+
+  if (!body) {
+    return;
+  }
+
+  if (!config.auth.googleClientId) {
+    response.status(503).json({ message: "Login Google belum dikonfigurasi" });
+    return;
+  }
+
+  try {
+    const googleClient = new OAuth2Client(config.auth.googleClientId);
+    const ticket = await googleClient.verifyIdToken({
+      idToken: body.credential,
+      audience: config.auth.googleClientId,
+    });
+    const profile = ticket.getPayload();
+
+    if (!profile?.sub || !profile.email || profile.email_verified !== true) {
+      response
+        .status(401)
+        .json({ message: "Akun Google tidak dapat diverifikasi" });
+      return;
+    }
+
+    const email = profile.email.trim().toLowerCase();
+    let user = await findUserByGoogleSub(profile.sub);
+
+    if (!user) {
+      const existingUser = await findUserByEmail(email);
+
+      if (existingUser?.role === "admin") {
+        response.status(403).json({
+          message: "Akun admin harus masuk menggunakan password",
+        });
+        return;
+      }
+
+      if (existingUser) {
+        if (existingUser.googleSub && existingUser.googleSub !== profile.sub) {
+          response.status(409).json({
+            message: "Email ini sudah terhubung dengan akun Google lain",
+          });
+          return;
+        }
+
+        if (!existingUser.googleSub) {
+          await linkGoogleIdentity(existingUser.id, profile.sub);
+        }
+        user = await findUserById(existingUser.id);
+      } else {
+        const username = await createAvailableGoogleUsername(
+          profile.name || email.split("@")[0] || "naki-user",
+        );
+        user = await createGoogleUserAccount({
+          username,
+          email,
+          googleSub: profile.sub,
+        });
+      }
+    }
+
+    if (!user) {
+      response.status(500).json({ message: "Gagal menyiapkan akun Google" });
+      return;
+    }
+
+    response.json({
+      token: createUserToken(user),
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    response
+      .status(401)
+      .json({ message: "Login Google gagal. Silakan coba lagi." });
+  }
+});
+
+authRouter.post("/user/forgot-password", async (request, response) => {
   const body = parseBody(emailBodySchema, request, response);
 
   if (!body) {
@@ -292,7 +398,7 @@ authRouter.post('/user/forgot-password', async (request, response) => {
     if (!user) {
       response.json({
         message:
-          'Jika email terdaftar, OTP reset password akan dikirim ke inbox.',
+          "Jika email terdaftar, OTP reset password akan dikirim ke inbox.",
       });
       return;
     }
@@ -304,12 +410,12 @@ authRouter.post('/user/forgot-password', async (request, response) => {
     const otpWasSaved = await setUserPasswordResetOtp(user.id, otp, expiresAt);
 
     if (!otpWasSaved) {
-      response.status(500).json({ message: 'Gagal menyiapkan OTP reset' });
+      response.status(500).json({ message: "Gagal menyiapkan OTP reset" });
       return;
     }
 
     await enqueueEmail({
-      type: 'password-reset',
+      type: "password-reset",
       payload: {
         email: user.email,
         username: user.username,
@@ -318,43 +424,43 @@ authRouter.post('/user/forgot-password', async (request, response) => {
     });
 
     response.json({
-      message: 'OTP reset password sedang dikirim ke email.',
+      message: "OTP reset password sedang dikirim ke email.",
       resetEmail: user.email,
       resetUrl: buildPasswordResetUrl(user.email),
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mengirim OTP reset password' });
+    response.status(500).json({ message: "Gagal mengirim OTP reset password" });
   }
 });
 
-authRouter.post('/user/reset-password', async (request, response) => {
+authRouter.post("/user/reset-password", async (request, response) => {
   const body = parseBody(resetPasswordBodySchema, request, response);
 
   if (!body) {
     return;
   }
-  
+
   // Validate password strength (minimum score 2 = "somewhat guessable")
   const passwordStrength = zxcvbn(body.password);
-  
+
   if (passwordStrength.score < 2) {
     const suggestions = passwordStrength.feedback.suggestions || [];
-    const warning = passwordStrength.feedback.warning || '';
-    
-    let message = 'Password terlalu lemah untuk keamanan akun.';
-    
+    const warning = passwordStrength.feedback.warning || "";
+
+    let message = "Password terlalu lemah untuk keamanan akun.";
+
     if (warning) {
       message += ` ${warning}`;
     }
-    
+
     if (suggestions.length > 0) {
-      message += ` Saran: ${suggestions.join('. ')}.`;
+      message += ` Saran: ${suggestions.join(". ")}.`;
     } else {
-      message += ' Gunakan kombinasi huruf besar-kecil, angka, dan simbol.';
+      message += " Gunakan kombinasi huruf besar-kecil, angka, dan simbol.";
     }
-    
-    response.status(400).json({ 
+
+    response.status(400).json({
       message,
       passwordStrength: {
         score: passwordStrength.score,
@@ -368,7 +474,9 @@ authRouter.post('/user/reset-password', async (request, response) => {
     const user = await findUserByEmail(body.email);
 
     if (!user || !verifyUserPasswordResetOtp(user, body.otp)) {
-      response.status(401).json({ message: 'OTP salah atau sudah kedaluwarsa' });
+      response
+        .status(401)
+        .json({ message: "OTP salah atau sudah kedaluwarsa" });
       return;
     }
 
@@ -380,49 +488,49 @@ authRouter.post('/user/reset-password', async (request, response) => {
     }
 
     response.json({
-      message: 'Password berhasil direset. Silakan login dengan password baru.',
+      message: "Password berhasil direset. Silakan login dengan password baru.",
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal reset password' });
+    response.status(500).json({ message: "Gagal reset password" });
   }
 });
 
-authRouter.get('/user/me', async (request, response) => {
-  const token = request.header('authorization')?.replace(/^Bearer\s+/i, '');
+authRouter.get("/user/me", async (request, response) => {
+  const token = request.header("authorization")?.replace(/^Bearer\s+/i, "");
   const payload = token ? verifyUserToken(token) : null;
 
   if (!payload) {
-    response.status(401).json({ message: 'Token user tidak valid' });
+    response.status(401).json({ message: "Token user tidak valid" });
     return;
   }
 
   const user = await findUserById(payload.userId);
 
   if (!user) {
-    response.status(404).json({ message: 'Akun user tidak ditemukan' });
+    response.status(404).json({ message: "Akun user tidak ditemukan" });
     return;
   }
 
   response.json({
     user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          emailVerifiedAt: user.emailVerifiedAt,
-          emailVerificationSentAt: user.emailVerificationSentAt,
-        },
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      emailVerifiedAt: user.emailVerifiedAt,
+      emailVerificationSentAt: user.emailVerificationSentAt,
+    },
   });
 });
 
-authRouter.patch('/user/me', async (request, response) => {
-  const token = request.header('authorization')?.replace(/^Bearer\s+/i, '');
+authRouter.patch("/user/me", async (request, response) => {
+  const token = request.header("authorization")?.replace(/^Bearer\s+/i, "");
   const payload = token ? verifyUserToken(token) : null;
   const body = parseBody(updateProfileBodySchema, request, response);
 
   if (!payload) {
-    response.status(401).json({ message: 'Token user tidak valid' });
+    response.status(401).json({ message: "Token user tidak valid" });
     return;
   }
 
@@ -430,16 +538,16 @@ authRouter.patch('/user/me', async (request, response) => {
     return;
   }
 
-  const nextUsername = body.username?.trim() ?? '';
-  const currentPassword = body.currentPassword ?? '';
-  const newPassword = body.newPassword ?? '';
-  const confirmPassword = body.confirmPassword ?? '';
+  const nextUsername = body.username?.trim() ?? "";
+  const currentPassword = body.currentPassword ?? "";
+  const newPassword = body.newPassword ?? "";
+  const confirmPassword = body.confirmPassword ?? "";
 
   try {
     const user = await findUserById(payload.userId);
 
     if (!user) {
-      response.status(404).json({ message: 'Akun user tidak ditemukan' });
+      response.status(404).json({ message: "Akun user tidak ditemukan" });
       return;
     }
 
@@ -447,7 +555,7 @@ authRouter.patch('/user/me', async (request, response) => {
       const existingUsername = await findUserByUsername(nextUsername);
 
       if (existingUsername && existingUsername.id !== user.id) {
-        response.status(409).json({ message: 'Username sudah dipakai' });
+        response.status(409).json({ message: "Username sudah dipakai" });
         return;
       }
 
@@ -458,20 +566,20 @@ authRouter.patch('/user/me', async (request, response) => {
       if (!currentPassword || newPassword.length < 6) {
         response.status(400).json({
           message:
-            'Current password dan new password minimal 6 karakter wajib diisi',
+            "Current password dan new password minimal 6 karakter wajib diisi",
         });
         return;
       }
 
       if (newPassword !== confirmPassword) {
         response.status(400).json({
-          message: 'Konfirmasi password belum sama',
+          message: "Konfirmasi password belum sama",
         });
         return;
       }
 
       if (!(await verifyPassword(currentPassword, user.passwordHash))) {
-        response.status(401).json({ message: 'Current password salah' });
+        response.status(401).json({ message: "Current password salah" });
         return;
       }
 
@@ -481,7 +589,7 @@ authRouter.patch('/user/me', async (request, response) => {
     const updatedUser = await findUserById(user.id);
 
     response.json({
-      message: 'Profil user berhasil diperbarui',
+      message: "Profil user berhasil diperbarui",
       user: updatedUser
         ? {
             id: updatedUser.id,
@@ -502,17 +610,17 @@ authRouter.patch('/user/me', async (request, response) => {
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal memperbarui profil user' });
+    response.status(500).json({ message: "Gagal memperbarui profil user" });
   }
 });
 
-authRouter.delete('/user/me', async (request, response) => {
-  const token = request.header('authorization')?.replace(/^Bearer\s+/i, '');
+authRouter.delete("/user/me", async (request, response) => {
+  const token = request.header("authorization")?.replace(/^Bearer\s+/i, "");
   const payload = token ? verifyUserToken(token) : null;
   const body = parseBody(deleteAccountBodySchema, request, response);
 
   if (!payload) {
-    response.status(401).json({ message: 'Token user tidak valid' });
+    response.status(401).json({ message: "Token user tidak valid" });
     return;
   }
 
@@ -524,37 +632,37 @@ authRouter.delete('/user/me', async (request, response) => {
     const user = await findUserById(payload.userId);
 
     if (!user) {
-      response.status(404).json({ message: 'Akun user tidak ditemukan' });
+      response.status(404).json({ message: "Akun user tidak ditemukan" });
       return;
     }
 
     if (body.confirmEmail !== user.email.toLowerCase()) {
       response.status(400).json({
-        message: 'Konfirmasi email tidak sesuai akun aktif',
+        message: "Konfirmasi email tidak sesuai akun aktif",
       });
       return;
     }
 
     if (!(await verifyPassword(body.currentPassword, user.passwordHash))) {
-      response.status(401).json({ message: 'Password aktif salah' });
+      response.status(401).json({ message: "Password aktif salah" });
       return;
     }
 
     const wasDeleted = await deleteUserAccount(user.id);
 
     if (!wasDeleted) {
-      response.status(404).json({ message: 'Akun user tidak ditemukan' });
+      response.status(404).json({ message: "Akun user tidak ditemukan" });
       return;
     }
 
-    response.json({ message: 'Akun berhasil dihapus' });
+    response.json({ message: "Akun berhasil dihapus" });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menghapus akun' });
+    response.status(500).json({ message: "Gagal menghapus akun" });
   }
 });
 
-authRouter.post('/user/verify-email', async (request, response) => {
+authRouter.post("/user/verify-email", async (request, response) => {
   const body = parseBody(verifyEmailBodySchema, request, response);
 
   if (!body) {
@@ -565,13 +673,13 @@ authRouter.post('/user/verify-email', async (request, response) => {
     const user = await findUserByEmail(body.email);
 
     if (!user) {
-      response.status(404).json({ message: 'Akun user tidak ditemukan' });
+      response.status(404).json({ message: "Akun user tidak ditemukan" });
       return;
     }
 
     if (user.emailVerifiedAt) {
       response.json({
-        message: 'Email sudah terverifikasi',
+        message: "Email sudah terverifikasi",
         token: createUserToken(user),
         user: {
           id: user.id,
@@ -585,7 +693,7 @@ authRouter.post('/user/verify-email', async (request, response) => {
 
     if (!verifyUserEmailOtp(user, body.otp)) {
       response.status(401).json({
-        message: 'OTP salah atau sudah kedaluwarsa',
+        message: "OTP salah atau sudah kedaluwarsa",
         verificationEmail: user.email,
         verificationUrl: buildVerificationUrl(user.email),
       });
@@ -595,7 +703,7 @@ authRouter.post('/user/verify-email', async (request, response) => {
     const wasUpdated = await markUserEmailVerified(user.id);
 
     if (!wasUpdated) {
-      response.status(404).json({ message: 'Akun tidak ditemukan' });
+      response.status(404).json({ message: "Akun tidak ditemukan" });
       return;
     }
 
@@ -604,12 +712,12 @@ authRouter.post('/user/verify-email', async (request, response) => {
     const verifiedUser = await findUserByUsernameOrEmail(user.email);
 
     if (!verifiedUser) {
-      response.status(500).json({ message: 'Gagal memverifikasi email' });
+      response.status(500).json({ message: "Gagal memverifikasi email" });
       return;
     }
 
     response.json({
-      message: 'Email berhasil diverifikasi',
+      message: "Email berhasil diverifikasi",
       token: createUserToken(verifiedUser),
       user: {
         id: verifiedUser.id,
@@ -620,11 +728,11 @@ authRouter.post('/user/verify-email', async (request, response) => {
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal memverifikasi email' });
+    response.status(500).json({ message: "Gagal memverifikasi email" });
   }
 });
 
-authRouter.post('/user/resend-otp', async (request, response) => {
+authRouter.post("/user/resend-otp", async (request, response) => {
   const body = parseBody(emailBodySchema, request, response);
 
   if (!body) {
@@ -635,12 +743,12 @@ authRouter.post('/user/resend-otp', async (request, response) => {
     const user = await findUserByEmail(body.email);
 
     if (!user) {
-      response.status(404).json({ message: 'Akun user tidak ditemukan' });
+      response.status(404).json({ message: "Akun user tidak ditemukan" });
       return;
     }
 
     if (user.emailVerifiedAt) {
-      response.status(409).json({ message: 'Email sudah terverifikasi' });
+      response.status(409).json({ message: "Email sudah terverifikasi" });
       return;
     }
 
@@ -648,15 +756,19 @@ authRouter.post('/user/resend-otp', async (request, response) => {
     const expiresAt = new Date(
       Date.now() + config.verification.otpTtlMinutes * 60_000,
     );
-    const otpWasSaved = await setUserEmailVerificationOtp(user.id, otp, expiresAt);
+    const otpWasSaved = await setUserEmailVerificationOtp(
+      user.id,
+      otp,
+      expiresAt,
+    );
 
     if (!otpWasSaved) {
-      response.status(500).json({ message: 'Gagal menyiapkan OTP verifikasi' });
+      response.status(500).json({ message: "Gagal menyiapkan OTP verifikasi" });
       return;
     }
 
     await enqueueEmail({
-      type: 'verification',
+      type: "verification",
       payload: {
         email: user.email,
         username: user.username,
@@ -665,13 +777,13 @@ authRouter.post('/user/resend-otp', async (request, response) => {
     });
 
     response.json({
-      message: 'OTP verifikasi sedang dikirim ulang',
+      message: "OTP verifikasi sedang dikirim ulang",
       verificationEmail: user.email,
       verificationUrl: buildVerificationUrl(user.email),
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mengirim OTP verifikasi' });
+    response.status(500).json({ message: "Gagal mengirim OTP verifikasi" });
   }
 });
 
@@ -685,4 +797,25 @@ function buildPasswordResetUrl(email: string) {
 
 function generateOtpCode() {
   return String(crypto.randomInt(100000, 1000000));
+}
+
+async function createAvailableGoogleUsername(displayName: string) {
+  const base =
+    displayName
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}_-]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "naki-user";
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const suffix = attempt === 0 ? "" : `-${crypto.randomInt(1000, 9999)}`;
+    const candidate = `${base.slice(0, 80 - suffix.length)}${suffix}`;
+
+    if (!(await findUserByUsername(candidate))) {
+      return candidate;
+    }
+  }
+
+  return `naki-${crypto.randomBytes(8).toString("hex")}`;
 }

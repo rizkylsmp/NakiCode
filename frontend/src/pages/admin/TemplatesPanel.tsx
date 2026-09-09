@@ -109,7 +109,7 @@ export function TemplatesPanel({
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 rounded-lg bg-naki-primary px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+          className="inline-flex h-11 items-center gap-2 rounded-lg bg-naki-secondary px-4 text-sm font-semibold text-white transition hover:bg-blue-600"
           onClick={onStartCreate}
           type="button"
         >

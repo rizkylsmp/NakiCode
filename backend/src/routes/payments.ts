@@ -18,6 +18,7 @@ import {
 } from '../models/payment-webhook-event.model';
 import { parseCurrencyAmount } from '../payments/payment.service';
 import { parseBody } from '../validation';
+import { ensureOrderInvoice, recordPaidOrderTransaction } from '../models/finance.model';
 
 export const paymentsRouter = Router();
 
@@ -123,6 +124,10 @@ paymentsRouter.post('/midtrans/webhook', async (request, response) => {
       const wasUpdated = await markOrderPaidByPaymentReference(body.order_id);
 
       if (wasUpdated) {
+        await Promise.all([
+          ensureOrderInvoice(order.id),
+          recordPaidOrderTransaction(order.id),
+        ]);
         await createNotification({
           userId: order.userId,
           title: 'Pembayaran berhasil',

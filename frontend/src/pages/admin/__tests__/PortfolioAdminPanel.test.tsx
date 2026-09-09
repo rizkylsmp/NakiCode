@@ -54,10 +54,12 @@ describe("PortfolioAdminPanel", () => {
     await user.click(screen.getByRole("button", { name: "Hapus Naki Showcase" }));
 
     expect(
-      screen.getByText('Portofolio "Naki Showcase" akan dihapus secara permanen.', {
+      screen.getByText('Portofolio "Naki Showcase" akan dihapus dari website.', {
         exact: false,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Hapus" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Ya, hapus portofolio" }),
+    ).toBeEnabled();
   });
 });

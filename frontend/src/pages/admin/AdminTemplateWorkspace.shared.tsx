@@ -173,18 +173,24 @@ export const defaultTestimonialFormState: TestimonialFormState = {
   sort_order: 0,
 };
 
-export type OrderStatus = "new" | "contacted" | "deal" | "closed";
+export type OrderStatus = "new" | "contacted" | "quotation" | "awaiting_dp" | "in_progress" | "revision" | "delivered" | "completed" | "cancelled" | "deal" | "closed";
 export type OrderStatusFilter = "all" | OrderStatus;
 export type PaymentStatusFilter =
   | "all"
   | "pending"
   | "waiting_payment"
+  | "partial_paid"
   | "paid"
-  | "failed";
-export type DashboardView = "dashboard" | "design" | "orders" | "portfolio" | "blog" | "testimonials" | "categories" | "coupons";
+  | "failed"
+  | "expired"
+  | "partial_refunded"
+  | "refunded"
+  | "cancelled";
+export type DashboardView = "dashboard" | "design" | "orders" | "finance" | "portfolio" | "blog" | "testimonials" | "categories" | "coupons";
 export type AdminOrderFilters = {
   status: OrderStatusFilter;
   paymentStatus: PaymentStatusFilter;
+  search: string;
 };
 
 export type AuthResponse = {
@@ -209,6 +215,7 @@ export function normalizeCoverIndex(
 export function normalizeAdminSection(section: string): DashboardView {
   return section === "design" ||
     section === "orders" ||
+    section === "finance" ||
     section === "portfolio" ||
     section === "blog" ||
     section === "testimonials" ||
@@ -222,7 +229,7 @@ export function legacyHashToAdminView(hash: string): DashboardView | null {
   const view = hash.replace("#", "");
 
   if (view === "templates") return "design";
-  return view === "design" || view === "orders" || view === "portfolio" || view === "blog" || view === "testimonials" || view === "categories" || view === "coupons"
+  return view === "design" || view === "orders" || view === "finance" || view === "portfolio" || view === "blog" || view === "testimonials" || view === "categories" || view === "coupons"
     ? view
     : null;
 }
@@ -234,6 +241,13 @@ export const orderStatusFilters: Array<{
   { label: "Semua", value: "all" },
   { label: "New", value: "new" },
   { label: "Contacted", value: "contacted" },
+  { label: "Penawaran", value: "quotation" },
+  { label: "Menunggu DP", value: "awaiting_dp" },
+  { label: "Dikerjakan", value: "in_progress" },
+  { label: "Revisi", value: "revision" },
+  { label: "Diserahkan", value: "delivered" },
+  { label: "Selesai", value: "completed" },
+  { label: "Dibatalkan", value: "cancelled" },
   { label: "Deal", value: "deal" },
   { label: "Closed", value: "closed" },
 ];
@@ -244,8 +258,13 @@ export const paymentStatusFilters: Array<{
   { label: "Semua bayar", value: "all" },
   { label: "Belum bayar", value: "pending" },
   { label: "Menunggu", value: "waiting_payment" },
+  { label: "Bayar sebagian", value: "partial_paid" },
   { label: "Paid", value: "paid" },
   { label: "Failed", value: "failed" },
+  { label: "Kedaluwarsa", value: "expired" },
+  { label: "Refund sebagian", value: "partial_refunded" },
+  { label: "Refund", value: "refunded" },
+  { label: "Dibatalkan", value: "cancelled" },
 ];
 export const adminOrdersPageSize = 8;
 export const adminTemplatesPageSize = 8;
@@ -467,7 +486,7 @@ export function TagSelector({
               key={option}
               className={`inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm font-medium transition ${
                 isSelected
-                  ? "bg-naki-primary text-white"
+                  ? "bg-naki-secondary text-white"
                   : "border border-naki-steel bg-white text-naki-smoke hover:border-naki-primary/40"
               }`}
               onClick={() => toggleItem(option)}
@@ -544,7 +563,7 @@ export function TagInput({ label, value, onChange }: TagInputProps) {
           type="text"
         />
         <button
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-naki-secondary px-4 text-sm font-medium text-white transition hover:bg-naki-primary"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-naki-secondary px-4 text-sm font-medium text-white transition hover:bg-blue-600"
           onClick={addDraft}
           type="button"
         >
@@ -700,7 +719,7 @@ export function ImageUploadDropZone({
               </p>
             </div>
           </div>
-          <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:opacity-90">
+          <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-naki-secondary px-4 text-sm font-medium text-white transition hover:bg-blue-600">
             <UploadCloud size={16} />
             {isUploading ? "Proses..." : uploadLabel}
             <input
@@ -1138,7 +1157,7 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
         <label className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition ${
           isUploading
             ? 'cursor-not-allowed bg-naki-smoke'
-            : 'cursor-pointer bg-naki-primary hover:opacity-90'
+            : 'cursor-pointer bg-naki-secondary hover:bg-blue-600'
         }`}>
           {isUploading ? (
             <>

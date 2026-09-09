@@ -5,7 +5,7 @@
 CREATE DATABASE IF NOT EXISTS naki_code;
 USE naki_code;
 
-CREATE TABLE IF NOT EXISTS template_categories (
+CREATE TABLE IF NOT EXISTS categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(80) NOT NULL UNIQUE,
   sort_order INT NOT NULL DEFAULT 0,
@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(80) NOT NULL UNIQUE,
   email VARCHAR(160) NOT NULL UNIQUE,
+  google_sub VARCHAR(255) NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(40) NOT NULL DEFAULT 'user',
   email_verified_at TIMESTAMP NULL,
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS templates (
+CREATE TABLE IF NOT EXISTS designs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(160) NOT NULL,
   slug VARCHAR(180) NOT NULL UNIQUE,
@@ -55,16 +56,17 @@ CREATE TABLE IF NOT EXISTS templates (
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY idx_templates_category_id (category_id),
-  CONSTRAINT fk_templates_category_id FOREIGN KEY (category_id) REFERENCES template_categories(id) ON DELETE RESTRICT ON UPDATE RESTRICT
+  KEY idx_designs_category_id (category_id),
+  KEY idx_designs_visibility (deleted_at, id),
+  CONSTRAINT fk_designs_category_id FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NULL,
-  template_id INT NULL,
-  template_slug VARCHAR(180) NOT NULL,
-  template_title VARCHAR(160) NOT NULL,
+  design_id INT NULL,
+  design_slug VARCHAR(180) NOT NULL,
+  design_title VARCHAR(160) NOT NULL,
   customer_name VARCHAR(120) NOT NULL,
   customer_contact VARCHAR(120) NOT NULL,
   project_type VARCHAR(80) NOT NULL,
@@ -75,15 +77,30 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method VARCHAR(80) NULL,
   payment_reference VARCHAR(120) NULL,
   payment_url VARCHAR(500) NULL,
-  payment_amount INT NULL,
+  payment_amount BIGINT NULL,
+  subtotal_amount BIGINT NULL,
+  discount_amount BIGINT NOT NULL DEFAULT 0,
+  gateway_fee_amount BIGINT NOT NULL DEFAULT 0,
+  net_amount BIGINT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'IDR',
+  quote_amount BIGINT NULL,
+  quote_notes TEXT NULL,
+  quote_sent_at TIMESTAMP NULL,
+  invoice_number VARCHAR(40) NULL UNIQUE,
+  invoice_issued_at TIMESTAMP NULL,
   payment_failure_code VARCHAR(80) NULL,
   payment_failure_reason VARCHAR(255) NULL,
   payment_last_webhook_status VARCHAR(80) NULL,
   payment_last_webhook_at TIMESTAMP NULL,
   paid_at TIMESTAMP NULL,
+  settlement_at TIMESTAMP NULL,
+  refunded_at TIMESTAMP NULL,
+  cancelled_at TIMESTAMP NULL,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_orders_admin_filters (deleted_at, status, payment_status, created_at),
+  KEY idx_orders_finance (payment_status, paid_at)
 );
 
 CREATE TABLE IF NOT EXISTS payment_webhook_events (
@@ -106,23 +123,23 @@ CREATE TABLE IF NOT EXISTS payment_webhook_events (
   KEY idx_payment_webhook_status (processing_status)
 );
 
-CREATE TABLE IF NOT EXISTS template_ratings (
+CREATE TABLE IF NOT EXISTS design_ratings (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NULL,
-  template_id INT NOT NULL,
-  template_slug VARCHAR(180) NOT NULL,
+  design_id INT NOT NULL,
+  design_slug VARCHAR(180) NOT NULL,
   customer_name VARCHAR(120) NOT NULL,
   rating TINYINT NOT NULL,
   message TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS user_template_favorites (
+CREATE TABLE IF NOT EXISTS user_design_favorites (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
-  template_id INT NOT NULL,
+  design_id INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY user_template_unique (user_id, template_id)
+  UNIQUE KEY user_design_unique (user_id, design_id)
 );
 
 CREATE TABLE IF NOT EXISTS notifications (
@@ -147,6 +164,56 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS finance_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  category_type VARCHAR(20) NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_finance_category (name, category_type)
+);
+
+CREATE TABLE IF NOT EXISTS financial_transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NULL,
+  category_id INT NULL,
+  transaction_type VARCHAR(20) NOT NULL,
+  amount BIGINT NOT NULL,
+  gateway_fee BIGINT NOT NULL DEFAULT 0,
+  net_amount BIGINT NOT NULL,
+  payment_method VARCHAR(80) NULL,
+  reference VARCHAR(120) NULL,
+  occurred_at TIMESTAMP NOT NULL,
+  notes TEXT NULL,
+  attachment_url VARCHAR(500) NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'posted',
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_financial_reference (reference),
+  KEY idx_financial_period (status, occurred_at, transaction_type),
+  KEY idx_financial_order (order_id)
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  invoice_number VARCHAR(40) NOT NULL,
+  subtotal_amount BIGINT NOT NULL,
+  discount_amount BIGINT NOT NULL DEFAULT 0,
+  gateway_fee_amount BIGINT NOT NULL DEFAULT 0,
+  total_amount BIGINT NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'IDR',
+  status VARCHAR(20) NOT NULL DEFAULT 'issued',
+  snapshot JSON NOT NULL,
+  issued_at TIMESTAMP NOT NULL,
+  paid_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_invoice_order (order_id),
+  UNIQUE KEY uniq_invoice_number (invoice_number)
+);
+
 CREATE TABLE IF NOT EXISTS projects (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(160) NOT NULL,
@@ -159,7 +226,8 @@ CREATE TABLE IF NOT EXISTS projects (
   cover_index INT NOT NULL DEFAULT 0,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_projects_visibility (deleted_at, id)
 );
 
 CREATE TABLE IF NOT EXISTS blog_posts (
@@ -174,7 +242,8 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   published_at TIMESTAMP NULL,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_blog_posts_visibility (deleted_at, status, published_at)
 );
 
 CREATE TABLE IF NOT EXISTS coupons (
@@ -186,7 +255,12 @@ CREATE TABLE IF NOT EXISTS coupons (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   expires_at TIMESTAMP NULL,
   max_redemptions INT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  image_url VARCHAR(500) NULL,
+  show_banner BOOLEAN NOT NULL DEFAULT FALSE,
+  deleted_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_coupons_availability (deleted_at, active, expires_at),
+  KEY idx_coupons_banner (deleted_at, active, show_banner, expires_at)
 );
 
 CREATE TABLE IF NOT EXISTS coupon_redemptions (
@@ -206,16 +280,18 @@ CREATE TABLE IF NOT EXISTS testimonials (
   customer_role VARCHAR(80) NULL,
   quote TEXT NOT NULL,
   rating TINYINT NOT NULL DEFAULT 5,
-  template_id INT NULL,
+  design_id INT NULL,
   is_featured BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted_at TIMESTAMP NULL,
-  CONSTRAINT fk_testimonials_rating FOREIGN KEY (rating_id) REFERENCES template_ratings(id) ON DELETE SET NULL
+  KEY idx_testimonials_visibility (deleted_at, is_featured, sort_order),
+  KEY idx_testimonials_rating (rating_id, deleted_at),
+  CONSTRAINT fk_testimonials_rating FOREIGN KEY (rating_id) REFERENCES design_ratings(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS template_bundles (
+CREATE TABLE IF NOT EXISTS design_bundles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(180) NOT NULL UNIQUE,
   title VARCHAR(180) NOT NULL,
@@ -226,10 +302,10 @@ CREATE TABLE IF NOT EXISTS template_bundles (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS template_bundle_items (
+CREATE TABLE IF NOT EXISTS design_bundle_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   bundle_id INT NOT NULL,
-  template_id INT NOT NULL,
+  design_id INT NOT NULL,
   sort_order INT NOT NULL DEFAULT 0,
-  UNIQUE KEY bundle_template_unique (bundle_id, template_id)
+  UNIQUE KEY bundle_design_unique (bundle_id, design_id)
 );

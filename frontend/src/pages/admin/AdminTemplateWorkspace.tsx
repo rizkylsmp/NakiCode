@@ -104,8 +104,9 @@ type AdminTemplateWorkspaceProps = {
   blogForm: BlogPostFormState;
   blogStatus: string;
   isSavingBlog: boolean;
+  isDeletingBlog: boolean;
   isBlogModalOpen: boolean;
-  deletingBlogId: number | null;
+  deletingBlogPost: BlogPostItem | null;
   onBlogSearchChange: (value: string) => void;
   onBlogPostsPageChange: (page: number) => void;
   onStartCreateBlog: () => void;
@@ -208,8 +209,9 @@ export function AdminTemplateWorkspace({
   blogForm,
   blogStatus,
   isSavingBlog,
+  isDeletingBlog,
   isBlogModalOpen,
-  deletingBlogId,
+  deletingBlogPost,
   onBlogSearchChange,
   onBlogPostsPageChange,
   onStartCreateBlog,
@@ -319,7 +321,7 @@ export function AdminTemplateWorkspace({
           </Suspense>
         ) : activeAdminView === "blog" ? (
           <Suspense fallback={<PanelLoader />}>
-            <BlogAdminPanel paginatedPosts={paginatedBlogPosts} totalPosts={totalBlogPosts} page={blogPostsPage} totalPages={blogPostsTotalPages} search={blogSearch} selectedId={null} status={blogStatus} isSaving={isSavingBlog} isModalOpen={isBlogModalOpen} deletingId={deletingBlogId} form={blogForm} adminToken={adminToken} onSearchChange={onBlogSearchChange} onPageChange={onBlogPostsPageChange} onStartCreate={onStartCreateBlog} onStartEdit={onStartEditBlog} onDelete={onDeleteBlog} onOpenModal={onOpenBlogModal} onCloseModal={onCloseBlogModal} onFormChange={onUpdateBlogField} onSubmit={onSubmitBlog} onConfirmDelete={onConfirmDeleteBlog} onCancelDelete={onCancelDeleteBlog} />
+            <BlogAdminPanel paginatedPosts={paginatedBlogPosts} totalPosts={totalBlogPosts} page={blogPostsPage} totalPages={blogPostsTotalPages} search={blogSearch} selectedId={null} status={blogStatus} isSaving={isSavingBlog} isDeleting={isDeletingBlog} isModalOpen={isBlogModalOpen} deletingPost={deletingBlogPost} form={blogForm} adminToken={adminToken} onSearchChange={onBlogSearchChange} onPageChange={onBlogPostsPageChange} onStartCreate={onStartCreateBlog} onStartEdit={onStartEditBlog} onDelete={onDeleteBlog} onOpenModal={onOpenBlogModal} onCloseModal={onCloseBlogModal} onFormChange={onUpdateBlogField} onSubmit={onSubmitBlog} onConfirmDelete={onConfirmDeleteBlog} onCancelDelete={onCancelDeleteBlog} />
           </Suspense>
         ) : activeAdminView === "testimonials" ? (
           <Suspense fallback={<PanelLoader />}>

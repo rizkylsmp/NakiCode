@@ -21,7 +21,7 @@ const runtimeMigrations: Migration[] = [
     id: '002_scrub_base64_template_previews',
     async up(connection) {
       const [rows] = await connection.query<RowDataPacket[]>(
-        'SELECT id, preview FROM templates',
+        'SELECT id, preview FROM designs',
       );
 
       for (const row of rows) {
@@ -35,7 +35,7 @@ const runtimeMigrations: Migration[] = [
         }));
 
         if (JSON.stringify(preview) !== JSON.stringify(scrubbedPreview)) {
-          await connection.query('UPDATE templates SET preview = ? WHERE id = ?', [
+          await connection.query('UPDATE designs SET preview = ? WHERE id = ?', [
             JSON.stringify(scrubbedPreview),
             row.id,
           ]);
@@ -47,44 +47,44 @@ const runtimeMigrations: Migration[] = [
     id: '003_template_category_id_fk',
     async up(connection) {
       await connection.query(`
-        UPDATE template_categories AS category
+        UPDATE categories AS category
         SET name = TRIM(category.name)
         WHERE category.name <> TRIM(category.name)
           AND NOT EXISTS (
             SELECT 1
-            FROM (SELECT id, name FROM template_categories) AS existing
+            FROM (SELECT id, name FROM categories) AS existing
             WHERE existing.id <> category.id
               AND existing.name = TRIM(category.name)
           )
       `);
 
-      if (!(await hasColumn(connection, 'templates', 'category_id'))) {
+      if (!(await hasColumn(connection, 'designs', 'category_id'))) {
         await connection.query(
-          `ALTER TABLE ${connection.escapeId('templates')}
+          `ALTER TABLE ${connection.escapeId('designs')}
           ADD COLUMN ${connection.escapeId('category_id')} INT NULL AFTER ${connection.escapeId('category')}`,
         );
       }
 
       await connection.query(`
-        INSERT IGNORE INTO template_categories (name, sort_order)
+        INSERT IGNORE INTO categories (name, sort_order)
         SELECT legacy.category_name, sort_orders.next_sort_order
         FROM (
           SELECT DISTINCT TRIM(category) AS category_name
-          FROM templates
+          FROM designs
           WHERE TRIM(category) <> ''
         ) AS legacy
         CROSS JOIN (
           SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort_order
-          FROM template_categories
+          FROM categories
         ) AS sort_orders
-        LEFT JOIN template_categories AS existing
+        LEFT JOIN categories AS existing
           ON TRIM(existing.name) = legacy.category_name
         WHERE existing.id IS NULL
       `);
 
       await connection.query(`
-        UPDATE templates AS template
-        INNER JOIN template_categories AS category
+        UPDATE designs AS template
+        INNER JOIN categories AS category
           ON TRIM(template.category) = TRIM(category.name)
         SET template.category_id = category.id,
           template.category = category.name
@@ -93,19 +93,19 @@ const runtimeMigrations: Migration[] = [
           OR template.category <> category.name
       `);
 
-      if (!(await hasIndex(connection, 'templates', 'idx_templates_category_id'))) {
+      if (!(await hasIndex(connection, 'designs', 'idx_designs_category_id'))) {
         await connection.query(
-          `ALTER TABLE ${connection.escapeId('templates')}
-          ADD INDEX ${connection.escapeId('idx_templates_category_id')} (${connection.escapeId('category_id')})`,
+          `ALTER TABLE ${connection.escapeId('designs')}
+          ADD INDEX ${connection.escapeId('idx_designs_category_id')} (${connection.escapeId('category_id')})`,
         );
       }
 
-      if (!(await hasForeignKey(connection, 'templates', 'fk_templates_category_id'))) {
+      if (!(await hasForeignKey(connection, 'designs', 'fk_designs_category_id'))) {
         await connection.query(
-          `ALTER TABLE ${connection.escapeId('templates')}
-          ADD CONSTRAINT ${connection.escapeId('fk_templates_category_id')}
+          `ALTER TABLE ${connection.escapeId('designs')}
+          ADD CONSTRAINT ${connection.escapeId('fk_designs_category_id')}
           FOREIGN KEY (${connection.escapeId('category_id')})
-          REFERENCES ${connection.escapeId('template_categories')} (${connection.escapeId('id')})
+          REFERENCES ${connection.escapeId('categories')} (${connection.escapeId('id')})
           ON DELETE RESTRICT ON UPDATE RESTRICT`,
         );
       }
@@ -125,9 +125,9 @@ const runtimeMigrations: Migration[] = [
   {
     id: '005_template_lynk_url',
     async up(connection) {
-      if (!(await hasColumn(connection, 'templates', 'lynk_url'))) {
+      if (!(await hasColumn(connection, 'designs', 'lynk_url'))) {
         await connection.query(
-          `ALTER TABLE ${connection.escapeId('templates')}
+          `ALTER TABLE ${connection.escapeId('designs')}
           ADD COLUMN ${connection.escapeId('lynk_url')} VARCHAR(500) NULL AFTER ${connection.escapeId('demo_url')}`,
         );
       }
@@ -136,9 +136,9 @@ const runtimeMigrations: Migration[] = [
   {
     id: '006_template_source_code',
     async up(connection) {
-      if (!(await hasColumn(connection, 'templates', 'source_code'))) {
+      if (!(await hasColumn(connection, 'designs', 'source_code'))) {
         await connection.query(
-          `ALTER TABLE ${connection.escapeId('templates')}
+          `ALTER TABLE ${connection.escapeId('designs')}
           ADD COLUMN ${connection.escapeId('source_code')} JSON NOT NULL DEFAULT ('[]') AFTER ${connection.escapeId('included_files')}`,
         );
       }
@@ -156,12 +156,12 @@ const runtimeMigrations: Migration[] = [
           customer_role VARCHAR(80) NULL,
           quote TEXT NOT NULL,
           rating TINYINT NOT NULL DEFAULT 5,
-          template_id INT NULL,
+          design_id INT NULL,
           is_featured BOOLEAN NOT NULL DEFAULT TRUE,
           sort_order INT NOT NULL DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          CONSTRAINT fk_testimonials_rating FOREIGN KEY (rating_id) REFERENCES template_ratings(id) ON DELETE SET NULL
+          CONSTRAINT fk_testimonials_rating FOREIGN KEY (rating_id) REFERENCES design_ratings(id) ON DELETE SET NULL
         )
       `);
     },
@@ -173,6 +173,94 @@ const runtimeMigrations: Migration[] = [
         await connection.query(
           `ALTER TABLE ${connection.escapeId('testimonials')}
           ADD COLUMN ${connection.escapeId('deleted_at')} TIMESTAMP NULL AFTER ${connection.escapeId('updated_at')}`,
+        );
+      }
+    },
+  },
+  {
+    id: '010_blog_soft_delete_hardening',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'blog_posts', 'deleted_at'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('blog_posts')}
+          ADD COLUMN ${connection.escapeId('deleted_at')} TIMESTAMP NULL AFTER ${connection.escapeId('updated_at')}`,
+        );
+      }
+
+      if (!(await hasIndex(connection, 'blog_posts', 'idx_blog_posts_visibility'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('blog_posts')}
+          ADD INDEX ${connection.escapeId('idx_blog_posts_visibility')} (${connection.escapeId('deleted_at')}, ${connection.escapeId('status')}, ${connection.escapeId('published_at')})`,
+        );
+      }
+    },
+  },
+  {
+    id: '011_projects_soft_delete_hardening',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'projects', 'deleted_at'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('projects')}
+          ADD COLUMN ${connection.escapeId('deleted_at')} TIMESTAMP NULL AFTER ${connection.escapeId('cover_index')}`,
+        );
+      }
+
+      if (!(await hasIndex(connection, 'projects', 'idx_projects_visibility'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('projects')}
+          ADD INDEX ${connection.escapeId('idx_projects_visibility')} (${connection.escapeId('deleted_at')}, ${connection.escapeId('id')})`,
+        );
+      }
+    },
+  },
+  {
+    id: '012_admin_crud_hardening',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'coupons', 'deleted_at'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('coupons')}
+          ADD COLUMN ${connection.escapeId('deleted_at')} TIMESTAMP NULL AFTER ${connection.escapeId('max_redemptions')}`,
+        );
+      }
+
+      const indexes = [
+        ['designs', 'idx_designs_visibility', ['deleted_at', 'id']],
+        ['coupons', 'idx_coupons_availability', ['deleted_at', 'active', 'expires_at']],
+        ['testimonials', 'idx_testimonials_visibility', ['deleted_at', 'is_featured', 'sort_order']],
+        ['testimonials', 'idx_testimonials_rating', ['rating_id', 'deleted_at']],
+      ] as const;
+
+      for (const [tableName, indexName, columns] of indexes) {
+        if (!(await hasIndex(connection, tableName, indexName))) {
+          await connection.query(
+            `ALTER TABLE ${connection.escapeId(tableName)}
+            ADD INDEX ${connection.escapeId(indexName)} (${columns.map((column) => connection.escapeId(column)).join(', ')})`,
+          );
+        }
+      }
+    },
+  },
+  {
+    id: '013_coupon_banners',
+    async up(connection) {
+      if (!(await hasColumn(connection, 'coupons', 'image_url'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('coupons')}
+          ADD COLUMN ${connection.escapeId('image_url')} VARCHAR(500) NULL AFTER ${connection.escapeId('max_redemptions')}`,
+        );
+      }
+
+      if (!(await hasColumn(connection, 'coupons', 'show_banner'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('coupons')}
+          ADD COLUMN ${connection.escapeId('show_banner')} BOOLEAN NOT NULL DEFAULT FALSE AFTER ${connection.escapeId('image_url')}`,
+        );
+      }
+
+      if (!(await hasIndex(connection, 'coupons', 'idx_coupons_banner'))) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId('coupons')}
+          ADD INDEX ${connection.escapeId('idx_coupons_banner')} (${connection.escapeId('deleted_at')}, ${connection.escapeId('active')}, ${connection.escapeId('show_banner')}, ${connection.escapeId('expires_at')})`,
         );
       }
     },
@@ -240,6 +328,120 @@ const runtimeMigrations: Migration[] = [
           ADD COLUMN ${connection.escapeId('max_redemptions')} INT NULL AFTER ${connection.escapeId('expires_at')}`,
         );
       }
+    },
+  },
+  {
+    id: '014_order_finance_foundation',
+    async up(connection) {
+      await connection.query(
+        `ALTER TABLE ${connection.escapeId('orders')} MODIFY COLUMN ${connection.escapeId('payment_amount')} BIGINT NULL`,
+      );
+      const orderColumns = [
+        ['subtotal_amount', 'BIGINT NULL AFTER payment_amount'],
+        ['discount_amount', 'BIGINT NOT NULL DEFAULT 0 AFTER subtotal_amount'],
+        ['gateway_fee_amount', 'BIGINT NOT NULL DEFAULT 0 AFTER discount_amount'],
+        ['net_amount', 'BIGINT NULL AFTER gateway_fee_amount'],
+        ['currency', "CHAR(3) NOT NULL DEFAULT 'IDR' AFTER net_amount"],
+        ['quote_amount', 'BIGINT NULL AFTER currency'],
+        ['quote_notes', 'TEXT NULL AFTER quote_amount'],
+        ['quote_sent_at', 'TIMESTAMP NULL AFTER quote_notes'],
+        ['invoice_number', 'VARCHAR(40) NULL AFTER quote_sent_at'],
+        ['invoice_issued_at', 'TIMESTAMP NULL AFTER invoice_number'],
+        ['settlement_at', 'TIMESTAMP NULL AFTER paid_at'],
+        ['refunded_at', 'TIMESTAMP NULL AFTER settlement_at'],
+        ['cancelled_at', 'TIMESTAMP NULL AFTER refunded_at'],
+      ] as const;
+
+      for (const [column, definition] of orderColumns) {
+        if (!(await hasColumn(connection, 'orders', column))) {
+          await connection.query(
+            `ALTER TABLE ${connection.escapeId('orders')} ADD COLUMN ${connection.escapeId(column)} ${definition}`,
+          );
+        }
+      }
+
+      const indexes = [
+        ['idx_orders_admin_filters', ['deleted_at', 'status', 'payment_status', 'created_at']],
+        ['idx_orders_finance', ['payment_status', 'paid_at']],
+      ] as const;
+      for (const [name, columns] of indexes) {
+        if (!(await hasIndex(connection, 'orders', name))) {
+          await connection.query(
+            `ALTER TABLE ${connection.escapeId('orders')} ADD INDEX ${connection.escapeId(name)} (${columns.map((column) => connection.escapeId(column)).join(', ')})`,
+          );
+        }
+      }
+
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS finance_categories (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          category_type VARCHAR(20) NOT NULL,
+          active BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uniq_finance_category (name, category_type)
+        )
+      `);
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS financial_transactions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          order_id INT NULL,
+          category_id INT NULL,
+          transaction_type VARCHAR(20) NOT NULL,
+          amount BIGINT NOT NULL,
+          gateway_fee BIGINT NOT NULL DEFAULT 0,
+          net_amount BIGINT NOT NULL,
+          payment_method VARCHAR(80) NULL,
+          reference VARCHAR(120) NULL,
+          occurred_at TIMESTAMP NOT NULL,
+          notes TEXT NULL,
+          attachment_url VARCHAR(500) NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'posted',
+          created_by INT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uniq_financial_reference (reference),
+          KEY idx_financial_period (status, occurred_at, transaction_type),
+          KEY idx_financial_order (order_id)
+        )
+      `);
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS invoices (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          order_id INT NOT NULL,
+          invoice_number VARCHAR(40) NOT NULL,
+          subtotal_amount BIGINT NOT NULL,
+          discount_amount BIGINT NOT NULL DEFAULT 0,
+          gateway_fee_amount BIGINT NOT NULL DEFAULT 0,
+          total_amount BIGINT NOT NULL,
+          currency CHAR(3) NOT NULL DEFAULT 'IDR',
+          status VARCHAR(20) NOT NULL DEFAULT 'issued',
+          snapshot JSON NOT NULL,
+          issued_at TIMESTAMP NOT NULL,
+          paid_at TIMESTAMP NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uniq_invoice_order (order_id),
+          UNIQUE KEY uniq_invoice_number (invoice_number)
+        )
+      `);
+      await connection.query(`
+        INSERT IGNORE INTO finance_categories (name, category_type) VALUES
+          ('Penjualan design', 'income'),
+          ('Jasa pembuatan website', 'income'),
+          ('Operasional', 'expense'),
+          ('Software dan langganan', 'expense'),
+          ('Marketing', 'expense'),
+          ('Lainnya', 'expense')
+      `);
+    },
+  },
+  {
+    id: '015_order_payment_amount_bigint',
+    async up(connection) {
+      await connection.query(
+        `ALTER TABLE ${connection.escapeId('orders')} MODIFY COLUMN ${connection.escapeId('payment_amount')} BIGINT NULL`,
+      );
     },
   },
 ];

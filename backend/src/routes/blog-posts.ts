@@ -31,6 +31,27 @@ const blogBodySchema = z.object({
   status: z.enum(['draft', 'published']).optional(),
 });
 
+function isDuplicateSlugError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'ER_DUP_ENTRY',
+  );
+}
+
+async function createBlogAuditLog(
+  payload: Parameters<typeof createAdminAuditLog>[0],
+) {
+  try {
+    await createAdminAuditLog(payload);
+  } catch (error) {
+    // The content mutation has already succeeded. Keep audit failures observable
+    // without returning a misleading CRUD failure to the admin UI.
+    Sentry.captureException(error);
+  }
+}
+
 blogPostsRouter.get('/', async (_request, response) => {
   const cacheKey = 'blog:published';
   const cached = await getJsonCache<unknown>(cacheKey);
@@ -111,10 +132,21 @@ blogPostsRouter.post('/', requireAdmin, async (request, response) => {
   }
 
   try {
-    const post = await createBlogPost(normalizeBlogPostPayload(body));
+    const payload = normalizeBlogPostPayload(body);
+
+    if (!payload.slug) {
+      response.status(400).json({ message: 'Slug artikel tidak valid' });
+      return;
+    }
+
+    const post = await createBlogPost(payload);
+
+    if (!post) {
+      throw new Error('Artikel tersimpan tetapi gagal dimuat kembali');
+    }
 
     await deleteCacheKeys(['blog:published']);
-    await createAdminAuditLog({
+    await createBlogAuditLog({
       admin,
       action: 'blog.create',
       entityType: 'blog_post',
@@ -124,6 +156,11 @@ blogPostsRouter.post('/', requireAdmin, async (request, response) => {
 
     response.status(201).json({ source: 'mysql', post });
   } catch (error) {
+    if (isDuplicateSlugError(error)) {
+      response.status(409).json({ message: 'Slug artikel sudah digunakan' });
+      return;
+    }
+
     Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal menyimpan artikel' });
   }
@@ -139,15 +176,29 @@ blogPostsRouter.put('/:id', requireAdmin, async (request, response) => {
   }
 
   try {
-    const post = await updateBlogPost(params.id, normalizeBlogPostPayload(body));
+    const payload = normalizeBlogPostPayload(body);
+
+    if (!payload.slug) {
+      response.status(400).json({ message: 'Slug artikel tidak valid' });
+      return;
+    }
+
+    const previousPost = await findBlogPostBySlugOrId(String(params.id), true);
+    const post = await updateBlogPost(params.id, payload);
 
     if (!post) {
       response.status(404).json({ message: 'Artikel tidak ditemukan' });
       return;
     }
 
-    await deleteCacheKeys(['blog:published', `blog:detail:${post.slug}`]);
-    await createAdminAuditLog({
+    await deleteCacheKeys([
+      'blog:published',
+      `blog:detail:${post.slug}`,
+      ...(previousPost && previousPost.slug !== post.slug
+        ? [`blog:detail:${previousPost.slug}`]
+        : []),
+    ]);
+    await createBlogAuditLog({
       admin,
       action: 'blog.update',
       entityType: 'blog_post',
@@ -157,6 +208,11 @@ blogPostsRouter.put('/:id', requireAdmin, async (request, response) => {
 
     response.json({ source: 'mysql', post });
   } catch (error) {
+    if (isDuplicateSlugError(error)) {
+      response.status(409).json({ message: 'Slug artikel sudah digunakan' });
+      return;
+    }
+
     Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengubah artikel' });
   }
@@ -171,6 +227,13 @@ blogPostsRouter.delete('/:id', requireAdmin, async (request, response) => {
   }
 
   try {
+    const post = await findBlogPostBySlugOrId(String(params.id), true);
+
+    if (!post) {
+      response.status(404).json({ message: 'Artikel tidak ditemukan' });
+      return;
+    }
+
     const wasDeleted = await deleteBlogPost(params.id);
 
     if (!wasDeleted) {
@@ -178,12 +241,13 @@ blogPostsRouter.delete('/:id', requireAdmin, async (request, response) => {
       return;
     }
 
-    await deleteCacheKeys(['blog:published']);
-    await createAdminAuditLog({
+    await deleteCacheKeys(['blog:published', `blog:detail:${post.slug}`]);
+    await createBlogAuditLog({
       admin,
       action: 'blog.soft_delete',
       entityType: 'blog_post',
       entityId: params.id,
+      metadata: { title: post.title, slug: post.slug },
     });
 
     response.status(204).send();

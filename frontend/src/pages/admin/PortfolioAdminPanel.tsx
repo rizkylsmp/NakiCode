@@ -1,8 +1,8 @@
-import { Edit3, ExternalLink, Globe2, Plus, Trash2, X } from "lucide-react";
+import { Edit3, ExternalLink, Globe2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { type PortfolioItem } from "../../domain/content";
 import { normalizeCoverIndex, type PortfolioFormState } from "./AdminTemplateWorkspace.shared";
+import { DeletePortfolioDialog } from "./DeletePortfolioDialog";
 import { PortfolioFormModal } from "./PortfolioFormModal";
 
 type PortfolioAdminPanelProps = {
@@ -110,55 +110,12 @@ export function PortfolioAdminPanel({
         onUpdateField={onUpdateField}
       />
 
-      {deleteCandidateProject ? createPortal(
-        <div
-          className="fixed inset-0 z-9999 flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full my-10 mx-4 max-w-md rounded-2xl bg-white shadow-sm">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white/95 p-5 backdrop-blur">
-              <h2 className="text-2xl font-bold leading-tight text-naki-primary">
-                Hapus Portofolio?
-              </h2>
-              <button
-                className="grid size-10 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary transition hover:border-naki-smoke"
-                disabled={deletingProjectId !== null}
-                onClick={onCancelDelete}
-                type="button"
-                aria-label="Tutup dialog"
-              >
-                <X size={17} />
-              </button>
-            </div>
-            <div className="p-5">
-              <p className="text-sm text-naki-smoke leading-relaxed">
-                Portofolio "{deleteCandidateProject.title}" akan dihapus secara permanen.
-                Tindakan ini tidak bisa dibatalkan.
-              </p>
-              <div className="mt-5 flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:justify-end">
-                <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
-                  disabled={deletingProjectId !== null}
-                  onClick={onCancelDelete}
-                  type="button"
-                >
-                  Batal
-                </button>
-                <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={deletingProjectId !== null}
-                  onClick={onConfirmDelete}
-                  type="button"
-                >
-                  {deletingProjectId !== null ? "Menghapus..." : "Hapus"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      ) : null}
+      <DeletePortfolioDialog
+        portfolio={deleteCandidateProject}
+        isDeleting={deletingProjectId !== null}
+        onClose={onCancelDelete}
+        onConfirm={onConfirmDelete}
+      />
     </div>
   );
 }

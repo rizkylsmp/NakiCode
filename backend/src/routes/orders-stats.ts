@@ -20,13 +20,18 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
     const [rows] = await pool.query(`
       SELECT
         COUNT(*) AS totalOrders,
-        SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) AS paidOrders,
-        COALESCE(SUM(CASE WHEN payment_status = 'paid' AND payment_amount IS NOT NULL THEN payment_amount ELSE 0 END), 0) AS totalRevenue,
+        SUM(CASE WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 1 ELSE 0 END) AS paidOrders,
+        COALESCE((SELECT SUM(CASE
+          WHEN transaction_type = 'income' THEN net_amount
+          WHEN transaction_type = 'refund' THEN -amount
+          ELSE 0 END)
+          FROM financial_transactions WHERE status = 'posted'), 0) AS totalRevenue,
         CASE
-          WHEN SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) = 0 THEN 0
+          WHEN SUM(CASE WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 1 ELSE 0 END) = 0 THEN 0
           ELSE COALESCE(
-            SUM(CASE WHEN payment_status = 'paid' AND payment_amount IS NOT NULL THEN payment_amount ELSE 0 END)
-            / SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END),
+            (SELECT SUM(CASE WHEN transaction_type = 'income' THEN net_amount WHEN transaction_type = 'refund' THEN -amount ELSE 0 END)
+             FROM financial_transactions WHERE status = 'posted')
+            / SUM(CASE WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 1 ELSE 0 END),
             0
           )
         END AS avgOrderValue,

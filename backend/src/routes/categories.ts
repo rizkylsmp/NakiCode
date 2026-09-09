@@ -63,7 +63,7 @@ categoriesRouter.post("/", requireAdmin, async (request, response) => {
     await createAdminAuditLog({
       admin,
       action: result.wasCreated ? "category.create" : "category.create_exists",
-      entityType: "template_category",
+      entityType: "category",
       entityId: null,
       metadata: {
         name: result.category,
@@ -114,7 +114,7 @@ categoriesRouter.put("/:id", requireAdmin, async (request, response) => {
     await createAdminAuditLog({
       admin,
       action: "category.update",
-      entityType: "template_category",
+      entityType: "category",
       entityId: params.id,
       metadata: body,
     });
@@ -155,7 +155,7 @@ categoriesRouter.delete("/:id", requireAdmin, async (request, response) => {
     await createAdminAuditLog({
       admin,
       action: "category.delete",
-      entityType: "template_category",
+      entityType: "category",
       entityId: params.id,
       metadata: {},
     });

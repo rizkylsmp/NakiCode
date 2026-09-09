@@ -2,22 +2,22 @@ import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { pool } from '../db';
 
 export async function findFavoriteTemplateIds(userId: number) {
-  const [rows] = await pool.query<Array<RowDataPacket & { template_id: number }>>(
-    `SELECT favorites.template_id
-    FROM user_template_favorites AS favorites
-    INNER JOIN templates ON templates.id = favorites.template_id
+  const [rows] = await pool.query<Array<RowDataPacket & { design_id: number }>>(
+    `SELECT favorites.design_id
+    FROM user_design_favorites AS favorites
+    INNER JOIN designs ON designs.id = favorites.design_id
     WHERE favorites.user_id = ?
-      AND templates.deleted_at IS NULL
+      AND designs.deleted_at IS NULL
     ORDER BY favorites.id DESC`,
     [userId],
   );
 
-  return rows.map((row) => row.template_id);
+  return rows.map((row) => row.design_id);
 }
 
 export async function addFavoriteTemplate(userId: number, templateId: number) {
   await pool.query<ResultSetHeader>(
-    `INSERT IGNORE INTO user_template_favorites (user_id, template_id)
+    `INSERT IGNORE INTO user_design_favorites (user_id, design_id)
     VALUES (?, ?)`,
     [userId, templateId],
   );
@@ -25,8 +25,8 @@ export async function addFavoriteTemplate(userId: number, templateId: number) {
 
 export async function removeFavoriteTemplate(userId: number, templateId: number) {
   const [result] = await pool.query<ResultSetHeader>(
-    `DELETE FROM user_template_favorites
-    WHERE user_id = ? AND template_id = ?`,
+    `DELETE FROM user_design_favorites
+    WHERE user_id = ? AND design_id = ?`,
     [userId, templateId],
   );
 

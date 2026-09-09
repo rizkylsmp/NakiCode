@@ -10,6 +10,8 @@ type CouponRow = RowDataPacket & {
   active: number;
   expires_at?: string | null;
   max_redemptions?: number | null;
+  image_url?: string | null;
+  show_banner?: number;
   created_at: string;
   redemption_count?: number;
 };
@@ -22,6 +24,8 @@ export type CouponInput = {
   active: boolean;
   expiresAt: string | null;
   maxRedemptions: number | null;
+  imageUrl: string | null;
+  showBanner: boolean;
 };
 
 type BundleRow = RowDataPacket & {
@@ -40,6 +44,15 @@ export type CouponValidation = {
   discountValue: number;
   discountAmount: number;
   finalAmount: number;
+};
+
+export type CouponBanner = {
+  id: number;
+  code: string;
+  description: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  imageUrl: string;
 };
 
 export type TemplateBundleItem = {
@@ -64,7 +77,8 @@ export async function validateCoupon(code: string, amount: number) {
       COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
     LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
-    WHERE code = ?
+    WHERE coupons.code = ?
+      AND coupons.deleted_at IS NULL
       AND active = TRUE
       AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
     GROUP BY coupons.id
@@ -102,7 +116,9 @@ export async function recordCouponRedemption(payload: {
   discountAmount: number;
 }) {
   const [rows] = await pool.query<Array<RowDataPacket & { id: number }>>(
-    `SELECT id FROM coupons WHERE code = ? LIMIT 1`,
+    `SELECT id FROM coupons
+     WHERE code = ? AND deleted_at IS NULL AND active = TRUE
+     LIMIT 1`,
     [payload.couponCode.toUpperCase()],
   );
   const couponId = rows[0]?.id;
@@ -134,6 +150,8 @@ function mapCoupon(row: CouponRow) {
     active: Boolean(row.active),
     expiresAt: row.expires_at ?? null,
     maxRedemptions: row.max_redemptions ?? null,
+    imageUrl: row.image_url ?? null,
+    showBanner: Boolean(row.show_banner),
     createdAt: row.created_at,
     redemptionCount: Number(row.redemption_count ?? 0),
   };
@@ -143,20 +161,54 @@ export async function findCoupons() {
   const [rows] = await pool.query<CouponRow[]>(
     `SELECT coupons.id, coupons.code, coupons.description,
       coupons.discount_type, coupons.discount_value, coupons.active,
-      coupons.expires_at, coupons.max_redemptions, coupons.created_at,
+      coupons.expires_at, coupons.max_redemptions, coupons.image_url,
+      coupons.show_banner, coupons.created_at,
       COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
     LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
+    WHERE coupons.deleted_at IS NULL
     GROUP BY coupons.id
     ORDER BY coupons.created_at DESC`,
   );
   return rows.map(mapCoupon);
 }
 
+export async function findActiveCouponBanners(): Promise<CouponBanner[]> {
+  const [rows] = await pool.query<CouponRow[]>(
+    `SELECT coupons.id, coupons.code, coupons.description,
+      coupons.discount_type, coupons.discount_value, coupons.image_url,
+      coupons.show_banner, coupons.active, coupons.expires_at,
+      coupons.max_redemptions, coupons.created_at,
+      COUNT(coupon_redemptions.id) AS redemption_count
+    FROM coupons
+    LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
+    WHERE coupons.deleted_at IS NULL
+      AND coupons.active = TRUE
+      AND coupons.show_banner = TRUE
+      AND coupons.image_url IS NOT NULL
+      AND coupons.image_url <> ''
+      AND (coupons.expires_at IS NULL OR coupons.expires_at > CURRENT_TIMESTAMP)
+    GROUP BY coupons.id
+    HAVING coupons.max_redemptions IS NULL
+      OR COUNT(coupon_redemptions.id) < coupons.max_redemptions
+    ORDER BY coupons.created_at DESC
+    LIMIT 10`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    code: row.code,
+    description: row.description,
+    discountType: row.discount_type,
+    discountValue: Number(row.discount_value),
+    imageUrl: row.image_url ?? '',
+  }));
+}
+
 export async function createCoupon(input: CouponInput) {
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO coupons (code, description, discount_type, discount_value, active, expires_at, max_redemptions)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO coupons (code, description, discount_type, discount_value, active, expires_at, max_redemptions, image_url, show_banner)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.code.toUpperCase(),
       input.description,
@@ -165,6 +217,8 @@ export async function createCoupon(input: CouponInput) {
       input.active,
       input.expiresAt,
       input.maxRedemptions,
+      input.imageUrl,
+      input.showBanner,
     ],
   );
   return result.insertId;
@@ -173,7 +227,9 @@ export async function createCoupon(input: CouponInput) {
 export async function updateCoupon(id: number, input: CouponInput) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE coupons SET code = ?, description = ?, discount_type = ?,
-      discount_value = ?, active = ?, expires_at = ?, max_redemptions = ? WHERE id = ?`,
+      discount_value = ?, active = ?, expires_at = ?, max_redemptions = ?,
+      image_url = ?, show_banner = ?
+      WHERE id = ? AND deleted_at IS NULL`,
     [
       input.code.toUpperCase(),
       input.description,
@@ -182,6 +238,8 @@ export async function updateCoupon(id: number, input: CouponInput) {
       input.active,
       input.expiresAt,
       input.maxRedemptions,
+      input.imageUrl,
+      input.showBanner,
       id,
     ],
   );
@@ -192,12 +250,12 @@ export async function deleteCoupon(id: number) {
   const [usage] = await pool.query<Array<RowDataPacket & { total: number }>>(
     'SELECT COUNT(*) AS total FROM coupon_redemptions WHERE coupon_id = ?', [id],
   );
-  if (Number(usage[0]?.total ?? 0) > 0) {
-    const [result] = await pool.query<ResultSetHeader>('UPDATE coupons SET active = FALSE WHERE id = ?', [id]);
-    return { found: result.affectedRows > 0, archived: true };
-  }
-  const [result] = await pool.query<ResultSetHeader>('DELETE FROM coupons WHERE id = ?', [id]);
-  return { found: result.affectedRows > 0, archived: false };
+  const archived = Number(usage[0]?.total ?? 0) > 0;
+  const [result] = await pool.query<ResultSetHeader>(
+    'UPDATE coupons SET active = FALSE, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
+    [id],
+  );
+  return { found: result.affectedRows > 0, archived };
 }
 
 export async function findActiveTemplateBundles() {
@@ -207,9 +265,9 @@ export async function findActiveTemplateBundles() {
       bundles.title,
       bundles.description,
       bundles.price,
-      COUNT(items.template_id) AS template_count
-    FROM template_bundles AS bundles
-    LEFT JOIN template_bundle_items AS items ON items.bundle_id = bundles.id
+      COUNT(items.design_id) AS template_count
+    FROM design_bundles AS bundles
+    LEFT JOIN design_bundle_items AS items ON items.bundle_id = bundles.id
     WHERE bundles.active = TRUE
     GROUP BY bundles.id
     ORDER BY bundles.id DESC

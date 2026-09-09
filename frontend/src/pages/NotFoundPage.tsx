@@ -1,4 +1,5 @@
 import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Header } from "../components/layout/Header";
 import { Footer } from "../components/layout/Footer";
@@ -9,6 +10,10 @@ export function NotFoundPage() {
 
   return (
     <main className="naki-frosted-grid min-h-screen text-naki-primary">
+      <Helmet>
+        <title>Halaman Tidak Ditemukan - Naki Code</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Header />
       <section className="grid min-h-[76vh] place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
         <div className="w-full max-w-md rounded-xl border border-naki-steel bg-naki-frost p-6 text-center shadow-naki-soft">

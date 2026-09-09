@@ -10,9 +10,11 @@
  *   npm run backup:db -- --retention 7  (keep 7 days)
  */
 
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { gzipSync } from 'zlib';
+import mysql, { type RowDataPacket } from 'mysql2/promise';
 import { config } from '../config';
 
 // Configuration
@@ -89,13 +91,11 @@ async function createBackup(backupPath: string, compress: boolean, verbose: bool
     throw new Error('Invalid database configuration');
   }
 
-  // Build mysqldump command
-  const mysqldumpCmd = [
-    'mysqldump',
+  const mysqldumpBinary = findMysqldumpBinary();
+  const mysqldumpArgs = [
     `--host=${host}`,
     `--port=${port}`,
     `--user=${user}`,
-    `--password=${password}`,
     '--single-transaction',
     '--routines',
     '--triggers',
@@ -104,19 +104,62 @@ async function createBackup(backupPath: string, compress: boolean, verbose: bool
   ].join(' ');
 
   try {
-    if (compress) {
-      // Pipe mysqldump output through gzip
-      const cmd = `${mysqldumpCmd} | gzip > "${backupPath}"`;
-      execSync(cmd, { stdio: 'pipe', shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/sh' });
-    } else {
-      // Direct output to file
-      const cmd = `${mysqldumpCmd} > "${backupPath}"`;
-      execSync(cmd, { stdio: 'pipe', shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/sh' });
-    }
+    const result = spawnSync(mysqldumpBinary, mysqldumpArgs.split(' '), {
+      encoding: null,
+      env: { ...process.env, MYSQL_PWD: password },
+      maxBuffer: 256 * 1024 * 1024,
+    });
+
+    const dump = result.error || result.status !== 0
+      ? await createPortableSqlDump()
+      : result.stdout;
+
+    fs.writeFileSync(backupPath, compress ? gzipSync(dump) : dump);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`mysqldump failed: ${message}`);
   }
+}
+
+async function createPortableSqlDump() {
+  const connection = await mysql.createConnection(config.mysql);
+
+  try {
+    const [tableRows] = await connection.query<RowDataPacket[]>('SHOW FULL TABLES WHERE Table_type = \'BASE TABLE\'');
+    const tableNames = tableRows.map((row) => String(Object.values(row)[0]));
+    const statements = ['SET FOREIGN_KEY_CHECKS=0;'];
+
+    for (const tableName of tableNames) {
+      const [createRows] = await connection.query<RowDataPacket[]>(`SHOW CREATE TABLE ${connection.escapeId(tableName)}`);
+      const createStatement = String(createRows[0]?.['Create Table'] ?? '');
+      statements.push(`DROP TABLE IF EXISTS ${connection.escapeId(tableName)};`, `${createStatement};`);
+
+      const [rows] = await connection.query<RowDataPacket[]>(`SELECT * FROM ${connection.escapeId(tableName)}`);
+      for (const row of rows) {
+        const columns = Object.keys(row).map((column) => connection.escapeId(column)).join(', ');
+        const values = Object.values(row).map((value) => connection.escape(value)).join(', ');
+        statements.push(`INSERT INTO ${connection.escapeId(tableName)} (${columns}) VALUES (${values});`);
+      }
+    }
+
+    statements.push('SET FOREIGN_KEY_CHECKS=1;');
+    return Buffer.from(`${statements.join('\n\n')}\n`, 'utf8');
+  } finally {
+    await connection.end();
+  }
+}
+
+function findMysqldumpBinary() {
+  const candidates = process.platform === 'win32'
+    ? [
+        'mysqldump.exe',
+        'D:\\PROGRAMS\\xampp\\mysql\\bin\\mysqldump.exe',
+        'D:\\PROGRAMS\\xampplite\\mysql\\bin\\mysqldump.exe',
+      ]
+    : ['mysqldump'];
+
+  return candidates.find((candidate) => path.isAbsolute(candidate) && fs.existsSync(candidate))
+    ?? candidates[0];
 }
 
 /**

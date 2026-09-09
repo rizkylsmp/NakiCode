@@ -319,7 +319,7 @@ export function TemplateFormModal({
                   onClick={() => setActiveTab(tab.key)}
                   className={`grid size-10 place-items-center rounded-lg transition ${
                     isActive
-                      ? "bg-naki-primary text-white shadow-sm"
+                      ? "bg-naki-secondary text-white shadow-sm"
                       : "text-naki-smoke hover:bg-naki-frost hover:text-naki-primary"
                   }`}
                   title={tab.label}
@@ -369,7 +369,7 @@ export function TemplateFormModal({
                     onClick={() => setActiveTab(tab.key)}
                     className={`grid size-9 place-items-center rounded-lg transition ${
                       isActive
-                        ? "bg-naki-primary text-white"
+                        ? "bg-naki-secondary text-white"
                         : "text-naki-smoke hover:bg-naki-frost"
                     }`}
                     title={tab.label}
@@ -389,7 +389,7 @@ export function TemplateFormModal({
                 Batal
               </button>
               <button
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-naki-smoke"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-naki-smoke"
                 disabled={isSaving}
                 type="submit"
               >

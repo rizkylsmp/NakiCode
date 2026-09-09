@@ -14,7 +14,6 @@ async function main() {
   const passwordHash = await hashPassword(samplePassword);
 
   await seedUsers(passwordHash);
-  await seedLegacyAdmins(passwordHash);
   await seedCategories();
   await seedTemplates();
   await seedOrders();
@@ -32,13 +31,12 @@ async function main() {
 
   const counts = await getTableCounts([
     'users',
-    'admins',
-    'template_categories',
-    'templates',
+    'categories',
+    'designs',
     'orders',
     'payment_webhook_events',
-    'template_ratings',
-    'user_template_favorites',
+    'design_ratings',
+    'user_design_favorites',
     'notifications',
     'admin_audit_logs',
     'projects',
@@ -46,8 +44,8 @@ async function main() {
     'coupons',
     'coupon_redemptions',
     'testimonials',
-    'template_bundles',
-    'template_bundle_items',
+    'design_bundles',
+    'design_bundle_items',
   ]);
 
   console.log('Sample database seed completed.');
@@ -85,22 +83,9 @@ async function seedUsers(passwordHash: string) {
   );
 }
 
-async function seedLegacyAdmins(passwordHash: string) {
-  if (!(await tableExists('admins'))) return;
-
-  await pool.query(
-    `INSERT INTO admins (username, password_hash, role)
-    VALUES (?, ?, 'admin')
-    ON DUPLICATE KEY UPDATE
-      password_hash = VALUES(password_hash),
-      role = VALUES(role)`,
-    ['legacy_admin_sample', passwordHash],
-  );
-}
-
 async function seedCategories() {
   await pool.query(
-    `INSERT INTO template_categories (name, sort_order) VALUES
+    `INSERT INTO categories (name, sort_order) VALUES
       ('Portfolio', 1),
       ('E-commerce', 2),
       ('Top up games', 3),
@@ -149,7 +134,7 @@ async function seedTemplates() {
 
   for (const template of templates) {
     await pool.query(
-      `INSERT INTO templates (
+      `INSERT INTO designs (
         title,
         slug,
         category,
@@ -235,9 +220,9 @@ async function seedOrders() {
   await pool.query(
     `INSERT INTO orders (
       user_id,
-      template_id,
-      template_slug,
-      template_title,
+      design_id,
+      design_slug,
+      design_title,
       customer_name,
       customer_contact,
       project_type,
@@ -299,18 +284,18 @@ async function seedRatings() {
   for (const row of rows) {
     if (!row.template) continue;
     await pool.query(
-      `INSERT INTO template_ratings (
+      `INSERT INTO design_ratings (
         user_id,
-        template_id,
-        template_slug,
+        design_id,
+        design_slug,
         customer_name,
         rating,
         message
       )
       SELECT ?, ?, ?, ?, ?, ?
       WHERE NOT EXISTS (
-        SELECT 1 FROM template_ratings
-        WHERE template_slug = ? AND customer_name = ?
+        SELECT 1 FROM design_ratings
+        WHERE design_slug = ? AND customer_name = ?
       )`,
       [
         row.userId,
@@ -334,7 +319,7 @@ async function seedFavorites() {
   if (!buyer || !portfolio || !store) return;
 
   await pool.query(
-    `INSERT IGNORE INTO user_template_favorites (user_id, template_id)
+    `INSERT IGNORE INTO user_design_favorites (user_id, design_id)
     VALUES (?, ?), (?, ?)`,
     [buyer.id, portfolio.id, buyer.id, store.id],
   );
@@ -493,7 +478,7 @@ async function seedBundles() {
   if (!portfolio || !store) return;
 
   await pool.query(
-    `INSERT INTO template_bundles (
+    `INSERT INTO design_bundles (
       slug,
       title,
       description,
@@ -512,7 +497,7 @@ async function seedBundles() {
   if (!bundle) return;
 
   await pool.query(
-    `INSERT IGNORE INTO template_bundle_items (bundle_id, template_id, sort_order)
+    `INSERT IGNORE INTO design_bundle_items (bundle_id, design_id, sort_order)
     VALUES (?, ?, 1), (?, ?, 2)`,
     [bundle.id, portfolio.id, bundle.id, store.id],
   );
@@ -520,8 +505,8 @@ async function seedBundles() {
 
 async function seedTestimonials() {
   const [ratings] = await pool.query<Row[]>(
-    `SELECT id, customer_name, rating, message, template_id
-    FROM template_ratings
+    `SELECT id, customer_name, rating, message, design_id
+    FROM design_ratings
     ORDER BY id ASC
     LIMIT 2`,
   );
@@ -535,7 +520,7 @@ async function seedTestimonials() {
         customer_role,
         quote,
         rating,
-        template_id,
+        design_id,
         is_featured,
         sort_order
       )
@@ -550,7 +535,7 @@ async function seedTestimonials() {
         index === 0 ? 'Founder sample brand' : 'Owner sample store',
         rating.message ?? 'Sample testimonial dari review design.',
         rating.rating,
-        rating.template_id,
+        rating.design_id,
         index + 1,
         rating.id,
       ],
@@ -680,7 +665,7 @@ async function tableExists(tableName: string) {
 
 async function getCategoryIds() {
   const [rows] = await pool.query<Row[]>(
-    'SELECT id, name FROM template_categories',
+    'SELECT id, name FROM categories',
   );
 
   return new Map(rows.map((row) => [String(row.name), Number(row.id)]));
@@ -697,7 +682,7 @@ async function getUser(username: string) {
 
 async function getTemplates() {
   const [rows] = await pool.query<Row[]>(
-    'SELECT id, slug, title, price FROM templates WHERE deleted_at IS NULL',
+    'SELECT id, slug, title, price FROM designs WHERE deleted_at IS NULL',
   );
 
   return new Map(
@@ -738,7 +723,7 @@ async function getCoupon(code: string) {
 
 async function getBundle(slug: string) {
   const [rows] = await pool.query<Row[]>(
-    'SELECT id, slug FROM template_bundles WHERE slug = ? LIMIT 1',
+    'SELECT id, slug FROM design_bundles WHERE slug = ? LIMIT 1',
     [slug],
   );
 

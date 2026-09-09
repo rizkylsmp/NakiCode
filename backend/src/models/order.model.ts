@@ -4,9 +4,9 @@ import { pool } from '../db';
 type OrderRow = RowDataPacket & {
   id: number;
   user_id?: number | null;
-  template_id?: number | null;
-  template_slug: string;
-  template_title: string;
+  design_id?: number | null;
+  design_slug: string;
+  design_title: string;
   customer_name: string;
   customer_contact: string;
   project_type: string;
@@ -18,11 +18,24 @@ type OrderRow = RowDataPacket & {
   payment_reference?: string | null;
   payment_url?: string | null;
   payment_amount?: number | null;
+  subtotal_amount?: number | null;
+  discount_amount?: number;
+  gateway_fee_amount?: number;
+  net_amount?: number | null;
+  currency?: string;
+  quote_amount?: number | null;
+  quote_notes?: string | null;
+  quote_sent_at?: string | null;
+  invoice_number?: string | null;
+  invoice_issued_at?: string | null;
   payment_failure_code?: string | null;
   payment_failure_reason?: string | null;
   payment_last_webhook_status?: string | null;
   payment_last_webhook_at?: string | null;
   paid_at?: string | null;
+  settlement_at?: string | null;
+  refunded_at?: string | null;
+  cancelled_at?: string | null;
   created_at?: string;
   template_price?: string | null;
   template_lynk_url?: string | null;
@@ -49,11 +62,24 @@ export type OrderItem = {
   paymentReference: string | null;
   paymentUrl: string | null;
   paymentAmount: number | null;
+  subtotalAmount: number | null;
+  discountAmount: number;
+  gatewayFeeAmount: number;
+  netAmount: number | null;
+  currency: string;
+  quoteAmount: number | null;
+  quoteNotes: string | null;
+  quoteSentAt: string | null;
+  invoiceNumber: string | null;
+  invoiceIssuedAt: string | null;
   paymentFailureCode: string | null;
   paymentFailureReason: string | null;
   paymentLastWebhookStatus: string | null;
   paymentLastWebhookAt: string | null;
   paidAt: string | null;
+  settlementAt: string | null;
+  refundedAt: string | null;
+  cancelledAt: string | null;
   templatePrice: string | null;
   templateLynkUrl: string | null;
   deliveryStatus: 'locked' | 'available';
@@ -73,19 +99,19 @@ export type OrdersPageResult = {
   totalPages: number;
 };
 
-export type AdminOrderStatusFilter = 'new' | 'contacted' | 'deal' | 'closed';
-export type AdminPaymentStatusFilter = 'pending' | 'waiting_payment' | 'paid' | 'failed';
+export type AdminOrderStatusFilter = 'new' | 'contacted' | 'quotation' | 'awaiting_dp' | 'in_progress' | 'revision' | 'delivered' | 'completed' | 'cancelled' | 'deal' | 'closed';
+export type AdminPaymentStatusFilter = 'pending' | 'waiting_payment' | 'partial_paid' | 'paid' | 'failed' | 'expired' | 'partial_refunded' | 'refunded' | 'cancelled';
 export type UserOrderPaymentFilter = 'paid' | 'waiting_payment' | 'unpaid';
 
-export const allowedOrderStatuses = new Set(['new', 'contacted', 'deal', 'closed']);
-export const successfulPaymentStatuses = new Set(['paid']);
+export const allowedOrderStatuses = new Set(['new', 'contacted', 'quotation', 'awaiting_dp', 'in_progress', 'revision', 'delivered', 'completed', 'cancelled', 'deal', 'closed']);
+export const successfulPaymentStatuses = new Set(['paid', 'partial_refunded']);
 
 const orderSelect = `SELECT
   orders.id,
   orders.user_id,
-  orders.template_id,
-  orders.template_slug,
-  orders.template_title,
+  orders.design_id,
+  orders.design_slug,
+  orders.design_title,
   orders.customer_name,
   orders.customer_contact,
   orders.project_type,
@@ -97,20 +123,33 @@ const orderSelect = `SELECT
   orders.payment_reference,
   orders.payment_url,
   orders.payment_amount,
+  orders.subtotal_amount,
+  orders.discount_amount,
+  orders.gateway_fee_amount,
+  orders.net_amount,
+  orders.currency,
+  orders.quote_amount,
+  orders.quote_notes,
+  orders.quote_sent_at,
+  orders.invoice_number,
+  orders.invoice_issued_at,
   orders.payment_failure_code,
   orders.payment_failure_reason,
   orders.payment_last_webhook_status,
   orders.payment_last_webhook_at,
   orders.paid_at,
+  orders.settlement_at,
+  orders.refunded_at,
+  orders.cancelled_at,
   orders.created_at,
-  templates.price AS template_price,
-  templates.lynk_url AS template_lynk_url,
-  templates.included_files,
-  templates.license,
-  templates.support,
-  templates.demo_url
+  designs.price AS template_price,
+  designs.lynk_url AS template_lynk_url,
+  designs.included_files,
+  designs.license,
+  designs.support,
+  designs.demo_url
 FROM orders
-LEFT JOIN templates ON templates.id = orders.template_id`;
+LEFT JOIN designs ON designs.id = orders.design_id`;
 
 export async function findOrdersPage(
   page = 1,
@@ -118,6 +157,7 @@ export async function findOrdersPage(
   filters: {
     status?: AdminOrderStatusFilter;
     paymentStatus?: AdminPaymentStatusFilter;
+    search?: string;
   } = {},
 ) {
   const conditions = ['orders.deleted_at IS NULL'];
@@ -131,6 +171,13 @@ export async function findOrdersPage(
   if (filters.paymentStatus) {
     conditions.push('orders.payment_status = ?');
     params.push(filters.paymentStatus);
+  }
+
+  if (filters.search) {
+    conditions.push(`(CAST(orders.id AS CHAR) LIKE ? OR orders.customer_name LIKE ? OR
+      orders.customer_contact LIKE ? OR orders.design_title LIKE ? OR orders.project_type LIKE ?)`);
+    const term = `%${filters.search}%`;
+    params.push(term, term, term, term, term);
   }
 
   return findOrdersPageInternal({
@@ -178,9 +225,9 @@ export async function createOrder(payload: OrderPayload) {
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO orders (
       user_id,
-      template_id,
-      template_slug,
-      template_title,
+      design_id,
+      design_slug,
+      design_title,
       customer_name,
       customer_contact,
       project_type,
@@ -244,6 +291,27 @@ export async function updateOrderStatus(id: number, status: string) {
   return result.affectedRows > 0;
 }
 
+export async function updateOrdersStatus(ids: number[], status: string) {
+  if (ids.length === 0) return 0;
+  const placeholders = ids.map(() => '?').join(', ');
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE orders SET status = ? WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+    [status, ...ids],
+  );
+  return result.affectedRows;
+}
+
+export async function setOrderQuote(id: number, amount: number, notes: string | null) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE orders SET quote_amount = ?, quote_notes = ?, quote_sent_at = CURRENT_TIMESTAMP,
+      subtotal_amount = ?, discount_amount = 0, payment_amount = ?, net_amount = ?,
+      status = CASE WHEN status IN ('new', 'contacted') THEN 'quotation' ELSE status END
+     WHERE id = ? AND payment_status NOT IN ('paid', 'partial_refunded', 'refunded') AND deleted_at IS NULL`,
+    [amount, notes, amount, amount, amount, id],
+  );
+  return result.affectedRows > 0;
+}
+
 export async function findOrderById(id: number) {
   const [rows] = await pool.query<OrderRow[]>(
     `${orderSelect}
@@ -285,6 +353,9 @@ export async function startOrderPayment(
     reference: string;
     url: string;
     amount: number;
+    subtotalAmount: number;
+    discountAmount: number;
+    gatewayFeeAmount?: number;
   },
 ) {
   const [result] = await pool.query<ResultSetHeader>(
@@ -294,20 +365,30 @@ export async function startOrderPayment(
       payment_reference = ?,
       payment_url = ?,
       payment_amount = ?,
+      subtotal_amount = ?,
+      discount_amount = ?,
+      gateway_fee_amount = ?,
+      net_amount = ?,
       payment_failure_code = NULL,
       payment_failure_reason = NULL,
       payment_last_webhook_status = NULL,
       payment_last_webhook_at = NULL
-    WHERE id = ? AND user_id = ? AND payment_status <> ? AND deleted_at IS NULL`,
+    WHERE id = ? AND user_id = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
     [
       'waiting_payment',
       payment.method,
       payment.reference,
       payment.url,
       payment.amount,
+      payment.subtotalAmount,
+      payment.discountAmount,
+      payment.gatewayFeeAmount ?? 0,
+      payment.amount - (payment.gatewayFeeAmount ?? 0),
       id,
       userId,
       'paid',
+      'partial_refunded',
+      'refunded',
     ],
   );
 
@@ -323,9 +404,10 @@ export async function confirmOrderPayment(id: number, userId: number) {
     `UPDATE orders
     SET payment_status = ?,
       paid_at = CURRENT_TIMESTAMP,
-      status = CASE WHEN status = 'new' THEN 'deal' ELSE status END
-    WHERE id = ? AND user_id = ? AND payment_status <> ? AND deleted_at IS NULL`,
-    ['paid', id, userId, 'paid'],
+      settlement_at = CURRENT_TIMESTAMP,
+      status = CASE WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress' ELSE status END
+    WHERE id = ? AND user_id = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
+    ['paid', id, userId, 'paid', 'partial_refunded', 'refunded'],
   );
 
   if (result.affectedRows === 0) {
@@ -344,9 +426,10 @@ export async function markOrderPaidByPaymentReference(paymentReference: string) 
       payment_last_webhook_status = ?,
       payment_last_webhook_at = CURRENT_TIMESTAMP,
       paid_at = CURRENT_TIMESTAMP,
-      status = CASE WHEN status = 'new' THEN 'deal' ELSE status END
-    WHERE payment_reference = ? AND payment_status <> ? AND deleted_at IS NULL`,
-    ['paid', 'paid', paymentReference, 'paid'],
+      settlement_at = CURRENT_TIMESTAMP,
+      status = CASE WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress' ELSE status END
+    WHERE payment_reference = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
+    ['paid', 'paid', paymentReference, 'paid', 'partial_refunded', 'refunded'],
   );
 
   return result.affectedRows > 0;
@@ -367,7 +450,7 @@ export async function markOrderPaymentFailedByReference(
       payment_failure_reason = ?,
       payment_last_webhook_status = ?,
       payment_last_webhook_at = CURRENT_TIMESTAMP
-    WHERE payment_reference = ? AND payment_status <> ? AND deleted_at IS NULL`,
+    WHERE payment_reference = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
     [
       'failed',
       failure.code ?? null,
@@ -375,6 +458,8 @@ export async function markOrderPaymentFailedByReference(
       failure.transactionStatus ?? 'failed',
       paymentReference,
       'paid',
+      'partial_refunded',
+      'refunded',
     ],
   );
 
@@ -399,8 +484,8 @@ export async function hasSuccessfulTemplateOrder(userId: number, templateId: num
     `SELECT id
     FROM orders
     WHERE user_id = ?
-      AND template_id = ?
-      AND payment_status = 'paid'
+      AND design_id = ?
+      AND payment_status IN ('paid', 'partial_refunded')
       AND deleted_at IS NULL
     LIMIT 1`,
     [userId, templateId],
@@ -480,11 +565,24 @@ export function normalizeOrderPayload(
     paymentReference: null,
     paymentUrl: null,
     paymentAmount: null,
+    subtotalAmount: null,
+    discountAmount: 0,
+    gatewayFeeAmount: 0,
+    netAmount: null,
+    currency: 'IDR',
+    quoteAmount: null,
+    quoteNotes: null,
+    quoteSentAt: null,
+    invoiceNumber: null,
+    invoiceIssuedAt: null,
     paymentFailureCode: null,
     paymentFailureReason: null,
     paymentLastWebhookStatus: null,
     paymentLastWebhookAt: null,
     paidAt: null,
+    settlementAt: null,
+    refundedAt: null,
+    cancelledAt: null,
     templatePrice: null,
     templateLynkUrl: null,
     deliveryStatus: 'locked',
@@ -495,16 +593,16 @@ export function normalizeOrderPayload(
 }
 
 function normalizeOrderRow(row: OrderRow): OrderItem {
-  const isPaid = row.payment_status === 'paid';
+  const isPaid = row.payment_status === 'paid' || row.payment_status === 'partial_refunded';
   const sourceCodeItems = isPaid ? parseStringArray(row.included_files ?? []) : [];
   const guideParts = [row.license, row.support].filter(Boolean);
 
   return {
     id: row.id,
     userId: row.user_id ?? null,
-    templateId: row.template_id ?? null,
-    templateSlug: row.template_slug,
-    templateTitle: row.template_title,
+    templateId: row.design_id ?? null,
+    templateSlug: row.design_slug,
+    templateTitle: row.design_title,
     customerName: row.customer_name,
     customerContact: row.customer_contact,
     projectType: row.project_type,
@@ -516,11 +614,24 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     paymentReference: row.payment_reference ?? null,
     paymentUrl: row.payment_url ?? null,
     paymentAmount: row.payment_amount ?? null,
+    subtotalAmount: row.subtotal_amount ?? null,
+    discountAmount: Number(row.discount_amount ?? 0),
+    gatewayFeeAmount: Number(row.gateway_fee_amount ?? 0),
+    netAmount: row.net_amount ?? null,
+    currency: row.currency ?? 'IDR',
+    quoteAmount: row.quote_amount ?? null,
+    quoteNotes: row.quote_notes ?? null,
+    quoteSentAt: row.quote_sent_at ?? null,
+    invoiceNumber: row.invoice_number ?? null,
+    invoiceIssuedAt: row.invoice_issued_at ?? null,
     paymentFailureCode: row.payment_failure_code ?? null,
     paymentFailureReason: row.payment_failure_reason ?? null,
     paymentLastWebhookStatus: row.payment_last_webhook_status ?? null,
     paymentLastWebhookAt: row.payment_last_webhook_at ?? null,
     paidAt: row.paid_at ?? null,
+    settlementAt: row.settlement_at ?? null,
+    refundedAt: row.refunded_at ?? null,
+    cancelledAt: row.cancelled_at ?? null,
     templatePrice: row.template_price ?? null,
     templateLynkUrl: row.template_lynk_url ?? null,
     deliveryStatus: isPaid ? 'available' : 'locked',

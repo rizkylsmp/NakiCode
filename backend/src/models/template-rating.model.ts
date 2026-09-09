@@ -12,7 +12,7 @@ export type TemplateRatingPayload = {
 
 type TemplateRatingRow = RowDataPacket & {
   id: number;
-  template_id: number;
+  design_id: number;
   customer_name: string;
   rating: number;
   message: string | null;
@@ -30,10 +30,10 @@ export type TemplateReviewItem = {
 
 export async function createTemplateRating(payload: TemplateRatingPayload) {
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO template_ratings (
+    `INSERT INTO design_ratings (
       user_id,
-      template_id,
-      template_slug,
+      design_id,
+      design_slug,
       customer_name,
       rating,
       message
@@ -57,8 +57,8 @@ export async function createTemplateRating(payload: TemplateRatingPayload) {
 export async function hasUserRatedTemplate(userId: number, templateId: number) {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT id
-    FROM template_ratings
-    WHERE user_id = ? AND template_id = ?
+    FROM design_ratings
+    WHERE user_id = ? AND design_id = ?
     LIMIT 1`,
     [userId, templateId],
   );
@@ -76,9 +76,9 @@ export async function findRecentTemplateReviews(
 
   const placeholders = templateIds.map(() => '?').join(', ');
   const [rows] = await pool.query<TemplateRatingRow[]>(
-    `SELECT id, template_id, customer_name, rating, message, created_at
-    FROM template_ratings
-    WHERE template_id IN (${placeholders})
+    `SELECT id, design_id, customer_name, rating, message, created_at
+    FROM design_ratings
+    WHERE design_id IN (${placeholders})
       AND message IS NOT NULL
       AND message <> ''
     ORDER BY id DESC
@@ -89,7 +89,7 @@ export async function findRecentTemplateReviews(
   const grouped = new Map<number, TemplateReviewItem[]>();
 
   for (const row of rows) {
-    const current = grouped.get(row.template_id) ?? [];
+    const current = grouped.get(row.design_id) ?? [];
 
     if (current.length >= limitPerTemplate) {
       continue;
@@ -97,13 +97,13 @@ export async function findRecentTemplateReviews(
 
     current.push({
       id: row.id,
-      templateId: row.template_id,
+      templateId: row.design_id,
       customerName: row.customer_name,
       rating: Number(row.rating),
       message: row.message ?? '',
       createdAt: row.created_at ?? new Date().toISOString(),
     });
-    grouped.set(row.template_id, current);
+    grouped.set(row.design_id, current);
   }
 
   return grouped;

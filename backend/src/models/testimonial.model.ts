@@ -9,7 +9,7 @@ export type Testimonial = {
   customer_role: string | null;
   quote: string;
   rating: number;
-  template_id: number | null;
+  design_id: number | null;
   is_featured: boolean;
   sort_order: number;
   created_at: string;
@@ -46,7 +46,7 @@ export async function findFeaturedTestimonials(): Promise<Testimonial[]> {
 
 export async function createTestimonial(data: {
   customer_name: string;
-  customer_role?: string;
+  customer_role?: string | null;
   quote: string;
   rating?: number;
   is_featured?: boolean;
@@ -77,7 +77,7 @@ export async function createTestimonial(data: {
      VALUES ('manual', ?, ?, ?, ?, ?, ?)`,
     [
       data.customer_name.trim(),
-      data.customer_role?.trim() || null,
+    data.customer_role?.trim() || null,
       data.quote.trim(),
       data.rating || 5,
       data.is_featured !== undefined ? data.is_featured : true,
@@ -96,9 +96,9 @@ export async function createTestimonial(data: {
 export async function createFromRating(ratingId: number): Promise<Testimonial> {
   // Get rating data
   const [ratingRows] = await pool.query<RowDataPacket[]>(
-    `SELECT tr.*, t.title as template_title
-     FROM template_ratings tr
-     LEFT JOIN templates t ON tr.template_id = t.id
+    `SELECT tr.*, t.title as design_title
+     FROM design_ratings tr
+     LEFT JOIN designs t ON tr.design_id = t.id
      WHERE tr.id = ?`,
     [ratingId]
   );
@@ -129,7 +129,7 @@ export async function createFromRating(ratingId: number): Promise<Testimonial> {
 
   // Create testimonial
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO testimonials (source_type, rating_id, customer_name, customer_role, quote, rating, template_id, is_featured, sort_order)
+    `INSERT INTO testimonials (source_type, rating_id, customer_name, customer_role, quote, rating, design_id, is_featured, sort_order)
      VALUES ('rating', ?, ?, ?, ?, ?, ?, TRUE, ?)`,
     [
       ratingId,
@@ -137,7 +137,7 @@ export async function createFromRating(ratingId: number): Promise<Testimonial> {
       null, // role will be null for ratings
       quote,
       rating.rating,
-      rating.template_id,
+      rating.design_id,
       sortOrder,
     ]
   );
@@ -154,7 +154,7 @@ export async function updateTestimonial(
   id: number,
   data: {
     customer_name?: string;
-    customer_role?: string;
+    customer_role?: string | null;
     quote?: string;
     rating?: number;
     is_featured?: boolean;
@@ -223,9 +223,9 @@ export async function deleteTestimonial(id: number): Promise<boolean> {
 export async function findAvailableRatings(): Promise<any[]> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT tr.id, tr.customer_name, tr.rating, tr.message, tr.created_at,
-            t.title as template_title
-     FROM template_ratings tr
-     LEFT JOIN templates t ON tr.template_id = t.id
+            t.title as design_title
+     FROM design_ratings tr
+     LEFT JOIN designs t ON tr.design_id = t.id
      WHERE tr.id NOT IN (
        SELECT rating_id FROM testimonials
        WHERE rating_id IS NOT NULL AND deleted_at IS NULL

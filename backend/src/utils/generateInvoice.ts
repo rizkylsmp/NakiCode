@@ -3,10 +3,14 @@ import type { Response } from 'express';
 
 export type InvoiceData = {
   orderId: number;
+  invoiceNumber: string;
   customerName: string;
   customerContact: string;
   templateTitle: string;
-  budgetRange: string;
+  subtotalAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  currency: string;
   projectType: string;
   status: string;
   createdAt: string;
@@ -24,7 +28,7 @@ export async function generateInvoicePDF(
         size: 'A4',
         margins: { top: 50, bottom: 50, left: 50, right: 50 },
         info: {
-          Title: `Invoice #${invoiceData.orderId}`,
+          Title: `Invoice ${invoiceData.invoiceNumber}`,
           Author: 'Naki Code',
           Subject: `Invoice for Order #${invoiceData.orderId}`,
         },
@@ -60,7 +64,7 @@ export async function generateInvoicePDF(
         .fontSize(12)
         .font('Helvetica')
         .fillColor('#333333')
-        .text(`#${String(invoiceData.orderId).padStart(6, '0')}`, 400, 85, {
+        .text(invoiceData.invoiceNumber, 340, 85, {
           align: 'right',
         });
 
@@ -129,7 +133,7 @@ export async function generateInvoicePDF(
         .fillColor('#333333')
         .text(invoiceData.templateTitle, 60, tableTop + 38, { width: 220 })
         .text(invoiceData.projectType, 300, tableTop + 38, { width: 140 })
-        .text(invoiceData.budgetRange, 450, tableTop + 38, { width: 85 });
+        .text(formatCurrency(invoiceData.subtotalAmount, invoiceData.currency), 430, tableTop + 38, { width: 105, align: 'right' });
 
       // Table Border
       doc
@@ -140,12 +144,19 @@ export async function generateInvoicePDF(
 
       // Total Section
       const totalTop = tableTop + 100;
+      doc.fontSize(10).font('Helvetica').fillColor('#666666')
+        .text('Subtotal:', 355, totalTop, { width: 90, align: 'right' })
+        .text(formatCurrency(invoiceData.subtotalAmount, invoiceData.currency), 450, totalTop, { width: 95, align: 'right' });
+      if (invoiceData.discountAmount > 0) {
+        doc.text('Diskon:', 355, totalTop + 18, { width: 90, align: 'right' })
+          .text(`-${formatCurrency(invoiceData.discountAmount, invoiceData.currency)}`, 450, totalTop + 18, { width: 95, align: 'right' });
+      }
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
         .fillColor('#172447')
-        .text('TOTAL:', 380, totalTop)
-        .text(invoiceData.budgetRange, 450, totalTop);
+        .text('TOTAL:', 355, totalTop + 40, { width: 90, align: 'right' })
+        .text(formatCurrency(invoiceData.totalAmount, invoiceData.currency), 450, totalTop + 40, { width: 95, align: 'right' });
 
       // Payment Info
       if (invoiceData.paymentDate) {
@@ -208,4 +219,12 @@ export async function generateInvoicePDF(
       reject(error);
     }
   });
+}
+
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }

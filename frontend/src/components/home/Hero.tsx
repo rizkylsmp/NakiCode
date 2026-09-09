@@ -9,6 +9,26 @@ type HeroProps = {
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
+function HeroAbstractShape() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute bottom-2 left-1/2 z-0 h-[275px] w-[345px] max-w-none -translate-x-1/2 sm:h-[345px] sm:w-[435px] md:-top-1 md:bottom-auto md:h-[415px] md:w-[520px] lg:-top-8 lg:h-[460px] lg:w-[575px]"
+    >
+      <span className="naki-hero-shape-glow absolute inset-[13%] rounded-full" />
+      <img
+        className="relative h-full w-full object-contain mix-blend-screen opacity-90"
+        src="/images/hero-naki-shape-v2.webp"
+        alt=""
+        width="1536"
+        height="1024"
+        loading="eager"
+        decoding="async"
+      />
+    </div>
+  );
+}
+
 export function Hero({
   totalTemplates,
   totalProjects,
@@ -49,7 +69,7 @@ export function Hero({
             {/* CTA Buttons */}
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:justify-start">
               <a
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
+                className="naki-inverse-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
                 href="/design"
               >
                 Jelajahi Design
@@ -100,20 +120,21 @@ export function Hero({
           </div>
 
           {/* Right: Character visual */}
-          <div className="relative min-h-[300px] sm:min-h-[360px] md:min-h-[400px] lg:pl-4">
+          <div className="relative min-h-[300px] sm:min-h-[360px] md:min-h-[400px] md:self-stretch lg:pl-4">
             <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible sm:top-8 lg:left-8 lg:right-0">
+              <HeroAbstractShape />
               <img
-                className="absolute bottom-0 left-1/2 h-[330px] max-w-none -translate-x-1/2 object-contain object-bottom sm:h-[400px] md:bottom-auto md:-top-8 md:h-[470px] lg:-top-12 lg:h-[500px]"
+                className="absolute bottom-[-1.75rem] left-1/2 z-10 h-[350px] max-w-none -translate-x-1/2 object-contain object-bottom sm:h-[420px] md:-bottom-10 md:h-[500px] lg:-bottom-12 lg:h-[540px]"
                 src="/images/hero-naki-character.png"
                 alt="Karakter Naki Code sebagai visual hero"
-                width="1080"
-                height="1440"
+                width="1122"
+                height="1402"
                 loading="eager"
                 decoding="async"
               />
             </div>
 
-            <div className="absolute left-0 top-5 rounded-xl border border-naki-steel/70 bg-white px-4 py-2.5 shadow-lg sm:left-2 sm:top-8 sm:px-5 sm:py-3">
+            <div className="absolute left-0 top-5 z-20 rounded-xl border border-naki-steel/70 bg-white px-4 py-2.5 shadow-lg sm:left-2 sm:top-8 sm:px-5 sm:py-3">
               <p className="text-[11px] font-semibold uppercase text-naki-smoke">
                 Design Bulan Ini
               </p>
@@ -122,7 +143,7 @@ export function Hero({
               </p>
             </div>
 
-            <div className="absolute right-0 top-20 hidden rounded-2xl border border-blue-100 bg-white px-5 py-4 text-center shadow-lg sm:block sm:right-2">
+            <div className="absolute right-0 top-20 z-20 hidden rounded-2xl border border-blue-100 bg-white px-5 py-4 text-center shadow-lg sm:block sm:right-2">
               <span className="mx-auto grid size-10 place-items-center rounded-full bg-blue-100 text-blue-600">
                 <Code2 size={18} />
               </span>
@@ -135,7 +156,7 @@ export function Hero({
               </p>
             </div>
 
-            <div className="absolute bottom-8 left-2 hidden rounded-xl border border-green-200 bg-white px-5 py-3 shadow-lg sm:flex sm:left-8">
+            <div className="absolute bottom-8 left-2 z-20 hidden rounded-xl border border-green-200 bg-white px-5 py-3 shadow-lg sm:flex sm:left-8">
               <div className="flex items-center gap-3">
                 <span className="grid size-9 place-items-center rounded-lg bg-green-100 text-green-600">
                   <Check size={18} />

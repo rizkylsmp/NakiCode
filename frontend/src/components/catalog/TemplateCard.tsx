@@ -2,6 +2,7 @@ import { ArrowRight, Code2, Heart, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TemplateItem } from "../../domain/content";
 import { getTemplateCategoryPath } from "../../utils/template-url";
+import { TechStackBadge } from "../ui/TechStackBadge";
 
 type TemplateCardProps = {
   isAuthenticated: boolean;
@@ -71,9 +72,7 @@ export function TemplateCard({
       <div className="p-4">
         <div className="mb-2 flex flex-wrap gap-1">
           {template.stack.slice(0, 3).map((tech) => (
-            <span key={tech} className="text-xs font-medium text-naki-smoke">
-              #{tech}
-            </span>
+            <TechStackBadge key={tech} tech={tech} />
           ))}
         </div>
 

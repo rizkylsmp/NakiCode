@@ -5,16 +5,25 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { config } from "./config";
 import { runRuntimeMigrations } from "./runtime-migrations";
 
+const isLocalRuntime = config.sentry.environment !== "production";
+
 export const pool = mysql.createPool({
   ...config.mysql,
   waitForConnections: true,
-  connectionLimit: 10,
-  maxIdle: 10,
-  idleTimeout: 60_000,
+  connectionLimit: isLocalRuntime ? 3 : 10,
+  maxIdle: isLocalRuntime ? 1 : 10,
+  idleTimeout: isLocalRuntime ? 10_000 : 60_000,
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
 });
+
+let poolClosePromise: Promise<void> | null = null;
+
+export function closeDatabasePool() {
+  poolClosePromise ??= pool.end();
+  return poolClosePromise;
+}
 
 export async function pingDatabase() {
   const [rows] = await pool.query("SELECT 1 AS ok");
@@ -30,6 +39,7 @@ export async function initializeDatabase() {
       `CREATE DATABASE IF NOT EXISTS ${connection.escapeId(database)} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
     );
     await connection.query(`USE ${connection.escapeId(database)}`);
+    await normalizeLegacyDesignSchema(connection);
 
     const schemaPath = path.resolve(__dirname, "../database/schema.sql");
     const schema = await readFile(schemaPath, "utf8");
@@ -111,27 +121,33 @@ export async function initializeDatabase() {
     );
     await ensureColumn(
       connection,
-      "templates",
+      "designs",
       "category_id",
       "INT NULL AFTER category",
     );
     await ensureColumn(
       connection,
-      "templates",
+      "designs",
       "is_featured",
       "BOOLEAN NOT NULL DEFAULT FALSE AFTER demo_url",
     );
     await ensureColumn(
       connection,
-      "templates",
+      "designs",
       "deleted_at",
       "TIMESTAMP NULL AFTER is_featured",
     );
     await ensureColumn(
       connection,
-      "template_ratings",
+      "design_ratings",
       "user_id",
       "INT NULL AFTER id",
+    );
+    await ensureColumn(
+      connection,
+      "users",
+      "google_sub",
+      "VARCHAR(255) NULL UNIQUE AFTER email",
     );
     await ensureColumn(
       connection,
@@ -240,6 +256,176 @@ export async function initializeDatabase() {
   } finally {
     await connection.end();
   }
+}
+
+async function normalizeLegacyDesignSchema(connection: Connection) {
+  const tableRenames = [
+    ["template_categories", "categories"],
+    ["templates", "designs"],
+    ["template_ratings", "design_ratings"],
+    ["user_template_favorites", "user_design_favorites"],
+    ["template_bundles", "design_bundles"],
+    ["template_bundle_items", "design_bundle_items"],
+  ] as const;
+
+  await connection.query("SET FOREIGN_KEY_CHECKS = 0");
+  for (const [legacyName, currentName] of tableRenames) {
+    const legacyExists = await databaseTableExists(connection, legacyName);
+    const currentExists = await databaseTableExists(connection, currentName);
+
+    if (legacyExists && currentExists) {
+      const legacyRows = await databaseTableRowCount(connection, legacyName);
+      const currentRows = await databaseTableRowCount(connection, currentName);
+
+      if (currentRows === 0) {
+        await connection.query(
+          `DROP TABLE ${connection.escapeId(currentName)}`,
+        );
+        await connection.query(
+          `RENAME TABLE ${connection.escapeId(legacyName)} TO ${connection.escapeId(currentName)}`,
+        );
+      } else if (legacyRows === 0) {
+        await connection.query(`DROP TABLE ${connection.escapeId(legacyName)}`);
+      } else {
+        throw new Error(
+          `Legacy table ${legacyName} and current table ${currentName} both contain data`,
+        );
+      }
+    } else if (legacyExists && !currentExists) {
+      await connection.query(
+        `RENAME TABLE ${connection.escapeId(legacyName)} TO ${connection.escapeId(currentName)}`,
+      );
+    }
+  }
+  await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+
+  const columnRenames = [
+    ["orders", "template_id", "design_id"],
+    ["orders", "template_slug", "design_slug"],
+    ["orders", "template_title", "design_title"],
+    ["design_ratings", "template_id", "design_id"],
+    ["design_ratings", "template_slug", "design_slug"],
+    ["user_design_favorites", "template_id", "design_id"],
+    ["testimonials", "template_id", "design_id"],
+    ["design_bundle_items", "template_id", "design_id"],
+  ] as const;
+
+  for (const [tableName, legacyName, currentName] of columnRenames) {
+    if (
+      (await databaseColumnExists(connection, tableName, legacyName)) &&
+      !(await databaseColumnExists(connection, tableName, currentName))
+    ) {
+      await connection.query(
+        `ALTER TABLE ${connection.escapeId(tableName)} RENAME COLUMN ${connection.escapeId(legacyName)} TO ${connection.escapeId(currentName)}`,
+      );
+    }
+  }
+
+  if (await databaseTableExists(connection, "designs")) {
+    if (
+      await databaseForeignKeyExists(
+        connection,
+        "designs",
+        "fk_templates_category_id",
+      )
+    ) {
+      await connection.query(
+        `ALTER TABLE ${connection.escapeId("designs")} DROP FOREIGN KEY ${connection.escapeId("fk_templates_category_id")}`,
+      );
+    }
+    if (
+      !(await databaseForeignKeyExists(
+        connection,
+        "designs",
+        "fk_designs_category_id",
+      ))
+    ) {
+      await connection.query(
+        `ALTER TABLE ${connection.escapeId("designs")}
+        ADD CONSTRAINT ${connection.escapeId("fk_designs_category_id")}
+        FOREIGN KEY (${connection.escapeId("category_id")}) REFERENCES ${connection.escapeId("categories")} (${connection.escapeId("id")})
+        ON DELETE RESTRICT ON UPDATE RESTRICT`,
+      );
+    }
+  }
+
+  const indexRenames = [
+    ["designs", "idx_templates_category_id", "idx_designs_category_id"],
+    ["user_design_favorites", "user_template_unique", "user_design_unique"],
+    ["design_bundle_items", "bundle_template_unique", "bundle_design_unique"],
+  ] as const;
+  for (const [tableName, legacyName, currentName] of indexRenames) {
+    if (
+      (await databaseIndexExists(connection, tableName, legacyName)) &&
+      !(await databaseIndexExists(connection, tableName, currentName))
+    ) {
+      await connection.query(
+        `ALTER TABLE ${connection.escapeId(tableName)} RENAME INDEX ${connection.escapeId(legacyName)} TO ${connection.escapeId(currentName)}`,
+      );
+    }
+  }
+
+  await connection.query("DROP TABLE IF EXISTS affiliate_referrals");
+  await connection.query("DROP TABLE IF EXISTS admins");
+}
+
+async function databaseTableExists(connection: Connection, tableName: string) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1`,
+    [tableName],
+  );
+  return rows.length > 0;
+}
+
+async function databaseTableRowCount(
+  connection: Connection,
+  tableName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS total FROM ${connection.escapeId(tableName)}`,
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
+async function databaseColumnExists(
+  connection: Connection,
+  tableName: string,
+  columnName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1`,
+    [tableName, columnName],
+  );
+  return rows.length > 0;
+}
+
+async function databaseIndexExists(
+  connection: Connection,
+  tableName: string,
+  indexName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+    [tableName, indexName],
+  );
+  return rows.length > 0;
+}
+
+async function databaseForeignKeyExists(
+  connection: Connection,
+  tableName: string,
+  constraintName: string,
+) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+      AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY' LIMIT 1`,
+    [tableName, constraintName],
+  );
+  return rows.length > 0;
 }
 
 async function ensureColumn(

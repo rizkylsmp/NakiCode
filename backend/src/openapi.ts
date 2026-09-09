@@ -1,116 +1,167 @@
 export const openApiDocument = {
-  openapi: '3.0.3',
+  openapi: "3.0.3",
   info: {
-    title: 'Naki Code API',
-    version: '1.0.0',
+    title: "Naki Code API",
+    version: "1.0.0",
     description:
-      'API Naki Code untuk katalog design, order jasa website, payment, wishlist, notifikasi, blog, coupon, dan bundle.',
+      "API Naki Code untuk katalog design, order jasa website, payment, wishlist, notifikasi, blog, coupon, dan bundle.",
   },
   servers: [
     {
-      url: '/api/v1',
-      description: 'Versioned API',
+      url: "/api/v1",
+      description: "Versioned API",
     },
     {
-      url: '/api',
-      description: 'Legacy API alias',
+      url: "/api",
+      description: "Legacy API alias",
     },
   ],
   components: {
     securitySchemes: {
       bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
+        type: "http",
+        scheme: "bearer",
       },
     },
   },
   paths: {
-    '/templates': {
-      get: {
-        summary: 'List design katalog',
-        responses: { 200: { description: 'Daftar design' } },
-      },
+    "/auth/user/google": {
       post: {
-        summary: 'Buat design baru',
-        security: [{ bearerAuth: [] }],
-        responses: { 201: { description: 'Design dibuat' } },
+        summary: "Login atau daftar user dengan Google ID token",
+        responses: {
+          200: { description: "Login Google berhasil" },
+          401: { description: "Google ID token tidak valid" },
+          503: { description: "Login Google belum dikonfigurasi" },
+        },
       },
     },
-    '/templates/{slug}': {
+    "/templates": {
       get: {
-        summary: 'Detail design',
+        summary: "List design katalog",
+        responses: { 200: { description: "Daftar design" } },
+      },
+      post: {
+        summary: "Buat design baru",
+        security: [{ bearerAuth: [] }],
+        responses: { 201: { description: "Design dibuat" } },
+      },
+    },
+    "/templates/{slug}": {
+      get: {
+        summary: "Detail design",
         parameters: [
           {
-            name: 'slug',
-            in: 'path',
+            name: "slug",
+            in: "path",
             required: true,
-            schema: { type: 'string' },
+            schema: { type: "string" },
           },
         ],
-        responses: { 200: { description: 'Detail design' } },
+        responses: { 200: { description: "Detail design" } },
       },
     },
-    '/orders': {
+    "/orders": {
       get: {
-        summary: 'List order admin',
+        summary: "List order admin",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Daftar order' } },
+        responses: { 200: { description: "Daftar order" } },
       },
       post: {
-        summary: 'Buat order user',
+        summary: "Buat order user",
         security: [{ bearerAuth: [] }],
-        responses: { 201: { description: 'Order dibuat' } },
+        responses: { 201: { description: "Order dibuat" } },
       },
     },
-    '/orders/my': {
+    "/orders/my": {
       get: {
-        summary: 'List pesanan user aktif',
+        summary: "List pesanan user aktif",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Pesanan user' } },
+        responses: { 200: { description: "Pesanan user" } },
       },
     },
-    '/orders/{id}/payment': {
+    "/orders/{id}/payment": {
       post: {
-        summary: 'Buat sesi pembayaran',
+        summary: "Buat sesi pembayaran",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Payment session' } },
+        responses: { 200: { description: "Payment session" } },
       },
     },
-    '/favorites/my': {
-      get: {
-        summary: 'List design favorit user',
+    "/orders/{id}/quote": {
+      patch: {
+        summary: "Tetapkan penawaran harga order custom",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Design IDs' } },
+        responses: { 200: { description: "Penawaran tersimpan" } },
       },
     },
-    '/notifications/my': {
-      get: {
-        summary: 'List notifikasi user',
+    "/orders/bulk/status": {
+      patch: {
+        summary: "Perbarui workflow beberapa order",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Notifikasi user' } },
+        responses: { 200: { description: "Status order diperbarui" } },
       },
     },
-    '/blog': {
+    "/finance/transactions": {
       get: {
-        summary: 'List artikel published',
-        responses: { 200: { description: 'Daftar artikel' } },
+        summary: "Ringkasan dan transaksi pembukuan",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Data pembukuan" } },
+      },
+    },
+    "/finance/expenses": {
+      post: {
+        summary: "Catat pengeluaran",
+        security: [{ bearerAuth: [] }],
+        responses: { 201: { description: "Pengeluaran tersimpan" } },
+      },
+    },
+    "/finance/orders/{id}/refund": {
+      post: {
+        summary: "Catat refund parsial atau penuh",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Refund tercatat" } },
+      },
+    },
+    "/favorites/my": {
+      get: {
+        summary: "List design favorit user",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Design IDs" } },
+      },
+    },
+    "/notifications/my": {
+      get: {
+        summary: "List notifikasi user",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Notifikasi user" } },
+      },
+    },
+    "/blog": {
+      get: {
+        summary: "List artikel published",
+        responses: { 200: { description: "Daftar artikel" } },
       },
       post: {
-        summary: 'Buat artikel blog',
+        summary: "Buat artikel blog",
         security: [{ bearerAuth: [] }],
-        responses: { 201: { description: 'Artikel dibuat' } },
+        responses: { 201: { description: "Artikel dibuat" } },
       },
     },
-    '/business/coupons/validate': {
+    "/business/coupons/validate": {
       post: {
-        summary: 'Validasi coupon/discount',
-        responses: { 200: { description: 'Discount valid' } },
+        summary: "Validasi coupon/discount",
+        responses: { 200: { description: "Discount valid" } },
       },
     },
-    '/business/bundles': {
+    "/business/coupons/banners": {
       get: {
-        summary: 'List paket bundle design',
-        responses: { 200: { description: 'Daftar bundle' } },
+        summary: "List banner coupon aktif untuk storefront",
+        responses: { 200: { description: "Daftar banner coupon aktif dan belum habis" } },
+      },
+    },
+    "/business/bundles": {
+      get: {
+        summary: "List paket bundle design",
+        responses: { 200: { description: "Daftar bundle" } },
       },
     },
   },

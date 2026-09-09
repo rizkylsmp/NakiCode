@@ -1,10 +1,11 @@
 import express from 'express';
+import type { Server } from 'node:http';
 import * as Sentry from '@sentry/node';
 import path from 'node:path';
 import swaggerUi from 'swagger-ui-express';
 import { cacheHeaders } from './cache';
 import { config } from './config';
-import { initializeDatabase } from './db';
+import { closeDatabasePool, initializeDatabase } from './db';
 import { initializeEmailQueue } from './email-queue';
 import { ensureDefaultAdminUser } from './models/user.model';
 import { openApiDocument } from './openapi';
@@ -14,6 +15,7 @@ import { blogPostsRouter } from './routes/blog-posts';
 import { businessRouter } from './routes/business';
 import { categoriesRouter } from './routes/categories';
 import { favoritesRouter } from './routes/favorites';
+import { financeRouter } from './routes/finance';
 import { healthRouter } from './routes/health';
 import { notificationsRouter } from './routes/notifications';
 import { ordersRouter } from './routes/orders';
@@ -58,6 +60,8 @@ app.use(cacheHeaders);
 // Track database initialization for serverless
 let dbInitialized = false;
 let dbInitPromise: Promise<void> | null = null;
+let httpServer: Server | null = null;
+let shutdownPromise: Promise<void> | null = null;
 
 async function ensureDatabase() {
   if (dbInitialized) return;
@@ -136,6 +140,7 @@ function mountApiRoutes(prefix: string) {
   app.use(`${prefix}/templates`, templatesRouter);
   app.use(`${prefix}/designs`, templatesRouter);
   app.use(`${prefix}/favorites`, favoritesRouter);
+  app.use(`${prefix}/finance`, financeRouter);
   app.use(`${prefix}/notifications`, notificationsRouter);
   app.use(`${prefix}/categories`, categoriesRouter);
   app.use(`${prefix}/orders`, ordersStatsRouter);
@@ -164,13 +169,54 @@ export async function startServer() {
     process.exit(1);
   }
 
-  app.listen(config.port, () => {
+  httpServer = app.listen(config.port, () => {
     console.log(`Naki Code API listening on http://localhost:${config.port}`);
   });
+
+  return httpServer;
+}
+
+export function stopServer() {
+  shutdownPromise ??= (async () => {
+    if (httpServer) {
+      const server = httpServer;
+      httpServer = null;
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (!error || (error as NodeJS.ErrnoException).code === 'ERR_SERVER_NOT_RUNNING') {
+            resolve();
+            return;
+          }
+          reject(error);
+        });
+      });
+    }
+
+    await closeDatabasePool();
+  })();
+
+  return shutdownPromise;
 }
 
 if (require.main === module) {
   void startServer();
+
+  let isStopping = false;
+  const shutdown = async (signal: string) => {
+    if (isStopping) return;
+    isStopping = true;
+    console.log(`\n${signal} diterima. Menutup server dan koneksi MySQL...`);
+    try {
+      await stopServer();
+      process.exit(0);
+    } catch (error) {
+      console.error('Gagal menutup server dengan bersih:', error);
+      process.exit(1);
+    }
+  };
+
+  process.once('SIGINT', () => void shutdown('SIGINT'));
+  process.once('SIGTERM', () => void shutdown('SIGTERM'));
 }
 
 // Export for Vercel serverless deployment

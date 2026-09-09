@@ -28,7 +28,7 @@ export function CTASection() {
             <div className="absolute inset-0 rounded-3xl border border-white/10" />
 
             {/* Content */}
-            <div className="relative z-10 grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.74fr)] md:gap-8">
+            <div className="relative grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.74fr)] md:gap-8">
               <div className="text-center md:text-left">
                 <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-blue-500/15 text-blue-400 sm:size-14 md:mx-0">
                   <MessageCircle size={24} />
@@ -63,13 +63,23 @@ export function CTASection() {
                 </div>
               </div>
 
-              <div className="pointer-events-none relative order-first mx-auto h-44 w-full max-w-[240px] self-end sm:h-56 sm:max-w-xs md:order-none md:h-80 md:max-w-none lg:h-96">
+              <div className="pointer-events-none relative order-first mx-auto h-38 w-full max-w-[200px] self-end sm:h-48 sm:max-w-[270px] md:order-none md:h-64 md:max-w-none lg:h-76">
                 <img
-                  className="absolute bottom-[-24%] left-1/2 h-[132%] max-w-none -translate-x-1/2 object-contain object-bottom drop-shadow-2xl sm:bottom-[-34%] sm:h-[142%] md:bottom-[-30%] md:h-[140%]"
-                  src="/images/cta-naki-character-closeup.png"
-                  alt="Karakter Naki Code mengajak konsultasi"
-                  width="1080"
-                  height="1440"
+                  aria-hidden="true"
+                  alt=""
+                  className="absolute left-1/2 top-1/2 z-0 h-[180%] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain opacity-70 mix-blend-screen"
+                  src="/images/cta-naki-abstract-shape-v1.webp"
+                  width="900"
+                  height="900"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <img
+                  className="absolute bottom-[-8%] left-1/2 z-10 h-[118%] max-w-none -translate-x-1/2 object-contain object-bottom drop-shadow-2xl sm:bottom-[-10%] sm:h-[122%] md:bottom-[-20%] md:h-[120%] lg:h-[130%]"
+                  src="/images/cta-naki-honne-eye-frame.webp"
+                  alt="Honne mengajak konsultasi bersama Naki Code"
+                  width="1254"
+                  height="1254"
                   loading="lazy"
                   decoding="async"
                 />

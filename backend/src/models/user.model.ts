@@ -1,13 +1,14 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import crypto from 'node:crypto';
-import { hashPassword, type UserRole } from '../auth';
-import { config } from '../config';
-import { pool } from '../db';
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import crypto from "node:crypto";
+import { hashPassword, type UserRole } from "../auth";
+import { config } from "../config";
+import { pool } from "../db";
 
 type UserRow = RowDataPacket & {
   id: number;
   username: string;
   email: string;
+  google_sub?: string | null;
   password_hash: string;
   role?: UserRole | null;
   created_at?: string | null;
@@ -27,6 +28,7 @@ export type UserAccount = {
   id: number;
   username: string;
   email: string;
+  googleSub: string | null;
   passwordHash: string;
   role: UserRole;
   createdAt: string | null;
@@ -44,7 +46,7 @@ export type UserAccount = {
 
 export async function findUserById(id: number) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE id = ?
     LIMIT 1`,
@@ -56,7 +58,7 @@ export async function findUserById(id: number) {
 
 export async function findUserByUsername(username: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE username = ?
     LIMIT 1`,
@@ -68,7 +70,7 @@ export async function findUserByUsername(username: string) {
 
 export async function findUserByEmail(email: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE email = ?
     LIMIT 1`,
@@ -80,7 +82,7 @@ export async function findUserByEmail(email: string) {
 
 export async function findUserByUsernameOrEmail(identifier: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE username = ? OR email = ?
     LIMIT 1`,
@@ -90,9 +92,21 @@ export async function findUserByUsernameOrEmail(identifier: string) {
   return rows[0] ? normalizeUserRow(rows[0]) : null;
 }
 
+export async function findUserByGoogleSub(googleSub: string) {
+  const [rows] = await pool.query<UserRow[]>(
+    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    FROM users
+    WHERE google_sub = ?
+    LIMIT 1`,
+    [googleSub],
+  );
+
+  return rows[0] ? normalizeUserRow(rows[0]) : null;
+}
+
 export async function findUserByVerificationToken(token: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE email_verification_token = ?
     LIMIT 1`,
@@ -204,10 +218,7 @@ export async function clearUserPasswordResetOtp(userId: number) {
   return result.affectedRows > 0;
 }
 
-export async function updateUserProfileName(
-  userId: number,
-  username: string,
-) {
+export async function updateUserProfileName(userId: number, username: string) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE users
     SET username = ?
@@ -218,10 +229,7 @@ export async function updateUserProfileName(
   return result.affectedRows > 0;
 }
 
-export async function updateUserPassword(
-  userId: number,
-  password: string,
-) {
+export async function updateUserPassword(userId: number, password: string) {
   const hashed = await hashPassword(password);
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE users
@@ -245,7 +253,7 @@ export async function deleteUserAccount(userId: number) {
       [userId],
     );
     await connection.query<ResultSetHeader>(
-      `UPDATE template_ratings
+      `UPDATE design_ratings
       SET user_id = NULL
       WHERE user_id = ?`,
       [userId],
@@ -294,7 +302,7 @@ export async function createUserAccount(payload: {
       payload.username,
       payload.email,
       hashedPassword,
-      payload.role ?? 'user',
+      payload.role ?? "user",
       emailVerificationToken,
     ],
   );
@@ -303,9 +311,45 @@ export async function createUserAccount(payload: {
     id: result.insertId,
     username: payload.username,
     email: payload.email,
-    role: payload.role ?? 'user',
+    role: payload.role ?? "user",
     emailVerificationToken,
   };
+}
+
+export async function createGoogleUserAccount(payload: {
+  username: string;
+  email: string;
+  googleSub: string;
+}) {
+  const hashedPassword = await hashPassword(
+    crypto.randomBytes(48).toString("base64url"),
+  );
+  const [result] = await pool.query<ResultSetHeader>(
+    `INSERT INTO users (
+      username,
+      email,
+      google_sub,
+      password_hash,
+      role,
+      email_verified_at
+    )
+    VALUES (?, ?, ?, ?, 'user', CURRENT_TIMESTAMP)`,
+    [payload.username, payload.email, payload.googleSub, hashedPassword],
+  );
+
+  return findUserById(result.insertId);
+}
+
+export async function linkGoogleIdentity(userId: number, googleSub: string) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE users
+    SET google_sub = ?,
+      email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP)
+    WHERE id = ? AND google_sub IS NULL`,
+    [googleSub, userId],
+  );
+
+  return result.affectedRows > 0;
 }
 
 export async function ensureDefaultAdminUser() {
@@ -313,7 +357,7 @@ export async function ensureDefaultAdminUser() {
   const password = config.auth.adminPassword;
   const email =
     config.auth.adminEmail.trim().toLowerCase() ||
-    `${username || 'admin'}@naki-code.local`;
+    `${username || "admin"}@naki-code.local`;
 
   if (!username || !password) {
     return null;
@@ -322,7 +366,7 @@ export async function ensureDefaultAdminUser() {
   const existingByUsername = await findUserByUsername(username);
 
   if (existingByUsername) {
-    if (existingByUsername.role !== 'admin') {
+    if (existingByUsername.role !== "admin") {
       await pool.query<ResultSetHeader>(
         `UPDATE users
         SET role = 'admin',
@@ -338,7 +382,7 @@ export async function ensureDefaultAdminUser() {
   const existingByEmail = await findUserByEmail(email);
 
   if (existingByEmail) {
-    if (existingByEmail.role !== 'admin') {
+    if (existingByEmail.role !== "admin") {
       await pool.query<ResultSetHeader>(
         `UPDATE users
         SET role = 'admin',
@@ -373,7 +417,7 @@ export async function ensureDefaultAdminUser() {
     id: result.insertId,
     username,
     email,
-    role: 'admin' as const,
+    role: "admin" as const,
   };
 }
 
@@ -382,15 +426,17 @@ function normalizeUserRow(row: UserRow): UserAccount {
     id: row.id,
     username: row.username,
     email: row.email,
+    googleSub: row.google_sub ?? null,
     passwordHash: row.password_hash,
-    role: row.role === 'admin' ? 'admin' : 'user',
+    role: row.role === "admin" ? "admin" : "user",
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
     emailVerifiedAt: row.email_verified_at ?? null,
     emailVerificationToken: row.email_verification_token ?? null,
     emailVerificationSentAt: row.email_verification_sent_at ?? null,
     emailVerificationOtpHash: row.email_verification_otp_hash ?? null,
-    emailVerificationOtpExpiresAt: row.email_verification_otp_expires_at ?? null,
+    emailVerificationOtpExpiresAt:
+      row.email_verification_otp_expires_at ?? null,
     emailVerificationOtpSentAt: row.email_verification_otp_sent_at ?? null,
     passwordResetOtpHash: row.password_reset_otp_hash ?? null,
     passwordResetOtpExpiresAt: row.password_reset_otp_expires_at ?? null,
@@ -399,9 +445,9 @@ function normalizeUserRow(row: UserRow): UserAccount {
 }
 
 function generateVerificationToken() {
-  return crypto.randomBytes(24).toString('base64url');
+  return crypto.randomBytes(24).toString("base64url");
 }
 
 function hashOtp(value: string) {
-  return crypto.createHash('sha256').update(value.trim()).digest('hex');
+  return crypto.createHash("sha256").update(value.trim()).digest("hex");
 }

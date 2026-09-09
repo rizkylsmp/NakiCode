@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import { CategorySection } from "../components/home/CategorySection";
 import { CTASection } from "../components/home/CTASection";
 import { FaqSection } from "../components/home/FaqSection";
@@ -38,6 +39,7 @@ type BlogPostsResponse = {
     title: string;
     excerpt: string;
     author: string;
+    coverImage: string | null;
     status: string;
     publishedAt: string | null;
     createdAt: string;
@@ -77,6 +79,19 @@ export function HomePage({
 
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqs.map((faq) => ({
+              "@type": "Question",
+              name: faq.question,
+              acceptedAnswer: { "@type": "Answer", text: faq.answer },
+            })),
+          })}
+        </script>
+      </Helmet>
       <Header />
       <main id="main-content" tabIndex={-1}>
         <Hero

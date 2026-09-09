@@ -13,7 +13,7 @@ type CategoryWithIdRow = RowDataPacket & {
 
 export async function findTemplateCategories() {
   const [rows] = await pool.query<CategoryRow[]>(
-    "SELECT name FROM template_categories ORDER BY sort_order ASC, id ASC",
+    "SELECT name FROM categories ORDER BY sort_order ASC, id ASC",
   );
 
   return ["Semua", ...rows.map((row) => row.name)];
@@ -21,7 +21,7 @@ export async function findTemplateCategories() {
 
 export async function findTemplateCategoriesWithIds() {
   const [rows] = await pool.query<CategoryWithIdRow[]>(
-    "SELECT id, name FROM template_categories ORDER BY sort_order ASC, id ASC",
+    "SELECT id, name FROM categories ORDER BY sort_order ASC, id ASC",
   );
 
   return rows.map((row) => ({ id: row.id, name: row.name }));
@@ -30,9 +30,9 @@ export async function findTemplateCategoriesWithIds() {
 export async function createTemplateCategory(name: string) {
   const normalizedName = name.trim();
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT IGNORE INTO template_categories (name, sort_order)
+    `INSERT IGNORE INTO categories (name, sort_order)
     SELECT ?, COALESCE(MAX(sort_order), 0) + 1
-    FROM template_categories`,
+    FROM categories`,
     [normalizedName],
   );
 
@@ -76,7 +76,7 @@ export async function updateTemplateCategory(
     await connection.beginTransaction();
 
     const [rows] = await connection.query<CategoryRow[]>(
-      "SELECT name FROM template_categories WHERE id = ? FOR UPDATE",
+      "SELECT name FROM categories WHERE id = ? FOR UPDATE",
       [id],
     );
     const previousName = rows[0]?.name;
@@ -91,13 +91,13 @@ export async function updateTemplateCategory(
     }
 
     await connection.query<ResultSetHeader>(
-      `UPDATE template_categories SET ${updates.join(", ")} WHERE id = ?`,
+      `UPDATE categories SET ${updates.join(", ")} WHERE id = ?`,
       [...params, id],
     );
 
     if (nextName && nextName !== previousName) {
       await connection.query(
-        "UPDATE templates SET category = ? WHERE category_id = ?",
+        "UPDATE designs SET category = ? WHERE category_id = ?",
         [nextName, id],
       );
     }
@@ -119,7 +119,7 @@ export async function updateTemplateCategory(
 
 export async function deleteTemplateCategory(id: number) {
   const [categoryRows] = await pool.query<CategoryRow[]>(
-    "SELECT name FROM template_categories WHERE id = ? LIMIT 1",
+    "SELECT name FROM categories WHERE id = ? LIMIT 1",
     [id],
   );
   const categoryName = categoryRows[0]?.name;
@@ -143,14 +143,14 @@ export async function deleteTemplateCategory(id: number) {
   }
 
   await pool.query(
-    `UPDATE templates
+    `UPDATE designs
     SET category_id = NULL
     WHERE category_id = ? AND deleted_at IS NOT NULL`,
     [id],
   );
 
   const [result] = await pool.query<ResultSetHeader>(
-    "DELETE FROM template_categories WHERE id = ?",
+    "DELETE FROM categories WHERE id = ?",
     [id],
   );
 
@@ -164,7 +164,7 @@ export async function deleteTemplateCategory(id: number) {
 
 export async function isCategoryInUse(categoryName: string): Promise<boolean> {
   const [categoryRows] = await pool.query<CategoryRow[]>(
-    "SELECT id, name FROM template_categories WHERE name = ? LIMIT 1",
+    "SELECT id, name FROM categories WHERE name = ? LIMIT 1",
     [categoryName.trim()],
   );
 
@@ -177,7 +177,7 @@ async function isCategoryInUseById(
 ): Promise<boolean> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT COUNT(*) as count
-    FROM templates
+    FROM designs
     WHERE deleted_at IS NULL
       AND (
         category_id = ?

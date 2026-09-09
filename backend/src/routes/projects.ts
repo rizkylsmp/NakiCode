@@ -25,14 +25,34 @@ const paginationQuerySchema = z.object({
   pageSize: z.coerce.number().int().positive().max(30).default(9),
 });
 
+const optionalWebsiteUrlSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .refine(
+    (value) => !value || value === "#" || /^https?:\/\//i.test(value),
+    "URL website harus diawali http:// atau https://",
+  );
+
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(500)
+  .refine(
+    (value) => /^https?:\/\//i.test(value) || value.startsWith("/uploads/"),
+    "URL gambar harus berupa URL HTTP(S) atau path upload lokal",
+  );
+
 const projectBodySchema = z.object({
   title: z.string().trim().min(1).max(160),
   category: z.string().trim().min(1).max(80),
   description: z.string().trim().min(1).max(5000),
   result: z.string().trim().min(1).max(160),
-  websiteUrl: z.string().trim().max(500).optional(),
-  imageUrl: z.string().trim().max(500).optional(),
-  imageUrls: z.array(z.string().trim().max(500)).max(12).optional(),
+  websiteUrl: optionalWebsiteUrlSchema,
+  imageUrl: imageUrlSchema.optional(),
+  imageUrls: z.array(imageUrlSchema).max(12).optional(),
   coverIndex: z.number().int().min(0).optional(),
 })
 .superRefine((data, ctx) => {
@@ -49,6 +69,18 @@ const projectBodySchema = z.object({
     });
   }
 });
+
+async function createProjectAuditLog(
+  payload: Parameters<typeof createAdminAuditLog>[0],
+) {
+  try {
+    await createAdminAuditLog(payload);
+  } catch (error) {
+    // Mutasi project sudah berhasil. Audit tetap dilaporkan ke observability,
+    // tetapi kegagalannya tidak boleh membuat admin mengulang operasi CRUD.
+    Sentry.captureException(error);
+  }
+}
 
 
 projectsRouter.get("/", async (request, response) => {
@@ -96,7 +128,7 @@ projectsRouter.post("/", requireAdmin, async (request, response) => {
   try {
     const project = await createProject(normalizeProjectPayload(body));
 
-    await createAdminAuditLog({
+    await createProjectAuditLog({
       admin,
       action: "project.create",
       entityType: "project",
@@ -134,7 +166,7 @@ projectsRouter.put("/:id", requireAdmin, async (request, response) => {
       return;
     }
 
-    await createAdminAuditLog({
+    await createProjectAuditLog({
       admin,
       action: "project.update",
       entityType: "project",
@@ -169,7 +201,7 @@ projectsRouter.delete("/:id", requireAdmin, async (request, response) => {
       return;
     }
 
-    await createAdminAuditLog({
+    await createProjectAuditLog({
       admin,
       action: "project.soft_delete",
       entityType: "project",

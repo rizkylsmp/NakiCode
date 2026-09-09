@@ -1,4 +1,4 @@
-export type PaymentStatus = "pending" | "waiting_payment" | "paid" | "failed";
+export type PaymentStatus = "pending" | "waiting_payment" | "partial_paid" | "paid" | "failed" | "expired" | "partial_refunded" | "refunded" | "cancelled";
 
 export type OrderItem = {
   id: number;
@@ -17,11 +17,24 @@ export type OrderItem = {
   paymentReference: string | null;
   paymentUrl: string | null;
   paymentAmount: number | null;
+  subtotalAmount: number | null;
+  discountAmount: number;
+  gatewayFeeAmount: number;
+  netAmount: number | null;
+  currency: string;
+  quoteAmount: number | null;
+  quoteNotes: string | null;
+  quoteSentAt: string | null;
+  invoiceNumber: string | null;
+  invoiceIssuedAt: string | null;
   paymentFailureCode: string | null;
   paymentFailureReason: string | null;
   paymentLastWebhookStatus: string | null;
   paymentLastWebhookAt: string | null;
   paidAt: string | null;
+  settlementAt: string | null;
+  refundedAt: string | null;
+  cancelledAt: string | null;
   templatePrice: string | null;
   templateLynkUrl: string | null;
   deliveryStatus: "locked" | "available";
@@ -47,6 +60,11 @@ export function getPaymentStatusLabel(status: string) {
       return "Menunggu pembayaran";
     case "failed":
       return "Pembayaran gagal";
+    case "partial_paid": return "Bayar sebagian";
+    case "expired": return "Kedaluwarsa";
+    case "partial_refunded": return "Refund sebagian";
+    case "refunded": return "Direfund";
+    case "cancelled": return "Dibatalkan";
     default:
       return "Belum bayar";
   }

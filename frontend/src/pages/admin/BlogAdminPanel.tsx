@@ -19,8 +19,9 @@ type BlogAdminPanelProps = {
   selectedId: number | null;
   status: string;
   isSaving: boolean;
+  isDeleting: boolean;
   isModalOpen: boolean;
-  deletingId: number | null;
+  deletingPost: BlogPostItem | null;
   form: BlogPostFormState;
   adminToken: string | null;
   onSearchChange: (value: string) => void;
@@ -48,8 +49,9 @@ export function BlogAdminPanel({
   selectedId,
   status,
   isSaving,
+  isDeleting,
   isModalOpen,
-  deletingId,
+  deletingPost,
   form,
   adminToken,
   onSearchChange,
@@ -426,8 +428,8 @@ export function BlogAdminPanel({
       ) : null}
 
       <DeleteBlogDialog
-        blog={deletingId !== null ? paginatedPosts.find(p => p.id === deletingId) ?? null : null}
-        isDeleting={deletingId !== null}
+        blog={deletingPost}
+        isDeleting={isDeleting}
         onClose={onCancelDelete}
         onConfirm={onConfirmDelete}
       />

@@ -43,7 +43,9 @@ import { getTemplateBySlug, type TemplateItem } from "../domain/content";
 import type { OrderItem } from "../domain/order-types";
 import { saveRecentlyViewedTemplate } from "../utils/template-activity";
 import { getTemplateCategoryPath } from "../utils/template-url";
+import { absoluteSiteUrl } from "../utils/seo";
 import { useFavoriteTemplates } from "../hooks/useFavorites";
+import { TechStackBadge } from "../components/ui/TechStackBadge";
 import {
   userRoleKey,
   userSessionEvent,
@@ -53,6 +55,7 @@ import {
 
 type TemplateDetailPageProps = {
   templates: TemplateItem[];
+  isLoading?: boolean;
 };
 
 type ConsultationFormState = {
@@ -102,7 +105,7 @@ const defaultUserAuthForm: UserAuthFormState = {
   confirmPassword: "",
 };
 
-export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
+export function TemplateDetailPage({ templates, isLoading = false }: TemplateDetailPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -202,21 +205,29 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   if (!template) {
     return (
       <div className="naki-frosted-grid min-h-screen text-naki-primary">
+        <Helmet>
+          <title>{isLoading ? "Memuat Design - Naki Code" : "Design Tidak Ditemukan - Naki Code"}</title>
+          {!isLoading ? <meta name="robots" content="noindex, follow" /> : null}
+        </Helmet>
         <Header />
         <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center px-5 py-16 text-center md:px-8 xl:px-12 2xl:px-16">
           <h1 className="text-2xl font-bold text-naki-primary md:text-3xl">
-            Design tidak ditemukan.
+            {isLoading ? "Memuat design..." : "Design tidak ditemukan."}
           </h1>
           <p className="mt-3 text-naki-smoke">
-            Coba kembali ke katalog dan pilih design lain.
+            {isLoading
+              ? "Menyiapkan informasi design untukmu."
+              : "Coba kembali ke katalog dan pilih design lain."}
           </p>
-          <Link
-            className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-medium text-white"
-            to="/design"
-          >
-            <ArrowLeft size={16} />
-            Kembali ke katalog
-          </Link>
+          {!isLoading ? (
+            <Link
+              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-medium text-white"
+              to="/design"
+            >
+              <ArrowLeft size={16} />
+              Kembali ke katalog
+            </Link>
+          ) : null}
         </section>
         <Footer />
       </div>
@@ -245,7 +256,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
   const whatsappMessage = encodeURIComponent(
     `Halo Naki Code, saya tertarik membuat website menggunakan design ${selectedTemplate.title} sebagai referensi.`,
   );
-  const shareUrl = `${window.location.origin}/design/${selectedTemplate.slug}`;
+  const shareUrl = absoluteSiteUrl(`/design/${selectedTemplate.slug}`);
   const shareText = encodeURIComponent(
     `${selectedTemplate.title} dari Naki Code`,
   );
@@ -468,8 +479,9 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     name: selectedTemplate.title,
     description: selectedTemplate.description,
     image:
-      selectedTemplate.preview[0]?.image ||
-      `${window.location.origin}/og-image.png`,
+      selectedTemplate.preview[0]?.image
+        ? absoluteSiteUrl(selectedTemplate.preview[0].image)
+        : absoluteSiteUrl("/logo.png"),
     brand: { "@type": "Organization", name: "Naki Code" },
     offers: {
       "@type": "Offer",
@@ -517,8 +529,8 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: `${window.location.origin}/` },
-      { "@type": "ListItem", position: 2, name: selectedTemplate.category, item: `${window.location.origin}${selectedTemplateCategoryPath}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: absoluteSiteUrl("/") },
+      { "@type": "ListItem", position: 2, name: selectedTemplate.category, item: absoluteSiteUrl(selectedTemplateCategoryPath) },
       { "@type": "ListItem", position: 3, name: selectedTemplate.title, item: shareUrl },
     ],
   };
@@ -534,13 +546,13 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
         <meta property="og:type" content="product" />
         <meta property="og:url" content={shareUrl} />
         {selectedTemplate.preview[0]?.image ? (
-          <meta property="og:image" content={selectedTemplate.preview[0].image} />
+          <meta property="og:image" content={absoluteSiteUrl(selectedTemplate.preview[0].image)} />
         ) : null}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${selectedTemplate.title} - Naki Code`} />
         <meta name="twitter:description" content={selectedTemplate.description} />
         {selectedTemplate.preview[0]?.image ? (
-          <meta name="twitter:image" content={selectedTemplate.preview[0].image} />
+          <meta name="twitter:image" content={absoluteSiteUrl(selectedTemplate.preview[0].image)} />
         ) : null}
         <script type="application/ld+json">{JSON.stringify(productSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
@@ -646,12 +658,7 @@ export function TemplateDetailPage({ templates }: TemplateDetailPageProps) {
                 {/* Tech tags */}
                 <div className="mt-5 flex flex-wrap gap-2">
                   {selectedTemplate.stack.map((tech) => (
-                    <span
-                      key={tech}
-                      className="rounded-md bg-naki-frost px-3 py-1 text-xs font-medium text-naki-smoke"
-                    >
-                      #{tech}
-                    </span>
+                    <TechStackBadge key={tech} tech={tech} variant="pill" />
                   ))}
                 </div>
 

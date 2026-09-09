@@ -50,11 +50,11 @@ describe('category model', () => {
 
     expect(beginTransaction).toHaveBeenCalledOnce();
     expect(connectionQuery).toHaveBeenCalledWith(
-      'SELECT name FROM template_categories WHERE id = ? FOR UPDATE',
+      'SELECT name FROM categories WHERE id = ? FOR UPDATE',
       [7],
     );
     expect(connectionQuery).toHaveBeenCalledWith(
-      'UPDATE templates SET category = ? WHERE category_id = ?',
+      'UPDATE designs SET category = ? WHERE category_id = ?',
       ['Company Profile', 7],
     );
     expect(commit).toHaveBeenCalledOnce();
@@ -73,7 +73,7 @@ describe('category model', () => {
 
     expect(result).toMatchObject({ deleted: false, inUse: true });
     expect(query).not.toHaveBeenCalledWith(
-      'DELETE FROM template_categories WHERE id = ?',
+      'DELETE FROM categories WHERE id = ?',
       [3],
     );
   });
@@ -90,13 +90,13 @@ describe('category model', () => {
     const result = await deleteTemplateCategory(4);
 
     expect(query).toHaveBeenCalledWith(
-      `UPDATE templates
+      `UPDATE designs
     SET category_id = NULL
     WHERE category_id = ? AND deleted_at IS NOT NULL`,
       [4],
     );
     expect(query).toHaveBeenCalledWith(
-      'DELETE FROM template_categories WHERE id = ?',
+      'DELETE FROM categories WHERE id = ?',
       [4],
     );
     expect(result).toMatchObject({ deleted: true, inUse: false });

@@ -18,12 +18,15 @@ import {
   findOrdersPage,
   findOrdersPageByUser,
   normalizeOrderPayload,
+  setOrderQuote,
   startOrderPayment,
   type AdminOrderStatusFilter,
   type AdminPaymentStatusFilter,
   type UserOrderPaymentFilter,
   updateOrderStatus,
+  updateOrdersStatus,
 } from '../models/order.model';
+import { ensureOrderInvoice, recordPaidOrderTransaction } from '../models/finance.model';
 import {
   createLynkPaymentSession,
   createPaymentSession,
@@ -66,7 +69,15 @@ const paymentBodySchema = z.object({
 });
 
 const orderStatusBodySchema = z.object({
-  status: z.enum(['new', 'contacted', 'deal', 'closed']),
+  status: z.enum(['new', 'contacted', 'quotation', 'awaiting_dp', 'in_progress', 'revision', 'delivered', 'completed', 'cancelled', 'deal', 'closed']),
+});
+const quoteBodySchema = z.object({
+  amount: z.coerce.number().int().positive(),
+  notes: z.string().trim().max(2000).nullable().default(null),
+});
+const bulkStatusBodySchema = z.object({
+  ids: z.array(z.coerce.number().int().positive()).min(1).max(100),
+  status: orderStatusBodySchema.shape.status,
 });
 
 const paginationQuerySchema = z.object({
@@ -75,8 +86,9 @@ const paginationQuerySchema = z.object({
 });
 
 const adminOrdersQuerySchema = paginationQuerySchema.extend({
-  status: z.enum(['new', 'contacted', 'deal', 'closed']).optional(),
-  paymentStatus: z.enum(['pending', 'waiting_payment', 'paid', 'failed']).optional(),
+  status: orderStatusBodySchema.shape.status.optional(),
+  paymentStatus: z.enum(['pending', 'waiting_payment', 'partial_paid', 'paid', 'failed', 'expired', 'partial_refunded', 'refunded', 'cancelled']).optional(),
+  search: z.string().trim().max(100).optional(),
 });
 
 const userOrdersQuerySchema = paginationQuerySchema.extend({
@@ -100,6 +112,7 @@ ordersRouter.get('/', requireAdmin, async (request, response) => {
       ...(await findOrdersPage(query.data.page, query.data.pageSize, {
         status: query.data.status as AdminOrderStatusFilter | undefined,
         paymentStatus: query.data.paymentStatus as AdminPaymentStatusFilter | undefined,
+        search: query.data.search,
       })),
     });
   } catch (error) {
@@ -217,10 +230,10 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
     }
 
     // SECURITY: the payable amount must come from a server-trusted source
-    // (templates.price), never from user-supplied fields like budget_range.
+    // (designs.price), never from user-supplied fields like budget_range.
     // Custom orders without a template price are consultation-only and cannot
     // be self-checked-out — an admin sets the price/handles them manually.
-    if (!existingOrder.templatePrice) {
+    if (!existingOrder.templatePrice && !existingOrder.quoteAmount) {
       response.status(409).json({
         message:
           'Pesanan custom belum bisa dibayar mandiri. Tim kami akan menghubungi kamu untuk penawaran harga.',
@@ -228,7 +241,9 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
       return;
     }
 
-    const baseAmount = parseCurrencyAmount(existingOrder.templatePrice);
+    const baseAmount = existingOrder.templatePrice
+      ? parseCurrencyAmount(existingOrder.templatePrice)
+      : Number(existingOrder.quoteAmount);
     const coupon = body.provider === 'midtrans' && body.couponCode
       ? await validateCoupon(body.couponCode, baseAmount)
       : null;
@@ -240,7 +255,11 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
             method: normalizePaymentMethod(body.method),
             amount: coupon?.finalAmount ?? baseAmount,
           });
-    const order = await startOrderPayment(params.id, user.userId, paymentSession);
+    const order = await startOrderPayment(params.id, user.userId, {
+      ...paymentSession,
+      subtotalAmount: baseAmount,
+      discountAmount: coupon?.discountAmount ?? 0,
+    });
 
     if (!order) {
       response.status(404).json({ message: 'Order not found' });
@@ -301,6 +320,11 @@ ordersRouter.post('/:id/payment/confirm', requireUser, async (request, response)
       return;
     }
 
+    await Promise.all([
+      ensureOrderInvoice(order.id),
+      recordPaidOrderTransaction(order.id),
+    ]);
+
     await createNotification({
       userId: order.userId,
       title: 'Pembayaran berhasil',
@@ -316,6 +340,50 @@ ordersRouter.post('/:id/payment/confirm', requireUser, async (request, response)
   } catch (error) {
     Sentry.captureException(error);
     response.status(500).json({ message: 'Gagal mengonfirmasi pembayaran' });
+  }
+});
+
+ordersRouter.patch('/:id/quote', requireAdmin, async (request, response) => {
+  const params = parseParams(idParamsSchema, request, response);
+  const body = parseBody(quoteBodySchema, request, response);
+  const admin = response.locals.admin as UserTokenPayload | null | undefined;
+  if (!params || !body) return;
+  try {
+    const previousOrder = await findOrderById(params.id);
+    if (!previousOrder) {
+      response.status(404).json({ message: 'Order not found' }); return;
+    }
+    if (!(await setOrderQuote(params.id, body.amount, body.notes))) {
+      response.status(409).json({ message: 'Penawaran tidak dapat diubah setelah pembayaran tercatat' }); return;
+    }
+    const order = await findOrderById(params.id);
+    await createAdminAuditLog({ admin, action: 'order.quote_update', entityType: 'order', entityId: params.id, metadata: { amount: body.amount } });
+    await createNotification({
+      userId: order?.userId ?? previousOrder.userId,
+      title: 'Penawaran harga tersedia',
+      message: `Penawaran untuk ${previousOrder.templateTitle} sebesar Rp${body.amount.toLocaleString('id-ID')} sudah tersedia.`,
+      type: 'order',
+      relatedOrderId: params.id,
+    });
+    response.json({ source: 'mysql', order });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: 'Gagal menyimpan penawaran' });
+  }
+});
+
+ordersRouter.patch('/bulk/status', requireAdmin, async (request, response) => {
+  const body = parseBody(bulkStatusBodySchema, request, response);
+  const admin = response.locals.admin as UserTokenPayload | null | undefined;
+  if (!body) return;
+  try {
+    const ids = [...new Set(body.ids)];
+    const updated = await updateOrdersStatus(ids, body.status);
+    await createAdminAuditLog({ admin, action: 'order.bulk_status_update', entityType: 'order', entityId: null, metadata: { ids, status: body.status, updated } });
+    response.json({ source: 'mysql', updated });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: 'Gagal memperbarui status order' });
   }
 });
 
@@ -381,6 +449,10 @@ ordersRouter.delete('/:id', requireAdmin, async (request, response) => {
 
   try {
     const order = await findOrderById(params.id);
+    if (order && ['paid', 'partial_refunded', 'refunded'].includes(order.paymentStatus)) {
+      response.status(409).json({ message: 'Order yang sudah memiliki transaksi tidak dapat dihapus' });
+      return;
+    }
     const wasDeleted = await deleteOrder(params.id);
 
     if (!wasDeleted) {
@@ -426,12 +498,14 @@ ordersRouter.get('/:id/invoice', requireUser, async (request, response) => {
     // Only generate invoice for paid orders.
     // Paid state lives in payment_status; `status` is the fulfilment enum
     // (new|contacted|deal|closed) and is never 'paid'.
-    if (order.paymentStatus !== 'paid') {
+    if (!['paid', 'partial_refunded', 'refunded'].includes(order.paymentStatus)) {
       response.status(400).json({ 
         message: 'Invoice hanya tersedia untuk pesanan yang sudah dibayar' 
       });
       return;
     }
+
+    const invoiceNumber = (await ensureOrderInvoice(order.id)) ?? order.invoiceNumber ?? `INV/${String(order.id).padStart(6, '0')}`;
 
     // Import generateInvoicePDF
     const { generateInvoicePDF } = await import('../utils/generateInvoice.js');
@@ -446,10 +520,14 @@ ordersRouter.get('/:id/invoice', requireUser, async (request, response) => {
     // Generate and stream PDF
     await generateInvoicePDF(response, {
       orderId: order.id,
+      invoiceNumber,
       customerName: order.customerName,
       customerContact: order.customerContact,
       templateTitle: order.templateTitle,
-      budgetRange: order.budgetRange,
+      subtotalAmount: order.subtotalAmount ?? order.paymentAmount ?? 0,
+      discountAmount: order.discountAmount,
+      totalAmount: order.paymentAmount ?? order.quoteAmount ?? 0,
+      currency: order.currency,
       projectType: order.projectType,
       status: order.status,
       createdAt: order.createdAt,
