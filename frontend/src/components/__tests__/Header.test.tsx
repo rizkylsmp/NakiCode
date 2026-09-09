@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
 import { Header } from "../layout/Header";
 import { renderWithProviders } from "../../test/render";
+import { couponBannerReopenEvent } from "../promotions/coupon-banner-events";
 
 vi.mock("../../services/api-client", async () => {
   const actual = await vi.importActual<
@@ -10,9 +11,24 @@ vi.mock("../../services/api-client", async () => {
 
   return {
     ...actual,
-    apiGet: vi.fn(async (path: string) =>
-      path === "/api/designs" ? { templates: [] } : { notifications: [] },
-    ),
+    apiGet: vi.fn(async (path: string) => {
+      if (path === "/api/designs") return { templates: [] };
+      if (path === "/api/business/coupons/banners") {
+        return {
+          banners: [
+            {
+              id: 1,
+              code: "NAKI10",
+              description: "Promo",
+              discountType: "percent",
+              discountValue: 10,
+              imageUrl: "/promo.webp",
+            },
+          ],
+        };
+      }
+      return { notifications: [] };
+    }),
     apiPatch: vi.fn(async () => ({ notifications: [] })),
   };
 });
@@ -99,5 +115,19 @@ describe("Header Component", () => {
       screen.getByRole("dialog", { name: /cari design/i }),
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/company profile/i)).toHaveFocus();
+  });
+
+  it("dispatches a request to reopen the coupon banner from the prize button", async () => {
+    const onReopen = vi.fn();
+    window.addEventListener(couponBannerReopenEvent, onReopen);
+    renderHeader();
+
+    const prizeButtons = await screen.findAllByRole("button", {
+      name: /tampilkan promo coupon/i,
+    });
+    fireEvent.click(prizeButtons[0]);
+
+    expect(onReopen).toHaveBeenCalledOnce();
+    window.removeEventListener(couponBannerReopenEvent, onReopen);
   });
 });

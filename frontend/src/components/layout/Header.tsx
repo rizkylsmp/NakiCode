@@ -1,4 +1,4 @@
-import { LogIn, Menu, Search, X } from "lucide-react";
+import { Gift, LogIn, Menu, Search, Sparkles, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -12,6 +12,11 @@ import { SiteLogo } from "./header/SiteLogo";
 import { SearchDialog } from "./header/SearchDialog";
 import { ThemeToggle } from "./header/ThemeToggle";
 import type { HeaderProfile, NotificationsResponse } from "./header/types";
+import { requestCouponBannerReopen } from "../promotions/coupon-banner-events";
+
+type CouponBannersResponse = {
+  banners: Array<{ id: number }>;
+};
 
 export function Header() {
   const location = useLocation();
@@ -35,6 +40,7 @@ export function Header() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
+  const isAdminPage = location.pathname.startsWith("/admin");
 
   const notificationsQuery = useQuery({
     queryKey: ["notifications", userToken],
@@ -49,6 +55,16 @@ export function Header() {
       queryClient.setQueryData(["notifications", userToken], data);
     },
   });
+  const couponBannersQuery = useQuery({
+    queryKey: ["coupon-banners"],
+    queryFn: () =>
+      apiGet<CouponBannersResponse>("/api/business/coupons/banners"),
+    enabled: !isAdminPage,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
 
   const notifications = notificationsQuery.data?.notifications ?? [];
   const unreadCount = notifications.filter((item) => !item.readAt).length;
@@ -59,6 +75,7 @@ export function Header() {
       }
     : null;
   const loginNext = buildNextTarget(location);
+  const hasCouponBanner = Boolean(couponBannersQuery.data?.banners?.length);
 
   function isActiveNav(href: string): boolean {
     if (href === "/") return location.pathname === "/";
@@ -159,6 +176,10 @@ export function Header() {
             onToggle={() => setIsDarkMode((current) => !current)}
           />
 
+          {hasCouponBanner ? (
+            <PrizeButton onClick={requestCouponBannerReopen} />
+          ) : null}
+
           {activeProfile ? (
             <>
               <NotificationMenu
@@ -202,6 +223,9 @@ export function Header() {
           >
             <Search size={19} />
           </button>
+          {hasCouponBanner ? (
+            <PrizeButton mobile onClick={requestCouponBannerReopen} />
+          ) : null}
           <button
             className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:bg-naki-frost"
             aria-expanded={isMobileMenuOpen}
@@ -231,6 +255,33 @@ export function Header() {
         onClose={() => setIsSearchOpen(false)}
       />
     </header>
+  );
+}
+
+function PrizeButton({
+  mobile = false,
+  onClick,
+}: {
+  mobile?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label="Tampilkan promo coupon"
+      className={`group relative isolate grid shrink-0 place-items-center overflow-visible rounded-xl bg-linear-to-br from-naki-secondary via-naki-primary to-naki-secondary text-white shadow-naki-soft ring-2 ring-naki-secondary/20 transition duration-300 hover:-translate-y-0.5 hover:shadow-naki-card focus-visible:ring-2 focus-visible:ring-naki-secondary ${mobile ? "size-11" : "size-10"}`}
+      onClick={onClick}
+      title="Lihat promo spesial"
+      type="button"
+    >
+      <span className="absolute inset-1 -z-10 rounded-lg bg-white/10" />
+      <Gift
+        className="transition duration-300 group-hover:-rotate-12 group-hover:scale-110 motion-reduce:transition-none"
+        size={mobile ? 20 : 18}
+      />
+      <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-white text-naki-secondary shadow-sm motion-safe:animate-pulse">
+        <Sparkles size={9} strokeWidth={3} />
+      </span>
+    </button>
   );
 }
 
