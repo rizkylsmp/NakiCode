@@ -43,7 +43,14 @@ export function PortfolioPage() {
   const page = portfolioQuery.data?.page ?? requestedPage;
   const total = portfolioQuery.data?.total ?? 0;
   const totalPages = portfolioQuery.data?.totalPages ?? 1;
-  const canonicalUrl = absoluteSiteUrl("/portofolio");
+  const pagePath = requestedPage > 1 ? `/portofolio?page=${requestedPage}` : "/portofolio";
+  const canonicalUrl = absoluteSiteUrl(pagePath);
+  const pageTitle = requestedPage > 1
+    ? `Portofolio Website Halaman ${requestedPage} - Naki Code`
+    : "Portofolio Website - Naki Code";
+  const pageDescription = requestedPage > 1
+    ? `Lihat portofolio website Naki Code halaman ${requestedPage}, dari design referensi dan brief custom pelanggan.`
+    : "Lihat portofolio website yang telah dikerjakan Naki Code dari design referensi dan brief custom pelanggan.";
 
   useEffect(() => {
     if (portfolioQuery.data && requestedPage > totalPages) {
@@ -61,13 +68,12 @@ export function PortfolioPage() {
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Helmet>
-        <title>Portofolio Website - Naki Code</title>
-        <meta
-          name="description"
-          content="Lihat portofolio website yang telah dikerjakan Naki Code dari design referensi dan brief custom pelanggan."
-        />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
         <link rel="canonical" href={canonicalUrl} />
-        <meta property="og:title" content="Portofolio Website - Naki Code" />
+        {requestedPage > 1 ? <link rel="prev" href={absoluteSiteUrl(requestedPage === 2 ? "/portofolio" : `/portofolio?page=${requestedPage - 1}`)} /> : null}
+        {requestedPage < totalPages ? <link rel="next" href={absoluteSiteUrl(`/portofolio?page=${requestedPage + 1}`)} /> : null}
+        <meta property="og:title" content={pageTitle} />
         <meta
           property="og:description"
           content="Kumpulan website yang telah dikerjakan Naki Code untuk berbagai kebutuhan bisnis dan personal."
@@ -75,7 +81,7 @@ export function PortfolioPage() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Portofolio Website - Naki Code" />
+        <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content="Kumpulan website yang telah dikerjakan Naki Code untuk berbagai kebutuhan bisnis dan personal." />
       </Helmet>
 
@@ -117,6 +123,7 @@ export function PortfolioPage() {
                     pageSize={portfolioPageSize}
                     isLoading={portfolioQuery.isFetching}
                     onPageChange={changePage}
+                    getPageHref={(targetPage) => targetPage > 1 ? `/portofolio?page=${targetPage}` : "/portofolio"}
                   />
                 </div>
               </>

@@ -1,7 +1,10 @@
 import { Edit3, ExternalLink, Globe2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { type PortfolioItem } from "../../domain/content";
-import { normalizeCoverIndex, type PortfolioFormState } from "./AdminTemplateWorkspace.shared";
+import {
+  normalizeCoverIndex,
+  type PortfolioFormState,
+} from "./AdminTemplateWorkspace.shared";
 import { DeletePortfolioDialog } from "./DeletePortfolioDialog";
 import { PortfolioFormModal } from "./PortfolioFormModal";
 
@@ -19,7 +22,10 @@ type PortfolioAdminPanelProps = {
   onDelete: (project: PortfolioItem) => void;
   onOpenModal: () => void;
   onCloseModal: () => void;
-  onUpdateField: <Key extends keyof PortfolioFormState>(key: Key, value: PortfolioFormState[Key]) => void;
+  onUpdateField: <Key extends keyof PortfolioFormState>(
+    key: Key,
+    value: PortfolioFormState[Key],
+  ) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
@@ -47,11 +53,12 @@ export function PortfolioAdminPanel({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-naki-primary">Portfolio</h1>
           <p className="mt-1 text-sm text-naki-smoke">
-            {projects.length} items displayed on the storefront portfolio section.
+            {projects.length} items displayed on the storefront portfolio
+            section.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -78,7 +85,9 @@ export function PortfolioAdminPanel({
           <span className="mx-auto grid size-14 place-items-center rounded-xl bg-naki-frost text-naki-smoke">
             <Globe2 size={28} />
           </span>
-          <h3 className="mt-5 text-xl font-bold text-naki-primary">No portfolio yet.</h3>
+          <h3 className="mt-5 text-xl font-bold text-naki-primary">
+            No portfolio yet.
+          </h3>
           <p className="mt-2 text-sm text-naki-smoke">
             Add completed websites to display on the homepage.
           </p>
@@ -134,7 +143,10 @@ function PortfolioProjectCard({
   onStartEdit: (project: PortfolioItem) => void;
 }) {
   const [imageError, setImageError] = useState(false);
-  const coverIndex = normalizeCoverIndex(project.coverIndex, project.imageUrls ?? []);
+  const coverIndex = normalizeCoverIndex(
+    project.coverIndex,
+    project.imageUrls ?? [],
+  );
   const coverImage =
     project.imageUrls && project.imageUrls.length > 0
       ? project.imageUrls[coverIndex]
@@ -179,7 +191,7 @@ function PortfolioProjectCard({
             {project.result}
           </p>
         </div>
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-naki-steel pt-3">
+        <div className="mt-4 flex flex-col gap-3 border-t border-naki-steel pt-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="min-w-0 truncate text-xs font-medium text-naki-smoke">
             {hasWebsite ? project.websiteUrl : "URL belum diisi"}
           </p>

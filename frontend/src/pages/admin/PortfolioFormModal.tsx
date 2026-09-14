@@ -69,7 +69,10 @@ export function PortfolioFormModal({
   const coverImage = portfolioImages[coverIndex] ?? "";
   const hasImage = Boolean(coverImage);
 
-  function updatePortfolioImages(imageUrls: string[], nextIndex = form.coverIndex) {
+  function updatePortfolioImages(
+    imageUrls: string[],
+    nextIndex = form.coverIndex,
+  ) {
     const nextCoverIndex = normalizeCoverIndex(nextIndex, imageUrls);
 
     onUpdateField("imageUrls", imageUrls);
@@ -97,18 +100,21 @@ export function PortfolioFormModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/45 px-4 py-6 backdrop-blur"
+      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/45 p-0 backdrop-blur sm:px-4 sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="portfolio-form-title"
     >
-      <div className="my-10 w-full max-w-7xl overflow-hidden rounded-2xl bg-white shadow-sm">
+      <div className="min-h-dvh w-full overflow-hidden bg-white shadow-sm sm:my-10 sm:min-h-0 sm:max-w-7xl sm:rounded-2xl">
         <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-white/95 p-5 backdrop-blur sm:flex-row sm:items-start">
           <div>
             <p className="text-xs font-medium uppercase text-naki-secondary">
               Portfolio admin
             </p>
-            <h2 id="portfolio-form-title" className="mt-1 text-2xl font-bold leading-tight text-naki-primary">
+            <h2
+              id="portfolio-form-title"
+              className="mt-1 text-2xl font-bold leading-tight text-naki-primary"
+            >
               {modalTitle}
             </h2>
             <p className="mt-1 text-sm text-naki-smoke leading-relaxed">
@@ -137,7 +143,7 @@ export function PortfolioFormModal({
         </div>
 
         <form
-          className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_360px]"
+          className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_360px]"
           onSubmit={onSubmit}
         >
           <div className="grid gap-4">

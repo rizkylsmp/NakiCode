@@ -48,6 +48,8 @@ describe("Header Component", () => {
 
     const logo = screen.getByRole("link", { name: /NakiCode home/i });
     expect(logo).toBeInTheDocument();
+    expect(logo.querySelector("img")).toHaveClass("size-10");
+    expect(logo.querySelector("img")).not.toHaveClass("max-w-[120px]");
   });
 
   it("shows login link when user is not authenticated", () => {

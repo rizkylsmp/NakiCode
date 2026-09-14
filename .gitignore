@@ -5,7 +5,9 @@ backend/backups/
 .env.local
 .env.example
 .env.production
+!frontend/.env.example
 *.log
 .DS_Store
 docs/*
 !docs/PROJECT_SUMMARY.md
+!docs/SEO_OPERATIONS.md

@@ -5,10 +5,10 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 export function CTASection() {
   return (
     <section className="w-full">
-      <div className="px-4 py-10 sm:px-5 md:px-8 md:py-16 xl:px-12 2xl:px-16">
+      <div className="px-3 py-8 min-[360px]:px-4 sm:px-5 sm:py-10 md:px-8 md:py-16 xl:px-12 2xl:px-16">
         <div className="mx-auto max-w-7xl">
           {/* Professional gradient card with glow effects */}
-          <div className="relative overflow-hidden rounded-2xl p-5 sm:p-8 md:rounded-3xl md:p-12 lg:p-14">
+          <div className="relative overflow-hidden rounded-2xl p-5 pb-0 sm:p-8 sm:pb-0 md:rounded-3xl md:p-12 lg:p-14">
             {/* Multi-layer gradient background */}
             <div className="absolute inset-0 bg-gradient-to-br from-naki-primary via-slate-900 to-slate-950" />
             {/* Top-right blue glow */}
@@ -28,28 +28,29 @@ export function CTASection() {
             <div className="absolute inset-0 rounded-3xl border border-white/10" />
 
             {/* Content */}
-            <div className="relative grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.74fr)] md:gap-8">
+            <div className="relative grid items-center gap-3 sm:gap-4 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.74fr)] md:gap-8">
               <div className="text-center md:text-left">
-                <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-blue-500/15 text-blue-400 sm:size-14 md:mx-0">
-                  <MessageCircle size={24} />
+                <span className="mx-auto grid size-11 place-items-center rounded-xl bg-blue-500/15 text-blue-400 sm:size-14 sm:rounded-2xl md:mx-0">
+                  <MessageCircle className="size-5 sm:size-6" />
                 </span>
-                <h2 className="mt-5 text-2xl font-bold leading-tight text-white md:text-3xl lg:text-4xl">
+                <h2 className="mt-4 text-2xl font-bold leading-tight text-white sm:mt-5 md:text-3xl lg:text-4xl">
                   Siap mewujudkan website pilihanmu?
                 </h2>
-                <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-slate-400 md:mx-0 md:text-base">
-                  Pilih design yang kamu suka sebagai referensi. Kami bantu menyesuaikan
-                  identitas brand, konten, dan fitur hingga siap digunakan.
+                <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-slate-400 sm:mt-4 md:mx-0 md:text-base">
+                  Pilih design yang kamu suka sebagai referensi. Kami bantu
+                  menyesuaikan identitas brand, konten, dan fitur hingga siap
+                  digunakan.
                 </p>
-                <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row md:justify-start">
+                <div className="mt-6 flex flex-col items-stretch justify-center gap-2.5 sm:mt-7 sm:flex-row sm:gap-3 md:justify-start">
                   <a
-                    className="naki-inverse-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
+                    className="naki-inverse-cta inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost sm:h-12 sm:px-6"
                     href="/design"
                   >
                     Jelajahi Design
                     <ArrowRight size={16} />
                   </a>
                   <a
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 text-sm font-medium text-white backdrop-blur transition hover:bg-white/10"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/10 sm:h-12 sm:px-6"
                     href={
                       WHATSAPP_NUMBER
                         ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo Naki Code, saya ingin konsultasi pembuatan website dari design yang tersedia.")}`
@@ -63,11 +64,11 @@ export function CTASection() {
                 </div>
               </div>
 
-              <div className="pointer-events-none relative order-first mx-auto h-38 w-full max-w-[200px] self-end sm:h-48 sm:max-w-[270px] md:order-none md:h-64 md:max-w-none lg:h-76">
+              <div className="pointer-events-none relative -mb-3 mt-1 h-48 w-full max-w-[240px] self-end justify-self-center sm:-mb-6 sm:h-56 sm:max-w-[300px] md:mb-0 md:mt-0 md:h-64 md:max-w-none lg:h-76">
                 <img
                   aria-hidden="true"
                   alt=""
-                  className="absolute left-1/2 top-1/2 z-0 h-[180%] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain opacity-70 mix-blend-screen"
+                  className="absolute left-1/2 top-1/2 z-0 h-[165%] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain opacity-70 mix-blend-screen sm:h-[175%] md:h-[180%]"
                   src="/images/cta-naki-abstract-shape-v1.webp"
                   width="900"
                   height="900"
@@ -75,7 +76,7 @@ export function CTASection() {
                   decoding="async"
                 />
                 <img
-                  className="absolute bottom-[-8%] left-1/2 z-10 h-[118%] max-w-none -translate-x-1/2 object-contain object-bottom drop-shadow-2xl sm:bottom-[-10%] sm:h-[122%] md:bottom-[-20%] md:h-[120%] lg:h-[130%]"
+                  className="absolute bottom-[-5%] left-1/2 z-10 h-[120%] max-w-none -translate-x-1/2 object-contain object-bottom drop-shadow-2xl sm:bottom-[-8%] sm:h-[124%] md:bottom-[-20%] md:h-[120%] lg:h-[130%]"
                   src="/images/cta-naki-honne-eye-frame.webp"
                   alt="Honne mengajak konsultasi bersama Naki Code"
                   width="1254"

@@ -1,15 +1,15 @@
-import crypto from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { v2 as cloudinary } from 'cloudinary';
-import { config } from '../config';
+import crypto from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { v2 as cloudinary } from "cloudinary";
+import { config } from "../config";
 
 export type StoredImage = {
   url: string;
-  storage: 'cloudinary' | 'local';
+  storage: "cloudinary" | "local";
 };
 
-const uploadDir = path.resolve(__dirname, '../../uploads');
+const uploadDir = path.resolve(__dirname, "../../uploads");
 
 export async function storePreviewImage(file: Express.Multer.File) {
   if (config.storage.cloudinaryUrl) {
@@ -18,6 +18,24 @@ export async function storePreviewImage(file: Express.Multer.File) {
   }
 
   return uploadToLocalDisk(file);
+}
+
+export async function storePreviewVideo(file: Express.Multer.File) {
+  if (config.storage.cloudinaryUrl) {
+    configureCloudinary(config.storage.cloudinaryUrl);
+    return uploadVideoToCloudinary(file);
+  }
+
+  return uploadVideoToLocalDisk(file);
+}
+
+export async function storeSourcePackage(file: Express.Multer.File) {
+  if (config.storage.cloudinaryUrl) {
+    configureCloudinary(config.storage.cloudinaryUrl);
+    return uploadSourceToCloudinary(file);
+  }
+
+  return uploadSourceToLocalDisk(file);
 }
 
 function configureCloudinary(cloudinaryUrl: string) {
@@ -35,21 +53,21 @@ function uploadToCloudinary(file: Express.Multer.File): Promise<StoredImage> {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: config.storage.cloudinaryFolder,
-        resource_type: 'image',
+        resource_type: "image",
         transformation: [
-          { width: 1280, height: 1280, crop: 'limit' },
-          { quality: 'auto', fetch_format: 'auto' },
+          { width: 1280, height: 1280, crop: "limit" },
+          { quality: "auto", fetch_format: "auto" },
         ],
       },
       (error, result) => {
         if (error || !result?.secure_url) {
-          reject(error ?? new Error('Cloudinary upload failed'));
+          reject(error ?? new Error("Cloudinary upload failed"));
           return;
         }
 
         resolve({
           url: result.secure_url,
-          storage: 'cloudinary',
+          storage: "cloudinary",
         });
       },
     );
@@ -58,30 +76,107 @@ function uploadToCloudinary(file: Express.Multer.File): Promise<StoredImage> {
   });
 }
 
-async function uploadToLocalDisk(file: Express.Multer.File): Promise<StoredImage> {
+function uploadVideoToCloudinary(
+  file: Express.Multer.File,
+): Promise<StoredImage> {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: config.storage.cloudinaryFolder,
+        resource_type: "video",
+      },
+      (error, result) => {
+        if (error || !result?.secure_url) {
+          reject(error ?? new Error("Cloudinary video upload failed"));
+          return;
+        }
+        resolve({ url: result.secure_url, storage: "cloudinary" });
+      },
+    );
+    stream.end(file.buffer);
+  });
+}
+
+function uploadSourceToCloudinary(
+  file: Express.Multer.File,
+): Promise<StoredImage> {
+  return new Promise((resolve, reject) => {
+    const extension = getSourceExtension(file.originalname);
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: `${config.storage.cloudinaryFolder}/source`,
+        resource_type: "raw",
+        public_id: `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`,
+      },
+      (error, result) => {
+        if (error || !result?.secure_url) {
+          reject(error ?? new Error("Cloudinary source upload failed"));
+          return;
+        }
+        resolve({ url: result.secure_url, storage: "cloudinary" });
+      },
+    );
+    stream.end(file.buffer);
+  });
+}
+
+async function uploadToLocalDisk(
+  file: Express.Multer.File,
+): Promise<StoredImage> {
   await mkdir(uploadDir, { recursive: true });
 
   const extension = getImageExtension(file.mimetype);
-  const filename = `${Date.now()}-${crypto.randomBytes(12).toString('hex')}.${extension}`;
+  const filename = `${Date.now()}-${crypto.randomBytes(12).toString("hex")}.${extension}`;
   const absolutePath = path.join(uploadDir, filename);
 
   await writeFile(absolutePath, file.buffer);
 
   return {
     url: `/uploads/${filename}`,
-    storage: 'local',
+    storage: "local",
   };
+}
+
+async function uploadVideoToLocalDisk(
+  file: Express.Multer.File,
+): Promise<StoredImage> {
+  await mkdir(uploadDir, { recursive: true });
+  const extension = getVideoExtension(file.mimetype);
+  const filename = `${Date.now()}-${crypto.randomBytes(12).toString("hex")}.${extension}`;
+  await writeFile(path.join(uploadDir, filename), file.buffer);
+  return { url: `/uploads/${filename}`, storage: "local" };
+}
+
+async function uploadSourceToLocalDisk(
+  file: Express.Multer.File,
+): Promise<StoredImage> {
+  const sourceDir = path.join(uploadDir, "source");
+  await mkdir(sourceDir, { recursive: true });
+  const extension = getSourceExtension(file.originalname);
+  const filename = `${Date.now()}-${crypto.randomBytes(12).toString("hex")}.${extension}`;
+  await writeFile(path.join(sourceDir, filename), file.buffer);
+  return { url: `/uploads/source/${filename}`, storage: "local" };
 }
 
 function getImageExtension(mimetype: string) {
   switch (mimetype) {
-    case 'image/png':
-      return 'png';
-    case 'image/webp':
-      return 'webp';
-    case 'image/gif':
-      return 'gif';
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
     default:
-      return 'jpg';
+      return "jpg";
   }
+}
+
+function getVideoExtension(mimetype: string) {
+  if (mimetype === "video/webm") return "webm";
+  if (mimetype === "video/quicktime") return "mov";
+  return "mp4";
+}
+
+function getSourceExtension(filename: string) {
+  return filename.toLowerCase().endsWith(".rar") ? "rar" : "zip";
 }

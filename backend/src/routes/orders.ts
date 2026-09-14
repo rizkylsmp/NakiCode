@@ -1,14 +1,14 @@
-import { Router } from 'express';
-import * as Sentry from '@sentry/node';
-import { z } from 'zod';
-import { requireAdmin, requireUser, type UserTokenPayload } from '../auth';
-import { config } from '../config';
-import { createAdminAuditLog } from '../models/audit-log.model';
+import { Router } from "express";
+import * as Sentry from "@sentry/node";
+import { z } from "zod";
+import { requireAdmin, requireUser, type UserTokenPayload } from "../auth";
+import { config } from "../config";
+import { createAdminAuditLog } from "../models/audit-log.model";
 import {
   recordCouponRedemption,
   validateCoupon,
-} from '../models/business.model';
-import { createNotification } from '../models/notification.model';
+} from "../models/business.model";
+import { createNotification } from "../models/notification.model";
 import {
   confirmOrderPayment,
   createOrder,
@@ -25,22 +25,25 @@ import {
   type UserOrderPaymentFilter,
   updateOrderStatus,
   updateOrdersStatus,
-} from '../models/order.model';
-import { ensureOrderInvoice, recordPaidOrderTransaction } from '../models/finance.model';
+} from "../models/order.model";
+import {
+  ensureOrderInvoice,
+  recordPaidOrderTransaction,
+} from "../models/finance.model";
 import {
   createLynkPaymentSession,
   createPaymentSession,
   LynkCheckoutUnavailableError,
   normalizePaymentMethod,
   parseCurrencyAmount,
-} from '../payments/payment.service';
-import { parseBody, parseParams } from '../validation';
+} from "../payments/payment.service";
+import { parseBody, parseParams } from "../validation";
 
 export const ordersRouter = Router();
 
 function isMidtransPaymentActive() {
   return (
-    config.payment.provider.toLowerCase() === 'midtrans' &&
+    config.payment.provider.toLowerCase() === "midtrans" &&
     Boolean(config.payment.midtransServerKey)
   );
 }
@@ -63,13 +66,25 @@ const orderBodySchema = z
   .passthrough();
 
 const paymentBodySchema = z.object({
-  provider: z.enum(['midtrans', 'lynk']).optional().default('midtrans'),
-  method: z.enum(['qris', 'dana', 'manual']).optional(),
+  provider: z.enum(["midtrans", "lynk"]).optional().default("midtrans"),
+  method: z.enum(["qris", "dana", "manual"]).optional(),
   couponCode: z.string().trim().max(60).optional(),
 });
 
 const orderStatusBodySchema = z.object({
-  status: z.enum(['new', 'contacted', 'quotation', 'awaiting_dp', 'in_progress', 'revision', 'delivered', 'completed', 'cancelled', 'deal', 'closed']),
+  status: z.enum([
+    "new",
+    "contacted",
+    "quotation",
+    "awaiting_dp",
+    "in_progress",
+    "revision",
+    "delivered",
+    "completed",
+    "cancelled",
+    "deal",
+    "closed",
+  ]),
 });
 const quoteBodySchema = z.object({
   amount: z.coerce.number().int().positive(),
@@ -87,20 +102,32 @@ const paginationQuerySchema = z.object({
 
 const adminOrdersQuerySchema = paginationQuerySchema.extend({
   status: orderStatusBodySchema.shape.status.optional(),
-  paymentStatus: z.enum(['pending', 'waiting_payment', 'partial_paid', 'paid', 'failed', 'expired', 'partial_refunded', 'refunded', 'cancelled']).optional(),
+  paymentStatus: z
+    .enum([
+      "pending",
+      "waiting_payment",
+      "partial_paid",
+      "paid",
+      "failed",
+      "expired",
+      "partial_refunded",
+      "refunded",
+      "cancelled",
+    ])
+    .optional(),
   search: z.string().trim().max(100).optional(),
 });
 
 const userOrdersQuerySchema = paginationQuerySchema.extend({
-  paymentStatus: z.enum(['paid', 'waiting_payment', 'unpaid']).optional(),
+  paymentStatus: z.enum(["paid", "waiting_payment", "unpaid"]).optional(),
 });
 
-ordersRouter.get('/', requireAdmin, async (request, response) => {
+ordersRouter.get("/", requireAdmin, async (request, response) => {
   const query = adminOrdersQuerySchema.safeParse(request.query);
 
   if (!query.success) {
     response.status(400).json({
-      message: 'Parameter tidak valid',
+      message: "Parameter tidak valid",
       errors: query.error.flatten(),
     });
     return;
@@ -108,29 +135,31 @@ ordersRouter.get('/', requireAdmin, async (request, response) => {
 
   try {
     response.json({
-      source: 'mysql',
+      source: "mysql",
       ...(await findOrdersPage(query.data.page, query.data.pageSize, {
         status: query.data.status as AdminOrderStatusFilter | undefined,
-        paymentStatus: query.data.paymentStatus as AdminPaymentStatusFilter | undefined,
+        paymentStatus: query.data.paymentStatus as
+          | AdminPaymentStatusFilter
+          | undefined,
         search: query.data.search,
       })),
     });
   } catch (error) {
     Sentry.captureException(error);
     response.status(503).json({
-      message: 'Database orders belum tersedia',
+      message: "Database orders belum tersedia",
       orders: [],
     });
   }
 });
 
-ordersRouter.get('/my', requireUser, async (request, response) => {
+ordersRouter.get("/my", requireUser, async (request, response) => {
   const user = response.locals.user as UserTokenPayload;
   const query = userOrdersQuerySchema.safeParse(request.query);
 
   if (!query.success) {
     response.status(400).json({
-      message: 'Parameter tidak valid',
+      message: "Parameter tidak valid",
       errors: query.error.flatten(),
     });
     return;
@@ -138,7 +167,7 @@ ordersRouter.get('/my', requireUser, async (request, response) => {
 
   try {
     response.json({
-      source: 'mysql',
+      source: "mysql",
       ...(await findOrdersPageByUser(
         user.userId,
         query.data.page,
@@ -149,13 +178,13 @@ ordersRouter.get('/my', requireUser, async (request, response) => {
   } catch (error) {
     Sentry.captureException(error);
     response.status(503).json({
-      message: 'Database orders belum tersedia',
+      message: "Database orders belum tersedia",
       orders: [],
     });
   }
 });
 
-ordersRouter.get('/my/:id', requireUser, async (request, response) => {
+ordersRouter.get("/my/:id", requireUser, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const user = response.locals.user as UserTokenPayload;
 
@@ -167,21 +196,21 @@ ordersRouter.get('/my/:id', requireUser, async (request, response) => {
     const order = await findOrderByIdForUser(params.id, user.userId);
 
     if (!order) {
-      response.status(404).json({ message: 'Order not found' });
+      response.status(404).json({ message: "Order not found" });
       return;
     }
 
     response.json({
-      source: 'mysql',
+      source: "mysql",
       order,
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(503).json({ message: 'Database orders belum tersedia' });
+    response.status(503).json({ message: "Database orders belum tersedia" });
   }
 });
 
-ordersRouter.post('/', requireUser, async (request, response) => {
+ordersRouter.post("/", requireUser, async (request, response) => {
   const user = response.locals.user as UserTokenPayload;
   const body = parseBody(orderBodySchema, request, response);
 
@@ -196,23 +225,23 @@ ordersRouter.post('/', requireUser, async (request, response) => {
 
     await createNotification({
       userId: order.userId,
-      title: 'Order dibuat',
+      title: "Order dibuat",
       message: `Order ${order.templateTitle} berhasil dibuat. Lanjutkan checkout atau tunggu admin menghubungi kamu.`,
-      type: 'order',
+      type: "order",
       relatedOrderId: order.id,
     });
 
     response.status(201).json({
-      source: 'mysql',
+      source: "mysql",
       order,
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menyimpan order' });
+    response.status(500).json({ message: "Gagal menyimpan order" });
   }
 });
 
-ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
+ordersRouter.post("/:id/payment", requireUser, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const body = parseBody(paymentBodySchema, request, response);
   const user = response.locals.user as UserTokenPayload;
@@ -225,7 +254,14 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
     const existingOrder = await findOrderByIdForUser(params.id, user.userId);
 
     if (!existingOrder) {
-      response.status(404).json({ message: 'Order not found' });
+      response.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    if (existingOrder.templateId && existingOrder.sourceAvailable === false) {
+      response.status(409).json({
+        message: "Source code design ini tidak tersedia untuk pembelian.",
+      });
       return;
     }
 
@@ -236,7 +272,7 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
     if (!existingOrder.templatePrice && !existingOrder.quoteAmount) {
       response.status(409).json({
         message:
-          'Pesanan custom belum bisa dibayar mandiri. Tim kami akan menghubungi kamu untuk penawaran harga.',
+          "Pesanan custom belum bisa dibayar mandiri. Tim kami akan menghubungi kamu untuk penawaran harga.",
       });
       return;
     }
@@ -244,11 +280,12 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
     const baseAmount = existingOrder.templatePrice
       ? parseCurrencyAmount(existingOrder.templatePrice)
       : Number(existingOrder.quoteAmount);
-    const coupon = body.provider === 'midtrans' && body.couponCode
-      ? await validateCoupon(body.couponCode, baseAmount)
-      : null;
+    const coupon =
+      body.provider === "midtrans" && body.couponCode
+        ? await validateCoupon(body.couponCode, baseAmount)
+        : null;
     const paymentSession =
-      body.provider === 'lynk'
+      body.provider === "lynk"
         ? createLynkPaymentSession(existingOrder, baseAmount)
         : await createPaymentSession({
             order: existingOrder,
@@ -262,7 +299,7 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
     });
 
     if (!order) {
-      response.status(404).json({ message: 'Order not found' });
+      response.status(404).json({ message: "Order not found" });
       return;
     }
 
@@ -276,7 +313,7 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
     }
 
     response.json({
-      source: 'mysql',
+      source: "mysql",
       order,
       coupon,
       payment: {
@@ -292,58 +329,62 @@ ordersRouter.post('/:id/payment', requireUser, async (request, response) => {
       return;
     }
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal membuat pembayaran' });
+    response.status(500).json({ message: "Gagal membuat pembayaran" });
   }
 });
 
-ordersRouter.post('/:id/payment/confirm', requireUser, async (request, response) => {
-  const params = parseParams(idParamsSchema, request, response);
-  const user = response.locals.user as UserTokenPayload;
+ordersRouter.post(
+  "/:id/payment/confirm",
+  requireUser,
+  async (request, response) => {
+    const params = parseParams(idParamsSchema, request, response);
+    const user = response.locals.user as UserTokenPayload;
 
-  if (!params) {
-    return;
-  }
-
-  if (isMidtransPaymentActive()) {
-    response.status(409).json({
-      message:
-        'Konfirmasi manual dinonaktifkan untuk Midtrans. Status paid menunggu webhook Midtrans.',
-    });
-    return;
-  }
-
-  try {
-    const order = await confirmOrderPayment(params.id, user.userId);
-
-    if (!order) {
-      response.status(404).json({ message: 'Order not found' });
+    if (!params) {
       return;
     }
 
-    await Promise.all([
-      ensureOrderInvoice(order.id),
-      recordPaidOrderTransaction(order.id),
-    ]);
+    if (isMidtransPaymentActive()) {
+      response.status(409).json({
+        message:
+          "Konfirmasi manual dinonaktifkan untuk Midtrans. Status paid menunggu webhook Midtrans.",
+      });
+      return;
+    }
 
-    await createNotification({
-      userId: order.userId,
-      title: 'Pembayaran berhasil',
-      message: `Pembayaran untuk ${order.templateTitle} sudah dikonfirmasi. Source code dan panduan sudah terbuka di Pesanan Saya.`,
-      type: 'payment',
-      relatedOrderId: order.id,
-    });
+    try {
+      const order = await confirmOrderPayment(params.id, user.userId);
 
-    response.json({
-      source: 'mysql',
-      order,
-    });
-  } catch (error) {
-    Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mengonfirmasi pembayaran' });
-  }
-});
+      if (!order) {
+        response.status(404).json({ message: "Order not found" });
+        return;
+      }
 
-ordersRouter.patch('/:id/quote', requireAdmin, async (request, response) => {
+      await Promise.all([
+        ensureOrderInvoice(order.id),
+        recordPaidOrderTransaction(order.id),
+      ]);
+
+      await createNotification({
+        userId: order.userId,
+        title: "Pembayaran berhasil",
+        message: `Pembayaran untuk ${order.templateTitle} sudah dikonfirmasi. Source code dan panduan sudah terbuka di Pesanan Saya.`,
+        type: "payment",
+        relatedOrderId: order.id,
+      });
+
+      response.json({
+        source: "mysql",
+        order,
+      });
+    } catch (error) {
+      Sentry.captureException(error);
+      response.status(500).json({ message: "Gagal mengonfirmasi pembayaran" });
+    }
+  },
+);
+
+ordersRouter.patch("/:id/quote", requireAdmin, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const body = parseBody(quoteBodySchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
@@ -351,43 +392,61 @@ ordersRouter.patch('/:id/quote', requireAdmin, async (request, response) => {
   try {
     const previousOrder = await findOrderById(params.id);
     if (!previousOrder) {
-      response.status(404).json({ message: 'Order not found' }); return;
+      response.status(404).json({ message: "Order not found" });
+      return;
     }
     if (!(await setOrderQuote(params.id, body.amount, body.notes))) {
-      response.status(409).json({ message: 'Penawaran tidak dapat diubah setelah pembayaran tercatat' }); return;
+      response
+        .status(409)
+        .json({
+          message: "Penawaran tidak dapat diubah setelah pembayaran tercatat",
+        });
+      return;
     }
     const order = await findOrderById(params.id);
-    await createAdminAuditLog({ admin, action: 'order.quote_update', entityType: 'order', entityId: params.id, metadata: { amount: body.amount } });
+    await createAdminAuditLog({
+      admin,
+      action: "order.quote_update",
+      entityType: "order",
+      entityId: params.id,
+      metadata: { amount: body.amount },
+    });
     await createNotification({
       userId: order?.userId ?? previousOrder.userId,
-      title: 'Penawaran harga tersedia',
-      message: `Penawaran untuk ${previousOrder.templateTitle} sebesar Rp${body.amount.toLocaleString('id-ID')} sudah tersedia.`,
-      type: 'order',
+      title: "Penawaran harga tersedia",
+      message: `Penawaran untuk ${previousOrder.templateTitle} sebesar Rp${body.amount.toLocaleString("id-ID")} sudah tersedia.`,
+      type: "order",
       relatedOrderId: params.id,
     });
-    response.json({ source: 'mysql', order });
+    response.json({ source: "mysql", order });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menyimpan penawaran' });
+    response.status(500).json({ message: "Gagal menyimpan penawaran" });
   }
 });
 
-ordersRouter.patch('/bulk/status', requireAdmin, async (request, response) => {
+ordersRouter.patch("/bulk/status", requireAdmin, async (request, response) => {
   const body = parseBody(bulkStatusBodySchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
   if (!body) return;
   try {
     const ids = [...new Set(body.ids)];
     const updated = await updateOrdersStatus(ids, body.status);
-    await createAdminAuditLog({ admin, action: 'order.bulk_status_update', entityType: 'order', entityId: null, metadata: { ids, status: body.status, updated } });
-    response.json({ source: 'mysql', updated });
+    await createAdminAuditLog({
+      admin,
+      action: "order.bulk_status_update",
+      entityType: "order",
+      entityId: null,
+      metadata: { ids, status: body.status, updated },
+    });
+    response.json({ source: "mysql", updated });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal memperbarui status order' });
+    response.status(500).json({ message: "Gagal memperbarui status order" });
   }
 });
 
-ordersRouter.patch('/:id/status', requireAdmin, async (request, response) => {
+ordersRouter.patch("/:id/status", requireAdmin, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const body = parseBody(orderStatusBodySchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
@@ -401,7 +460,7 @@ ordersRouter.patch('/:id/status', requireAdmin, async (request, response) => {
     const wasUpdated = await updateOrderStatus(params.id, body.status);
 
     if (!wasUpdated) {
-      response.status(404).json({ message: 'Order not found' });
+      response.status(404).json({ message: "Order not found" });
       return;
     }
 
@@ -409,8 +468,8 @@ ordersRouter.patch('/:id/status', requireAdmin, async (request, response) => {
 
     await createAdminAuditLog({
       admin,
-      action: 'order.status_update',
-      entityType: 'order',
+      action: "order.status_update",
+      entityType: "order",
       entityId: params.id,
       metadata: {
         from: previousOrder?.status ?? null,
@@ -420,14 +479,14 @@ ordersRouter.patch('/:id/status', requireAdmin, async (request, response) => {
 
     await createNotification({
       userId: order?.userId ?? previousOrder?.userId ?? null,
-      title: 'Status pesanan diperbarui',
+      title: "Status pesanan diperbarui",
       message: `Pesanan ${order?.templateTitle ?? previousOrder?.templateTitle ?? `#${params.id}`} sekarang berstatus ${body.status}.`,
-      type: 'order',
+      type: "order",
       relatedOrderId: params.id,
     });
 
     response.json({
-      source: 'mysql',
+      source: "mysql",
       order: {
         id: params.id,
         status: body.status,
@@ -435,11 +494,11 @@ ordersRouter.patch('/:id/status', requireAdmin, async (request, response) => {
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mengubah status order' });
+    response.status(500).json({ message: "Gagal mengubah status order" });
   }
 });
 
-ordersRouter.delete('/:id', requireAdmin, async (request, response) => {
+ordersRouter.delete("/:id", requireAdmin, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
 
@@ -449,21 +508,28 @@ ordersRouter.delete('/:id', requireAdmin, async (request, response) => {
 
   try {
     const order = await findOrderById(params.id);
-    if (order && ['paid', 'partial_refunded', 'refunded'].includes(order.paymentStatus)) {
-      response.status(409).json({ message: 'Order yang sudah memiliki transaksi tidak dapat dihapus' });
+    if (
+      order &&
+      ["paid", "partial_refunded", "refunded"].includes(order.paymentStatus)
+    ) {
+      response
+        .status(409)
+        .json({
+          message: "Order yang sudah memiliki transaksi tidak dapat dihapus",
+        });
       return;
     }
     const wasDeleted = await deleteOrder(params.id);
 
     if (!wasDeleted) {
-      response.status(404).json({ message: 'Order not found' });
+      response.status(404).json({ message: "Order not found" });
       return;
     }
 
     await createAdminAuditLog({
       admin,
-      action: 'order.soft_delete',
-      entityType: 'order',
+      action: "order.soft_delete",
+      entityType: "order",
       entityId: params.id,
       metadata: {
         templateTitle: order?.templateTitle ?? null,
@@ -474,12 +540,12 @@ ordersRouter.delete('/:id', requireAdmin, async (request, response) => {
     response.status(204).send();
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menghapus order' });
+    response.status(500).json({ message: "Gagal menghapus order" });
   }
 });
 
 // GET /orders/:id/invoice - Generate and download PDF invoice
-ordersRouter.get('/:id/invoice', requireUser, async (request, response) => {
+ordersRouter.get("/:id/invoice", requireUser, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const user = response.locals.user as UserTokenPayload | null | undefined;
 
@@ -491,30 +557,35 @@ ordersRouter.get('/:id/invoice', requireUser, async (request, response) => {
     const order = await findOrderByIdForUser(params.id, user.userId);
 
     if (!order) {
-      response.status(404).json({ message: 'Order tidak ditemukan' });
+      response.status(404).json({ message: "Order tidak ditemukan" });
       return;
     }
 
     // Only generate invoice for paid orders.
     // Paid state lives in payment_status; `status` is the fulfilment enum
     // (new|contacted|deal|closed) and is never 'paid'.
-    if (!['paid', 'partial_refunded', 'refunded'].includes(order.paymentStatus)) {
-      response.status(400).json({ 
-        message: 'Invoice hanya tersedia untuk pesanan yang sudah dibayar' 
+    if (
+      !["paid", "partial_refunded", "refunded"].includes(order.paymentStatus)
+    ) {
+      response.status(400).json({
+        message: "Invoice hanya tersedia untuk pesanan yang sudah dibayar",
       });
       return;
     }
 
-    const invoiceNumber = (await ensureOrderInvoice(order.id)) ?? order.invoiceNumber ?? `INV/${String(order.id).padStart(6, '0')}`;
+    const invoiceNumber =
+      (await ensureOrderInvoice(order.id)) ??
+      order.invoiceNumber ??
+      `INV/${String(order.id).padStart(6, "0")}`;
 
     // Import generateInvoicePDF
-    const { generateInvoicePDF } = await import('../utils/generateInvoice.js');
+    const { generateInvoicePDF } = await import("../utils/generateInvoice.js");
 
     // Set response headers for PDF download
-    response.setHeader('Content-Type', 'application/pdf');
+    response.setHeader("Content-Type", "application/pdf");
     response.setHeader(
-      'Content-Disposition',
-      `attachment; filename="invoice-${String(order.id).padStart(6, '0')}.pdf"`
+      "Content-Disposition",
+      `attachment; filename="invoice-${String(order.id).padStart(6, "0")}.pdf"`,
     );
 
     // Generate and stream PDF
@@ -532,10 +603,10 @@ ordersRouter.get('/:id/invoice', requireUser, async (request, response) => {
       status: order.status,
       createdAt: order.createdAt,
       paymentDate: order.paidAt ?? undefined,
-      paymentMethod: order.paymentMethod || 'Transfer Bank',
+      paymentMethod: order.paymentMethod || "Transfer Bank",
     });
   } catch (error) {
-    console.error('Error generating invoice:', error);
-    response.status(500).json({ message: 'Gagal membuat invoice' });
+    console.error("Error generating invoice:", error);
+    response.status(500).json({ message: "Gagal membuat invoice" });
   }
 });

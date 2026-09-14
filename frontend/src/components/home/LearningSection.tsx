@@ -1,5 +1,6 @@
 import { ArrowRight, Calendar, User } from "lucide-react";
 import { BlogCardSkeletonGrid } from "../ui/skeletons/BlogCardSkeleton";
+import { ResponsiveImage } from "../ui/ResponsiveImage";
 
 type BlogPost = {
   id: number;
@@ -17,7 +18,10 @@ type LearningSectionProps = {
   isLoading?: boolean;
 };
 
-export function LearningSection({ blogPosts, isLoading = false }: LearningSectionProps) {
+export function LearningSection({
+  blogPosts,
+  isLoading = false,
+}: LearningSectionProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
     const date = new Date(dateString);
@@ -31,7 +35,7 @@ export function LearningSection({ blogPosts, isLoading = false }: LearningSectio
   return (
     <section className="relative z-0 w-full">
       <div className="mx-auto max-w-7xl px-5 py-16 md:px-8 xl:px-12 2xl:px-16">
-        <div className="mb-10 flex items-end justify-between">
+        <div className="mb-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
               Blog & Tutorial
@@ -40,7 +44,8 @@ export function LearningSection({ blogPosts, isLoading = false }: LearningSectio
               Artikel Terbaru
             </h2>
             <p className="mt-2 max-w-2xl text-naki-smoke">
-              Tips, tutorial, dan insight seputar development, design, dan bisnis digital.
+              Tips, tutorial, dan insight seputar development, design, dan
+              bisnis digital.
             </p>
           </div>
           <a
@@ -56,7 +61,9 @@ export function LearningSection({ blogPosts, isLoading = false }: LearningSectio
           <BlogCardSkeletonGrid count={3} />
         ) : blogPosts.length === 0 ? (
           <div className="rounded-xl border border-naki-steel/60 bg-white p-12 text-center">
-            <p className="text-naki-smoke">Belum ada artikel yang dipublikasikan.</p>
+            <p className="text-naki-smoke">
+              Belum ada artikel yang dipublikasikan.
+            </p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
@@ -68,11 +75,11 @@ export function LearningSection({ blogPosts, isLoading = false }: LearningSectio
               >
                 <div className="aspect-video overflow-hidden bg-linear-to-br from-blue-500/10 to-purple-500/10">
                   {post.coverImage ? (
-                    <img
+                    <ResponsiveImage
                       className="h-full w-full object-cover"
                       src={post.coverImage}
                       alt={`Cover artikel ${post.title}`}
-                      loading="lazy"
+                      sizes="(min-width: 768px) 33vw, 100vw"
                     />
                   ) : null}
                 </div>

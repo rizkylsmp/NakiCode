@@ -105,7 +105,10 @@ const defaultUserAuthForm: UserAuthFormState = {
   confirmPassword: "",
 };
 
-export function TemplateDetailPage({ templates, isLoading = false }: TemplateDetailPageProps) {
+export function TemplateDetailPage({
+  templates,
+  isLoading = false,
+}: TemplateDetailPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -150,7 +153,9 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
 
   const showPreviousPreview = useCallback(() => {
     setActivePreviewIndex((current) =>
-      previewImages.length ? (current - 1 + previewImages.length) % previewImages.length : 0,
+      previewImages.length
+        ? (current - 1 + previewImages.length) % previewImages.length
+        : 0,
     );
   }, [previewImages.length]);
 
@@ -206,7 +211,11 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
     return (
       <div className="naki-frosted-grid min-h-screen text-naki-primary">
         <Helmet>
-          <title>{isLoading ? "Memuat Design - Naki Code" : "Design Tidak Ditemukan - Naki Code"}</title>
+          <title>
+            {isLoading
+              ? "Memuat Design - Naki Code"
+              : "Design Tidak Ditemukan - Naki Code"}
+          </title>
           {!isLoading ? <meta name="robots" content="noindex, follow" /> : null}
         </Helmet>
         <Header />
@@ -303,7 +312,10 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
           ? "/api/auth/user/login"
           : "/api/auth/user/register",
         userAuthMode === "login"
-          ? { identifier: userAuthForm.username, password: userAuthForm.password }
+          ? {
+              identifier: userAuthForm.username,
+              password: userAuthForm.password,
+            }
           : {
               username: userAuthForm.username,
               email: userAuthForm.email,
@@ -315,8 +327,14 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
       if (data.token && data.user) {
         const authenticatedUser = data.user;
         window.localStorage.setItem(userTokenKey, data.token);
-        window.localStorage.setItem(userUsernameKey, authenticatedUser.username);
-        window.localStorage.setItem(userRoleKey, authenticatedUser.role ?? "user");
+        window.localStorage.setItem(
+          userUsernameKey,
+          authenticatedUser.username,
+        );
+        window.localStorage.setItem(
+          userRoleKey,
+          authenticatedUser.role ?? "user",
+        );
         window.dispatchEvent(new Event(userSessionEvent));
         setUserToken(data.token);
         setUserUsername(authenticatedUser.username);
@@ -478,10 +496,9 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
     serviceType: "Pembuatan website berbasis design referensi",
     name: selectedTemplate.title,
     description: selectedTemplate.description,
-    image:
-      selectedTemplate.preview[0]?.image
-        ? absoluteSiteUrl(selectedTemplate.preview[0].image)
-        : absoluteSiteUrl("/logo.png"),
+    image: selectedTemplate.preview[0]?.image
+      ? absoluteSiteUrl(selectedTemplate.preview[0].image)
+      : absoluteSiteUrl("/logo.png"),
     brand: { "@type": "Organization", name: "Naki Code" },
     offers: {
       "@type": "Offer",
@@ -529,9 +546,24 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: absoluteSiteUrl("/") },
-      { "@type": "ListItem", position: 2, name: selectedTemplate.category, item: absoluteSiteUrl(selectedTemplateCategoryPath) },
-      { "@type": "ListItem", position: 3, name: selectedTemplate.title, item: shareUrl },
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteSiteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: selectedTemplate.category,
+        item: absoluteSiteUrl(selectedTemplateCategoryPath),
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: selectedTemplate.title,
+        item: shareUrl,
+      },
     ],
   };
 
@@ -541,40 +573,72 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
         <title>{selectedTemplate.title} - Naki Code</title>
         <meta name="description" content={selectedTemplate.description} />
         <link rel="canonical" href={shareUrl} />
-        <meta property="og:title" content={`${selectedTemplate.title} - Naki Code`} />
-        <meta property="og:description" content={selectedTemplate.description} />
+        <meta
+          property="og:title"
+          content={`${selectedTemplate.title} - Naki Code`}
+        />
+        <meta
+          property="og:description"
+          content={selectedTemplate.description}
+        />
         <meta property="og:type" content="product" />
         <meta property="og:url" content={shareUrl} />
         {selectedTemplate.preview[0]?.image ? (
-          <meta property="og:image" content={absoluteSiteUrl(selectedTemplate.preview[0].image)} />
+          <meta
+            property="og:image"
+            content={absoluteSiteUrl(selectedTemplate.preview[0].image)}
+          />
         ) : null}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${selectedTemplate.title} - Naki Code`} />
-        <meta name="twitter:description" content={selectedTemplate.description} />
+        <meta
+          name="twitter:title"
+          content={`${selectedTemplate.title} - Naki Code`}
+        />
+        <meta
+          name="twitter:description"
+          content={selectedTemplate.description}
+        />
         {selectedTemplate.preview[0]?.image ? (
-          <meta name="twitter:image" content={absoluteSiteUrl(selectedTemplate.preview[0].image)} />
+          <meta
+            name="twitter:image"
+            content={absoluteSiteUrl(selectedTemplate.preview[0].image)}
+          />
         ) : null}
-        <script type="application/ld+json">{JSON.stringify(productSchema)}</script>
-        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
+        <script type="application/ld+json">
+          {JSON.stringify(productSchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
       </Helmet>
       <Header />
 
       {/* Breadcrumb */}
       <div className="bg-naki-page-bg border-b border-naki-steel/60">
         <div className="mx-auto max-w-7xl px-5 py-3 md:px-8 xl:px-12 2xl:px-16">
-          <nav className="flex items-center gap-2 text-sm text-naki-smoke" aria-label="Breadcrumb">
-            <Link className="hover:text-naki-primary" to="/">Home</Link>
+          <nav
+            className="flex items-center gap-2 text-sm text-naki-smoke"
+            aria-label="Breadcrumb"
+          >
+            <Link className="hover:text-naki-primary" to="/">
+              Home
+            </Link>
             <span>/</span>
-            <Link className="hover:text-naki-primary" to={selectedTemplateCategoryPath}>
+            <Link
+              className="hover:text-naki-primary"
+              to={selectedTemplateCategoryPath}
+            >
               {selectedTemplate.category}
             </Link>
             <span>/</span>
-            <span className="font-medium text-naki-primary">{selectedTemplate.title}</span>
+            <span className="font-medium text-naki-primary">
+              {selectedTemplate.title}
+            </span>
           </nav>
         </div>
       </div>
 
-      <div className="bg-naki-page-bg px-5 py-10 md:px-8 xl:px-12 2xl:px-16">
+      <div className="bg-naki-page-bg px-4 py-8 sm:px-5 sm:py-10 md:px-8 xl:px-12 2xl:px-16">
         <div className="mx-auto max-w-7xl">
           {/* Back link */}
           <Link
@@ -586,26 +650,46 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
           </Link>
 
           {/* Main content grid */}
-          <div className="mt-8 grid gap-10 md:grid-cols-[1fr_340px]">
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
             {/* Left: Preview + Details */}
             <div>
               {/* Preview images */}
               <div className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-sm">
                 {previewImages[activePreviewIndex]?.image ? (
                   <div className="group relative aspect-[16/10] overflow-hidden bg-naki-frost">
-                    <button className="block h-full w-full cursor-zoom-in" onClick={() => setIsPreviewOpen(true)} type="button" aria-label="Buka preview layar penuh">
+                    <button
+                      className="block h-full w-full cursor-zoom-in"
+                      onClick={() => setIsPreviewOpen(true)}
+                      type="button"
+                      aria-label="Buka preview layar penuh"
+                    >
                       <img
                         className="h-full w-full object-contain"
                         src={previewImages[activePreviewIndex].image}
-                        alt={previewImages[activePreviewIndex].caption || selectedTemplate.title}
+                        alt={
+                          previewImages[activePreviewIndex].caption ||
+                          selectedTemplate.title
+                        }
                       />
                     </button>
-                    <span className="pointer-events-none absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-white/90 text-naki-primary opacity-0 shadow-sm transition group-hover:opacity-100"><Maximize2 size={17} /></span>
-                    {previewImages.length > 1 ? <>
-                      <PreviewArrow direction="previous" onClick={showPreviousPreview} />
-                      <PreviewArrow direction="next" onClick={showNextPreview} />
-                      <span className="absolute bottom-3 right-3 rounded-full bg-naki-primary/85 px-3 py-1 text-xs font-semibold text-white">{activePreviewIndex + 1} / {previewImages.length}</span>
-                    </> : null}
+                    <span className="pointer-events-none absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-white/90 text-naki-primary opacity-0 shadow-sm transition group-hover:opacity-100">
+                      <Maximize2 size={17} />
+                    </span>
+                    {previewImages.length > 1 ? (
+                      <>
+                        <PreviewArrow
+                          direction="previous"
+                          onClick={showPreviousPreview}
+                        />
+                        <PreviewArrow
+                          direction="next"
+                          onClick={showNextPreview}
+                        />
+                        <span className="absolute bottom-3 right-3 rounded-full bg-naki-primary/85 px-3 py-1 text-xs font-semibold text-white">
+                          {activePreviewIndex + 1} / {previewImages.length}
+                        </span>
+                      </>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex h-64 items-center justify-center bg-gradient-to-br from-naki-frost to-naki-steel/50 md:h-80 lg:h-96">
@@ -625,7 +709,11 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                           aria-label={`Tampilkan preview ${index + 1}`}
                           aria-current={activePreviewIndex === index}
                         >
-                          <img className="h-full w-full object-cover" src={item.image} alt={item.caption || ""} />
+                          <img
+                            className="h-full w-full object-cover"
+                            src={item.image}
+                            alt={item.caption || ""}
+                          />
                         </button>
                       ) : null,
                     )}
@@ -641,14 +729,16 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-naki-smoke">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
-                    {selectedTemplate.rating > 0 ? selectedTemplate.rating.toFixed(1) : "Baru"}
+                    {selectedTemplate.rating > 0
+                      ? selectedTemplate.rating.toFixed(1)
+                      : "Baru"}
                   </span>
                   <span className="text-xs text-naki-smoke">
                     {selectedTemplate.buyerCount} pelanggan
                   </span>
                 </div>
 
-                <h1 className="mt-3 text-3xl font-bold leading-tight text-naki-primary md:text-4xl">
+                <h1 className="mt-3 text-2xl font-bold leading-tight text-naki-primary sm:text-3xl md:text-4xl">
                   {selectedTemplate.title}
                 </h1>
                 <p className="mt-4 max-w-3xl text-base leading-relaxed text-naki-smoke">
@@ -668,7 +758,9 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                     <Star size={18} className="text-blue-500" />
                     <p className="mt-2 text-xs text-naki-smoke">Rating</p>
                     <p className="text-lg font-semibold text-naki-primary">
-                      {selectedTemplate.rating > 0 ? selectedTemplate.rating.toFixed(1) : "Baru"}
+                      {selectedTemplate.rating > 0
+                        ? selectedTemplate.rating.toFixed(1)
+                        : "Baru"}
                     </p>
                   </div>
                   <div className="rounded-xl bg-naki-frost p-4">
@@ -700,13 +792,28 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                       onClick={() => toggleFavorite(selectedTemplate.id)}
                       type="button"
                     >
-                      <Heart size={16} fill={favoriteIds.has(selectedTemplate.id) ? "currentColor" : "none"} />
-                      {favoriteIds.has(selectedTemplate.id) ? "Tersimpan" : "Wishlist"}
+                      <Heart
+                        size={16}
+                        fill={
+                          favoriteIds.has(selectedTemplate.id)
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                      {favoriteIds.has(selectedTemplate.id)
+                        ? "Tersimpan"
+                        : "Wishlist"}
                     </button>
                   )}
                   <button
                     className="inline-flex items-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
-                    onClick={() => void shareTemplate(selectedTemplate.title, shareUrl, setShareStatus)}
+                    onClick={() =>
+                      void shareTemplate(
+                        selectedTemplate.title,
+                        shareUrl,
+                        setShareStatus,
+                      )
+                    }
                     type="button"
                   >
                     <Share2 size={14} /> Share
@@ -731,9 +838,18 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
 
               {/* Features + Included Files */}
               <div className="mt-10 grid gap-6 md:grid-cols-2">
-                <DetailBlock title="Fitur utama" items={selectedTemplate.features} />
-                <DetailBlock title="Isi source code" items={selectedTemplate.includedFiles} />
-                <DetailBlock title="Cocok untuk" items={selectedTemplate.suitableFor} />
+                <DetailBlock
+                  title="Fitur utama"
+                  items={selectedTemplate.features}
+                />
+                <DetailBlock
+                  title="Isi source code"
+                  items={selectedTemplate.includedFiles}
+                />
+                <DetailBlock
+                  title="Cocok untuk"
+                  items={selectedTemplate.suitableFor}
+                />
                 <div className="rounded-2xl bg-white p-6 shadow-sm">
                   <ShieldCheck size={24} className="text-blue-500" />
                   <h2 className="mt-3 text-base font-semibold text-naki-primary">
@@ -755,20 +871,31 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                   Review pelanggan
                 </h2>
                 <p className="mt-1 text-xs text-naki-smoke">
-                  Ulasan tampil setelah pelanggan menyelesaikan transaksi dan memberi rating.
+                  Ulasan tampil setelah pelanggan menyelesaikan transaksi dan
+                  memberi rating.
                 </p>
                 {selectedTemplate.reviews?.length ? (
                   <div className="mt-4 grid gap-3">
                     {selectedTemplate.reviews.map((review) => (
-                      <article key={review.id} className="rounded-xl bg-white p-5 shadow-sm">
+                      <article
+                        key={review.id}
+                        className="rounded-xl bg-white p-5 shadow-sm"
+                      >
                         <div className="flex items-center justify-between gap-3">
-                          <p className="font-medium text-naki-primary">{review.customerName}</p>
+                          <p className="font-medium text-naki-primary">
+                            {review.customerName}
+                          </p>
                           <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-500">
-                            <Star size={14} className="fill-amber-400 text-amber-400" />
+                            <Star
+                              size={14}
+                              className="fill-amber-400 text-amber-400"
+                            />
                             {review.rating.toFixed(1)}
                           </span>
                         </div>
-                        <p className="mt-2 text-sm leading-relaxed text-naki-smoke">{review.message}</p>
+                        <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
+                          {review.message}
+                        </p>
                       </article>
                     ))}
                   </div>
@@ -791,7 +918,10 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                         Kategori {selectedTemplate.category}
                       </h2>
                     </div>
-                    <Link className="hidden text-sm font-medium text-blue-500 sm:inline-flex" to={selectedTemplateCategoryPath}>
+                    <Link
+                      className="hidden text-sm font-medium text-blue-500 sm:inline-flex"
+                      to={selectedTemplateCategoryPath}
+                    >
                       Lihat kategori <ArrowRight size={14} className="ml-1" />
                     </Link>
                   </div>
@@ -803,18 +933,26 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                         to={`/design/${item.slug}`}
                       >
                         {item.preview[0]?.image ? (
-                          <img className="h-36 w-full object-cover" src={item.preview[0].image} alt={item.title} />
+                          <img
+                            className="h-36 w-full object-cover"
+                            src={item.preview[0].image}
+                            alt={item.title}
+                          />
                         ) : (
                           <div className="flex h-36 items-center justify-center bg-gradient-to-br from-naki-frost to-naki-steel/50">
                             <Code2 className="text-naki-steel" size={28} />
                           </div>
                         )}
                         <div className="p-4">
-                          <p className="text-xs font-medium text-blue-500">{item.category}</p>
+                          <p className="text-xs font-medium text-blue-500">
+                            {item.category}
+                          </p>
                           <h3 className="mt-1 text-sm font-semibold text-naki-primary group-hover:text-blue-500">
                             {item.title}
                           </h3>
-                          <p className="mt-1 text-xs text-naki-smoke">{item.price} · {item.level}</p>
+                          <p className="mt-1 text-xs text-naki-smoke">
+                            {item.price} · {item.level}
+                          </p>
                         </div>
                       </Link>
                     ))}
@@ -828,10 +966,15 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
               {/* Primary service */}
               <div className="rounded-2xl bg-naki-primary p-6 text-white shadow-sm">
                 <HeartHandshake size={24} className="text-blue-300" />
-                <p className="mt-3 text-xs font-medium uppercase text-blue-200">Layanan utama</p>
-                <h2 className="mt-1 text-lg font-semibold">Buat website dari design ini</h2>
+                <p className="mt-3 text-xs font-medium uppercase text-blue-200">
+                  Layanan utama
+                </p>
+                <h2 className="mt-1 text-lg font-semibold">
+                  Buat website dari design ini
+                </h2>
                 <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                  Kami sesuaikan warna, konten, halaman, alur, dan fitur berdasarkan kebutuhan brand-mu.
+                  Kami sesuaikan warna, konten, halaman, alur, dan fitur
+                  berdasarkan kebutuhan brand-mu.
                 </p>
                 <a
                   className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
@@ -844,62 +987,83 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
               </div>
 
               {/* Source code purchase */}
-              <div className="rounded-2xl bg-white p-6 shadow-sm">
-                <p className="text-xs font-medium uppercase text-naki-smoke">Opsi mandiri</p>
-                <h2 className="mt-1 text-base font-semibold text-naki-primary">Beli source code design</h2>
-                <p className="mt-1 text-4xl font-bold text-naki-primary">{selectedTemplate.price}</p>
-                <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
-                  Opsi ini khusus untuk membeli source code design dan panduan setup.
-                </p>
-                <div className="mt-4 grid gap-2 rounded-xl bg-naki-frost p-3">
-                  {[
-                    "Source code lengkap siap dikembangkan",
-                    "Panduan setup dan struktur folder",
-                    "Support dasar setelah pembelian",
-                  ].map((item) => (
-                    <div key={item} className="flex items-start gap-2 text-xs text-naki-smoke">
-                      <BadgeCheck className="mt-0.5 shrink-0 text-blue-500" size={14} />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
+              {selectedTemplate.sourceAvailable !== false ? (
+                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                  <p className="text-xs font-medium uppercase text-naki-smoke">
+                    Opsi mandiri
+                  </p>
+                  <h2 className="mt-1 text-base font-semibold text-naki-primary">
+                    Beli source code design
+                  </h2>
+                  <p className="mt-1 text-4xl font-bold text-naki-primary">
+                    {selectedTemplate.price}
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
+                    Opsi ini khusus untuk membeli source code design dan panduan
+                    setup.
+                  </p>
+                  <div className="mt-4 grid gap-2 rounded-xl bg-naki-frost p-3">
+                    {[
+                      "Source code lengkap siap dikembangkan",
+                      "Panduan setup dan struktur folder",
+                      "Support dasar setelah pembelian",
+                    ].map((item) => (
+                      <div
+                        key={item}
+                        className="flex items-start gap-2 text-xs text-naki-smoke"
+                      >
+                        <BadgeCheck
+                          className="mt-0.5 shrink-0 text-blue-500"
+                          size={14}
+                        />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="mt-5">
-                  {userToken ? (
-                    <button
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={isStartingCheckout}
-                      onClick={() => void startDirectCheckout()}
-                      type="button"
-                    >
-                      <CreditCard size={17} />
-                      {isStartingCheckout ? "Memproses..." : "Checkout"}
-                    </button>
-                  ) : (
-                    <Link
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                      to={appendNextParam("/login", nextTarget)}
-                    >
-                      <LogIn size={17} />
-                      Checkout
-                    </Link>
-                  )}
+                  <div className="mt-5">
+                    {userToken ? (
+                      <button
+                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={isStartingCheckout}
+                        onClick={() => void startDirectCheckout()}
+                        type="button"
+                      >
+                        <CreditCard size={17} />
+                        {isStartingCheckout ? "Memproses..." : "Checkout"}
+                      </button>
+                    ) : (
+                      <Link
+                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        to={appendNextParam("/login", nextTarget)}
+                      >
+                        <LogIn size={17} />
+                        Checkout
+                      </Link>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-naki-smoke">
+                    <ShieldCheck className="text-green-500" size={16} />
+                    <span>Pembayaran aman melalui checkout Naki Code</span>
+                  </div>
+                  <p
+                    className="mt-2 text-xs text-naki-smoke"
+                    aria-live="polite"
+                  >
+                    {checkoutStatus}
+                  </p>
                 </div>
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-naki-smoke">
-                  <ShieldCheck className="text-green-500" size={16} />
-                  <span>Pembayaran aman melalui checkout Naki Code</span>
-                </div>
-                <p className="mt-2 text-xs text-naki-smoke" aria-live="polite">
-                  {checkoutStatus}
-                </p>
-              </div>
+              ) : null}
 
               {/* Auth / Consultation */}
               {!userToken ? (
                 <UserAuthPanel
                   captcha={captcha}
                   form={userAuthForm}
-                  forgotPasswordUrl={appendNextParam("/forgot-password", nextTarget)}
+                  forgotPasswordUrl={appendNextParam(
+                    "/forgot-password",
+                    nextTarget,
+                  )}
                   isSubmitting={isSubmittingUserAuth}
                   mode={userAuthMode}
                   status={userAuthStatus}
@@ -916,25 +1080,38 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                     </span>
                     <div>
                       <p className="text-xs text-naki-smoke">Login sebagai</p>
-                      <p className="text-sm font-medium text-naki-primary">{userUsername}</p>
+                      <p className="text-sm font-medium text-naki-primary">
+                        {userUsername}
+                      </p>
                     </div>
                   </div>
 
-                  <form className="rounded-2xl bg-white p-6 shadow-sm" onSubmit={submitConsultation}>
-                    <h2 className="text-base font-semibold text-naki-primary">Form konsultasi</h2>
-                    <p className="mt-1 text-xs text-naki-smoke">Kirim brief singkat agar kebutuhanmu tercatat.</p>
+                  <form
+                    className="rounded-2xl bg-white p-6 shadow-sm"
+                    onSubmit={submitConsultation}
+                  >
+                    <h2 className="text-base font-semibold text-naki-primary">
+                      Form konsultasi
+                    </h2>
+                    <p className="mt-1 text-xs text-naki-smoke">
+                      Kirim brief singkat agar kebutuhanmu tercatat.
+                    </p>
 
                     <div className="mt-4 grid gap-3">
                       <ConsultationField
                         label="Nama"
                         value={consultationForm.customerName}
-                        onChange={(value) => updateConsultationField("customerName", value)}
+                        onChange={(value) =>
+                          updateConsultationField("customerName", value)
+                        }
                         required
                       />
                       <ConsultationField
                         label="WhatsApp / email"
                         value={consultationForm.customerContact}
-                        onChange={(value) => updateConsultationField("customerContact", value)}
+                        onChange={(value) =>
+                          updateConsultationField("customerContact", value)
+                        }
                         required
                       />
                       <label className="grid gap-1 text-xs font-medium text-naki-smoke">
@@ -942,7 +1119,12 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                         <select
                           className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
                           value={consultationForm.projectType}
-                          onChange={(event) => updateConsultationField("projectType", event.target.value)}
+                          onChange={(event) =>
+                            updateConsultationField(
+                              "projectType",
+                              event.target.value,
+                            )
+                          }
                         >
                           <option>Pembuatan website dari design</option>
                           <option>Design dan website custom</option>
@@ -956,7 +1138,12 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                         <select
                           className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
                           value={consultationForm.budgetRange}
-                          onChange={(event) => updateConsultationField("budgetRange", event.target.value)}
+                          onChange={(event) =>
+                            updateConsultationField(
+                              "budgetRange",
+                              event.target.value,
+                            )
+                          }
                         >
                           <option>Di bawah Rp500K</option>
                           <option>Rp500K - Rp1Jt</option>
@@ -969,7 +1156,12 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                         <textarea
                           className="min-h-24 resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm leading-relaxed outline-none focus:border-blue-400"
                           value={consultationForm.message}
-                          onChange={(event) => updateConsultationField("message", event.target.value)}
+                          onChange={(event) =>
+                            updateConsultationField(
+                              "message",
+                              event.target.value,
+                            )
+                          }
                           placeholder="Contoh: Saya suka design ini dan ingin disesuaikan untuk bisnis kuliner dengan checkout WhatsApp."
                           required
                         />
@@ -980,7 +1172,9 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
                         type="submit"
                       >
                         <Send size={16} />
-                        {isSubmittingConsultation ? "Mengirim..." : "Kirim request"}
+                        {isSubmittingConsultation
+                          ? "Mengirim..."
+                          : "Kirim request"}
                       </button>
                       <p className="text-xs text-naki-smoke" aria-live="polite">
                         {consultationStatus}
@@ -1016,12 +1210,39 @@ export function TemplateDetailPage({ templates, isLoading = false }: TemplateDet
               <X size={18} />
             </button>
             <div className="relative min-h-0 flex-1">
-              <img className="h-full w-full object-contain" src={previewImages[activePreviewIndex].image} alt={previewImages[activePreviewIndex].caption || selectedTemplate.title} loading="eager" decoding="async" />
-              {previewImages.length > 1 ? <><PreviewArrow direction="previous" onClick={showPreviousPreview} overlay /><PreviewArrow direction="next" onClick={showNextPreview} overlay /></> : null}
+              <img
+                className="h-full w-full object-contain"
+                src={previewImages[activePreviewIndex].image}
+                alt={
+                  previewImages[activePreviewIndex].caption ||
+                  selectedTemplate.title
+                }
+                loading="eager"
+                decoding="async"
+              />
+              {previewImages.length > 1 ? (
+                <>
+                  <PreviewArrow
+                    direction="previous"
+                    onClick={showPreviousPreview}
+                    overlay
+                  />
+                  <PreviewArrow
+                    direction="next"
+                    onClick={showNextPreview}
+                    overlay
+                  />
+                </>
+              ) : null}
             </div>
             <div className="mt-3 flex items-center justify-between gap-4 rounded-lg bg-white/95 px-4 py-3 text-sm text-naki-primary">
-              <p className="min-w-0 truncate font-medium">{previewImages[activePreviewIndex].caption || `${selectedTemplate.title} - preview ${activePreviewIndex + 1}`}</p>
-              <span className="shrink-0 text-xs font-semibold text-naki-smoke">{activePreviewIndex + 1} / {previewImages.length}</span>
+              <p className="min-w-0 truncate font-medium">
+                {previewImages[activePreviewIndex].caption ||
+                  `${selectedTemplate.title} - preview ${activePreviewIndex + 1}`}
+              </p>
+              <span className="shrink-0 text-xs font-semibold text-naki-smoke">
+                {activePreviewIndex + 1} / {previewImages.length}
+              </span>
             </div>
           </div>
         </div>
@@ -1051,7 +1272,10 @@ type UserAuthPanelProps = {
   onModeChange: (mode: "login" | "register") => void;
   onUpdateCaptcha: (updater: (prev: CaptchaState) => CaptchaState) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  onUpdateField: <Key extends keyof UserAuthFormState>(key: Key, value: UserAuthFormState[Key]) => void;
+  onUpdateField: <Key extends keyof UserAuthFormState>(
+    key: Key,
+    value: UserAuthFormState[Key],
+  ) => void;
 };
 
 function UserAuthPanel({
@@ -1073,8 +1297,12 @@ function UserAuthPanel({
           <LockKeyhole size={18} />
         </span>
         <div>
-          <h2 className="text-base font-semibold text-naki-primary">Akun pelanggan</h2>
-          <p className="mt-0.5 text-xs text-naki-smoke">Login atau daftar untuk membuat order.</p>
+          <h2 className="text-base font-semibold text-naki-primary">
+            Akun pelanggan
+          </h2>
+          <p className="mt-0.5 text-xs text-naki-smoke">
+            Login atau daftar untuk membuat order.
+          </p>
         </div>
       </div>
 
@@ -1083,7 +1311,9 @@ function UserAuthPanel({
           <button
             key={item}
             className={`h-10 rounded-lg text-sm font-medium transition ${
-              mode === item ? "bg-white text-naki-primary shadow-sm" : "text-naki-smoke hover:text-naki-primary"
+              mode === item
+                ? "bg-white text-naki-primary shadow-sm"
+                : "text-naki-smoke hover:text-naki-primary"
             }`}
             onClick={() => onModeChange(item)}
             type="button"
@@ -1128,7 +1358,10 @@ function UserAuthPanel({
           />
         </label>
         {mode === "login" && (
-          <Link className="w-fit text-xs text-blue-500 underline decoration-dotted" to={forgotPasswordUrl}>
+          <Link
+            className="w-fit text-xs text-blue-500 underline decoration-dotted"
+            to={forgotPasswordUrl}
+          >
             Lupa password?
           </Link>
         )}
@@ -1139,7 +1372,9 @@ function UserAuthPanel({
               <input
                 className="h-11 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none focus:border-blue-400"
                 value={form.confirmPassword}
-                onChange={(event) => onUpdateField("confirmPassword", event.target.value)}
+                onChange={(event) =>
+                  onUpdateField("confirmPassword", event.target.value)
+                }
                 required
                 minLength={6}
                 type="password"
@@ -1149,8 +1384,18 @@ function UserAuthPanel({
               type="text"
               name="website"
               value={captcha.honeypot}
-              onChange={(e) => onUpdateCaptcha((prev) => ({ ...prev, honeypot: e.target.value }))}
-              style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0 }}
+              onChange={(e) =>
+                onUpdateCaptcha((prev) => ({
+                  ...prev,
+                  honeypot: e.target.value,
+                }))
+              }
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                opacity: 0,
+                height: 0,
+              }}
               tabIndex={-1}
               autoComplete="off"
               aria-hidden="true"
@@ -1159,7 +1404,12 @@ function UserAuthPanel({
               <input
                 type="checkbox"
                 checked={captcha.isChecked}
-                onChange={(e) => onUpdateCaptcha((prev) => ({ ...prev, isChecked: e.target.checked }))}
+                onChange={(e) =>
+                  onUpdateCaptcha((prev) => ({
+                    ...prev,
+                    isChecked: e.target.checked,
+                  }))
+                }
                 className="h-4 w-4 rounded border-naki-steel"
                 required
               />
@@ -1173,15 +1423,26 @@ function UserAuthPanel({
           type="submit"
         >
           <LogIn size={16} />
-          {isSubmitting ? "Memproses..." : mode === "login" ? "Login" : "Daftar"}
+          {isSubmitting
+            ? "Memproses..."
+            : mode === "login"
+              ? "Login"
+              : "Daftar"}
         </button>
-        <p className="text-xs text-naki-smoke" aria-live="polite">{status}</p>
+        <p className="text-xs text-naki-smoke" aria-live="polite">
+          {status}
+        </p>
       </form>
     </div>
   );
 }
 
-function ConsultationField({ label, value, onChange, required = false }: ConsultationFieldProps) {
+function ConsultationField({
+  label,
+  value,
+  onChange,
+  required = false,
+}: ConsultationFieldProps) {
   return (
     <label className="grid gap-1 text-xs font-medium text-naki-smoke">
       {label}
@@ -1196,9 +1457,14 @@ function ConsultationField({ label, value, onChange, required = false }: Consult
   );
 }
 
-function getNextTargetFromLocation(location: { pathname: string; search: string; hash: string }) {
+function getNextTargetFromLocation(location: {
+  pathname: string;
+  search: string;
+  hash: string;
+}) {
   const next = `${location.pathname}${location.search}${location.hash}`;
-  if (!next || next === "/login" || next.startsWith("/verify-email")) return "/";
+  if (!next || next === "/login" || next.startsWith("/verify-email"))
+    return "/";
   return next;
 }
 
@@ -1208,7 +1474,11 @@ function appendNextParam(target: string, next: string) {
   return `${target}${separator}next=${encodeURIComponent(next)}`;
 }
 
-async function shareTemplate(title: string, url: string, setStatus: (value: string) => void) {
+async function shareTemplate(
+  title: string,
+  url: string,
+  setStatus: (value: string) => void,
+) {
   if (navigator.share) {
     await navigator.share({ title, text: `${title} dari Naki Code`, url });
     setStatus("Design dibagikan.");
@@ -1224,9 +1494,31 @@ async function copyShareLink(url: string, setStatus: (value: string) => void) {
 
 type DetailBlockProps = { title: string; items: string[] };
 
-function PreviewArrow({ direction, onClick, overlay = false }: { direction: "previous" | "next"; onClick: () => void; overlay?: boolean }) {
+function PreviewArrow({
+  direction,
+  onClick,
+  overlay = false,
+}: {
+  direction: "previous" | "next";
+  onClick: () => void;
+  overlay?: boolean;
+}) {
   const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
-  return <button className={`absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full shadow-sm transition ${direction === "previous" ? "left-3" : "right-3"} ${overlay ? "bg-white/90 text-naki-primary hover:bg-white" : "bg-naki-primary/85 text-white hover:bg-naki-primary"}`} onClick={(event) => { event.stopPropagation(); onClick(); }} type="button" aria-label={direction === "previous" ? "Preview sebelumnya" : "Preview berikutnya"}><Icon size={22} /></button>;
+  return (
+    <button
+      className={`absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full shadow-sm transition ${direction === "previous" ? "left-3" : "right-3"} ${overlay ? "bg-white/90 text-naki-primary hover:bg-white" : "bg-naki-primary/85 text-white hover:bg-naki-primary"}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      type="button"
+      aria-label={
+        direction === "previous" ? "Preview sebelumnya" : "Preview berikutnya"
+      }
+    >
+      <Icon size={22} />
+    </button>
+  );
 }
 
 function DetailBlock({ title, items }: DetailBlockProps) {

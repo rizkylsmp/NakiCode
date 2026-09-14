@@ -1,5 +1,6 @@
 import {
   FileArchive,
+  Film,
   GripVertical,
   ImagePlus,
   Loader2,
@@ -29,6 +30,7 @@ export type TemplateFormState = {
   level: string;
   accentClass: string;
   preview: TemplatePreviewItem[];
+  videoUrl: string;
   demoUrl: string;
   lynkUrl: string;
   features: string;
@@ -37,6 +39,8 @@ export type TemplateFormState = {
   suitableFor: string;
   license: string;
   support: string;
+  publicationStatus: "draft" | "published";
+  sourceAvailable: boolean;
 };
 
 export const defaultFormState: TemplateFormState = {
@@ -51,6 +55,7 @@ export const defaultFormState: TemplateFormState = {
   level: "Pemula",
   accentClass: "bg-naki-secondary",
   preview: [],
+  videoUrl: "",
   demoUrl: "#",
   lynkUrl: "",
   features: "",
@@ -60,6 +65,8 @@ export const defaultFormState: TemplateFormState = {
   license:
     "Boleh dipakai untuk satu personal/client project. Source code tidak boleh dijual ulang tanpa izin.",
   support: "Support setup dasar setelah pembelian.",
+  publicationStatus: "draft",
+  sourceAvailable: true,
 };
 
 export type TemplatesResponse = {
@@ -74,10 +81,17 @@ export type ProjectMutationResponse = {
   project: PortfolioItem;
 };
 
+export type AdminCategory = {
+  id: number;
+  name: string;
+  designCount: number;
+  designTitles: string[];
+};
+
 export type CategoryMutationResponse = {
   category?: TemplateCategory;
   categories: TemplateCategory[];
-  adminCategories?: Array<{ id: number; name: string }>;
+  adminCategories?: AdminCategory[];
   message?: string;
 };
 
@@ -173,7 +187,18 @@ export const defaultTestimonialFormState: TestimonialFormState = {
   sort_order: 0,
 };
 
-export type OrderStatus = "new" | "contacted" | "quotation" | "awaiting_dp" | "in_progress" | "revision" | "delivered" | "completed" | "cancelled" | "deal" | "closed";
+export type OrderStatus =
+  | "new"
+  | "contacted"
+  | "quotation"
+  | "awaiting_dp"
+  | "in_progress"
+  | "revision"
+  | "delivered"
+  | "completed"
+  | "cancelled"
+  | "deal"
+  | "closed";
 export type OrderStatusFilter = "all" | OrderStatus;
 export type PaymentStatusFilter =
   | "all"
@@ -186,7 +211,16 @@ export type PaymentStatusFilter =
   | "partial_refunded"
   | "refunded"
   | "cancelled";
-export type DashboardView = "dashboard" | "design" | "orders" | "finance" | "portfolio" | "blog" | "testimonials" | "categories" | "coupons";
+export type DashboardView =
+  | "dashboard"
+  | "design"
+  | "orders"
+  | "finance"
+  | "portfolio"
+  | "blog"
+  | "testimonials"
+  | "categories"
+  | "coupons";
 export type AdminOrderFilters = {
   status: OrderStatusFilter;
   paymentStatus: PaymentStatusFilter;
@@ -229,7 +263,14 @@ export function legacyHashToAdminView(hash: string): DashboardView | null {
   const view = hash.replace("#", "");
 
   if (view === "templates") return "design";
-  return view === "design" || view === "orders" || view === "finance" || view === "portfolio" || view === "blog" || view === "testimonials" || view === "categories" || view === "coupons"
+  return view === "design" ||
+    view === "orders" ||
+    view === "finance" ||
+    view === "portfolio" ||
+    view === "blog" ||
+    view === "testimonials" ||
+    view === "categories" ||
+    view === "coupons"
     ? view
     : null;
 }
@@ -744,13 +785,33 @@ export function ImageUploadDropZone({
 export type PreviewDropZoneProps = {
   adminToken: string | null;
   value: TemplatePreviewItem[];
+  videoValue: string;
+  isUploadInProgress?: boolean;
   onChange: (value: TemplatePreviewItem[]) => void;
+  onVideoChange: (value: string) => void;
+  onUploadStateChange?: (state: MediaUploadState) => void;
 };
+
+export type MediaUploadState = {
+  isUploading: boolean;
+  message: string;
+  status: "idle" | "uploading" | "success" | "error";
+};
+
+const allowedPreviewVideoTypes = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+]);
 
 export function PreviewDropZone({
   adminToken,
   value,
+  videoValue,
+  isUploadInProgress = false,
   onChange,
+  onVideoChange,
+  onUploadStateChange,
 }: PreviewDropZoneProps) {
   const [draggedPreviewIndex, setDraggedPreviewIndex] = useState<number | null>(
     null,
@@ -760,6 +821,7 @@ export function PreviewDropZone({
   >(null);
   const [uploadStatus, setUploadStatus] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const uploadBusy = isUploading || isUploadInProgress;
 
   function getImageDimensions(
     file: File,
@@ -775,15 +837,38 @@ export function PreviewDropZone({
   }
 
   async function handleUpload(files: File[]) {
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (uploadBusy) {
+      setUploadStatus("Upload media sebelumnya masih berjalan.");
+      return;
+    }
 
-    if (!imageFiles.length) {
-      setUploadStatus("File yang dipilih bukan gambar.");
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    const videoFiles = files.filter((file) =>
+      allowedPreviewVideoTypes.has(file.type),
+    );
+    const unsupportedFileCount =
+      files.length - imageFiles.length - videoFiles.length;
+
+    if (!imageFiles.length && !videoFiles.length) {
+      setUploadStatus("Pilih file gambar atau video MP4, WebM, dan MOV.");
       return;
     }
 
     if (imageFiles.length > 12) {
       setUploadStatus("Maksimal 12 gambar.");
+      return;
+    }
+
+    if (videoFiles.length > 1) {
+      setUploadStatus("Hanya satu video preview yang dapat digunakan.");
+      return;
+    }
+
+    const videoFile = videoFiles[0];
+    if (videoFile && videoFile.size > 50 * 1024 * 1024) {
+      setUploadStatus(
+        `Ukuran video "${videoFile.name}" terlalu besar (maks 50MB).`,
+      );
       return;
     }
 
@@ -822,10 +907,22 @@ export function PreviewDropZone({
     }
 
     setIsUploading(true);
-    setUploadStatus("Mengupload gambar...");
+    setUploadStatus("Mengupload media preview...");
+    onUploadStateChange?.({
+      isUploading: true,
+      message: "Media sedang diupload. Kamu tetap bisa mengisi tab lain.",
+      status: "uploading",
+    });
 
     try {
-      const imageUrls = await uploadPreviewImages(imageFiles, adminToken);
+      const [imageUrls, videoUrl] = await Promise.all([
+        imageFiles.length
+          ? uploadPreviewImages(imageFiles, adminToken)
+          : Promise.resolve([]),
+        videoFile
+          ? uploadPreviewVideo(videoFile, adminToken)
+          : Promise.resolve(null),
+      ]);
 
       if (imageUrls.length) {
         onChange([
@@ -835,12 +932,38 @@ export function PreviewDropZone({
             caption: `Preview ${value.length + index + 1}`,
           })),
         ]);
-        setUploadStatus(
-          `${imageUrls.length} foto berhasil diupload. Lengkapi caption-nya.`,
-        );
       }
+
+      if (videoUrl) {
+        onVideoChange(videoUrl);
+      }
+
+      const uploadedParts = [
+        imageUrls.length ? `${imageUrls.length} gambar berhasil diupload` : "",
+        videoUrl ? "1 video berhasil diupload" : "",
+      ].filter(Boolean);
+
+      const successMessage = `${uploadedParts.join(" dan ")}.${
+        unsupportedFileCount
+          ? ` ${unsupportedFileCount} file tidak didukung diabaikan.`
+          : ""
+      }`;
+
+      setUploadStatus(successMessage);
+      onUploadStateChange?.({
+        isUploading: false,
+        message: successMessage,
+        status: "success",
+      });
     } catch {
-      setUploadStatus("Gagal memproses gambar. Coba file gambar lain.");
+      const errorMessage =
+        "Gagal memproses media. Coba file gambar atau video lain.";
+      setUploadStatus(errorMessage);
+      onUploadStateChange?.({
+        isUploading: false,
+        message: errorMessage,
+        status: "error",
+      });
     } finally {
       setIsUploading(false);
     }
@@ -933,7 +1056,7 @@ export function PreviewDropZone({
           </span>
           <div>
             <p className="text-sm font-semibold text-naki-primary">
-              Drag & Drop foto preview di sini
+              Drag & drop gambar atau video di sini
             </p>
             <p className="mt-1 text-sm text-naki-smoke">
               atau{" "}
@@ -941,8 +1064,8 @@ export function PreviewDropZone({
                 browse files
                 <input
                   className="sr-only"
-                  accept="image/*"
-                  disabled={isUploading}
+                  accept="image/*,video/mp4,video/webm,video/quicktime,.mov"
+                  disabled={uploadBusy}
                   multiple
                   onChange={(event) => {
                     void handleUpload(Array.from(event.target.files ?? []));
@@ -953,10 +1076,11 @@ export function PreviewDropZone({
               </label>
             </p>
             <p className="mt-1 text-xs text-naki-smoke">
-              Hanya format JPEG dan PNG yang didukung. Maksimal 5MB per file.
+              Gambar maksimal 5MB per file; video MP4, WebM, atau MOV maksimal
+              50MB. Hanya satu video per design.
             </p>
           </div>
-          {isUploading && (
+          {uploadBusy && (
             <div className="flex items-center gap-2 text-sm text-naki-smoke">
               <Loader2 size={16} className="animate-spin" />
               Mengupload...
@@ -966,18 +1090,57 @@ export function PreviewDropZone({
       </div>
 
       {/* Uploaded Files List */}
-      {value.length > 0 && (
+      {videoValue || value.length > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-naki-primary">
-              Uploaded Files
+              Media terupload
             </p>
             <p className="text-xs text-naki-smoke">
-              {value.length} file{value.length > 1 ? "s" : ""}
+              {value.length + (videoValue ? 1 : 0)} file
             </p>
           </div>
 
           <div className="grid gap-2">
+            {videoValue ? (
+              <div className="overflow-hidden rounded-xl border border-naki-steel bg-white">
+                <video
+                  className="aspect-video w-full bg-naki-primary object-cover"
+                  controls
+                  muted
+                  playsInline
+                  preload="metadata"
+                  src={videoValue}
+                />
+                <div className="flex items-center justify-between gap-3 p-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-naki-frost text-naki-secondary">
+                      <Film size={18} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-naki-primary">
+                        Video preview utama
+                      </p>
+                      <p className="truncate text-xs text-naki-smoke">
+                        {videoValue}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    aria-label="Hapus video preview"
+                    className="grid size-11 shrink-0 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500 focus-visible:ring-2 focus-visible:ring-red-400"
+                    onClick={() => {
+                      onVideoChange("");
+                      setUploadStatus("Video preview dihapus dari design.");
+                    }}
+                    type="button"
+                    title="Hapus video"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {value.map((item, index) => (
               <div
                 key={`${item.image}-${index}`}
@@ -1050,12 +1213,12 @@ export function PreviewDropZone({
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Status */}
-      {uploadStatus && (
-        <p className="text-sm text-naki-smoke">{uploadStatus}</p>
-      )}
+      <p aria-live="polite" className="min-h-5 text-sm text-naki-smoke">
+        {uploadStatus}
+      </p>
     </section>
   );
 }
@@ -1065,7 +1228,11 @@ export type SourceCodeUploadProps = {
   onChange: (value: string) => void;
 };
 
-export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
+export function SourceCodeUpload({
+  value,
+  onChange,
+  adminToken,
+}: SourceCodeUploadProps & { adminToken: string | null }) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -1075,7 +1242,9 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
       return;
     }
 
-    const packageFiles = files.filter((file) => /\.(zip|rar)$/i.test(file.name));
+    const packageFiles = files.filter((file) =>
+      /\.(zip|rar)$/i.test(file.name),
+    );
 
     if (!packageFiles.length) {
       setUploadStatus("File harus berformat ZIP atau RAR.");
@@ -1083,24 +1252,33 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
     }
 
     setIsUploading(true);
-    setUploadStatus("Memproses file source code...");
+    if (!adminToken) {
+      setUploadStatus("Login admin diperlukan untuk upload source code.");
+      return;
+    }
+    if (packageFiles[0].size > 100 * 1024 * 1024) {
+      setUploadStatus("Ukuran source code maksimal 100MB.");
+      return;
+    }
+    setUploadStatus("Mengupload source code...");
 
-    // Simulate upload delay
-    setTimeout(() => {
-      const packageItems = packageFiles.map(
-        (file) => `${file.name} (${formatFileSize(file.size)})`,
-      );
-
-      onChange(appendLines(value, packageItems));
-      setUploadStatus(
-        `${packageItems.length} file berhasil ditambahkan${
-          packageFiles.length < files.length
-            ? ". File selain ZIP/RAR diabaikan."
-            : "."
-        }`,
-      );
-      setIsUploading(false);
-    }, 1000);
+    void (async () => {
+      try {
+        const formData = new FormData();
+        formData.append("source", packageFiles[0]);
+        const uploaded = await apiUpload<{
+          source: { url: string; name: string };
+        }>("/api/uploads/source", formData);
+        onChange(appendLines(value, [uploaded.source.url]));
+        setUploadStatus(`${uploaded.source.name} berhasil diupload.`);
+      } catch (error) {
+        setUploadStatus(
+          error instanceof Error ? error.message : "Gagal upload source code.",
+        );
+      } finally {
+        setIsUploading(false);
+      }
+    })();
   }
 
   const uploadedFiles = splitLines(value);
@@ -1119,7 +1297,9 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
           if (!isUploading) setIsDragging(true);
         }}
         onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          if (
+            !event.currentTarget.contains(event.relatedTarget as Node | null)
+          ) {
             setIsDragging(false);
           }
         }}
@@ -1150,15 +1330,17 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
               Upload Source Code
             </p>
             <p className="mt-1 text-sm text-naki-smoke">
-              Drag & drop, paste file dari clipboard, atau pilih ZIP/RAR.
+              Drag & drop, paste, atau pilih satu ZIP/RAR maksimal 100MB.
             </p>
           </div>
         </div>
-        <label className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition ${
-          isUploading
-            ? 'cursor-not-allowed bg-naki-smoke'
-            : 'cursor-pointer bg-naki-secondary hover:bg-blue-600'
-        }`}>
+        <label
+          className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition ${
+            isUploading
+              ? "cursor-not-allowed bg-naki-smoke"
+              : "cursor-pointer bg-naki-secondary hover:bg-blue-600"
+          }`}
+        >
           {isUploading ? (
             <>
               <Loader2 size={16} className="animate-spin" />
@@ -1173,7 +1355,6 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
           <input
             className="sr-only"
             accept=".zip,.rar,application/zip,application/x-rar-compressed"
-            multiple
             disabled={isUploading}
             onChange={(event) => {
               addSourceFiles(Array.from(event.target.files ?? []));
@@ -1213,7 +1394,9 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
                 <button
                   className="grid size-9 shrink-0 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
                   onClick={() => {
-                    const newFiles = uploadedFiles.filter((_, i) => i !== index);
+                    const newFiles = uploadedFiles.filter(
+                      (_, i) => i !== index,
+                    );
                     onChange(newFiles.join("\n"));
                   }}
                   type="button"
@@ -1230,7 +1413,12 @@ export function SourceCodeUpload({ value, onChange }: SourceCodeUploadProps) {
   );
 }
 
-function categorizeStack(items: string[]): { frontend: string[]; backend: string[]; database: string[]; other: string[] } {
+function categorizeStack(items: string[]): {
+  frontend: string[];
+  backend: string[];
+  database: string[];
+  other: string[];
+} {
   const frontendSet = new Set(frontendStackOptions.map((s) => s.toLowerCase()));
   const backendSet = new Set(backendStackOptions.map((s) => s.toLowerCase()));
   const databaseSet = new Set(databaseStackOptions.map((s) => s.toLowerCase()));
@@ -1252,7 +1440,9 @@ function categorizeStack(items: string[]): { frontend: string[]; backend: string
 }
 
 export function templateToForm(template: TemplateItem): TemplateFormState {
-  const { frontend, backend, database, other } = categorizeStack(template.stack);
+  const { frontend, backend, database, other } = categorizeStack(
+    template.stack,
+  );
 
   return {
     id: template.id,
@@ -1267,6 +1457,7 @@ export function templateToForm(template: TemplateItem): TemplateFormState {
     level: template.level,
     accentClass: template.accentClass,
     preview: template.preview,
+    videoUrl: template.videoUrl || "",
     demoUrl: template.demoUrl,
     lynkUrl: template.lynkUrl || "",
     features: template.features.join("\n"),
@@ -1275,6 +1466,8 @@ export function templateToForm(template: TemplateItem): TemplateFormState {
     suitableFor: template.suitableFor.join("\n"),
     license: template.license,
     support: template.support,
+    publicationStatus: template.publicationStatus ?? "published",
+    sourceAvailable: template.sourceAvailable ?? true,
   };
 }
 
@@ -1292,15 +1485,19 @@ export function formToPayload(
     title: form.title.trim(),
     category: form.category,
     description: form.description.trim(),
-    price: form.price.trim(),
+    price: form.sourceAvailable ? form.price.trim() : "Hubungi kami",
     stack: allStack,
     level: form.level.trim(),
     accentClass: form.accentClass.trim() || "bg-naki-secondary",
     preview: form.preview.filter((item) => item.image || item.caption.trim()),
+    videoUrl: form.videoUrl.trim() || null,
     demoUrl: form.demoUrl.trim() || "#",
+    lynkUrl: form.sourceAvailable ? form.lynkUrl.trim() || null : null,
+    publicationStatus: form.publicationStatus,
+    sourceAvailable: form.sourceAvailable,
     features: splitLines(form.features),
     includedFiles: splitLines(form.includedFiles),
-    sourceCode: splitLines(form.sourceCode),
+    sourceCode: form.sourceAvailable ? splitLines(form.sourceCode) : [],
     suitableFor: splitLines(form.suitableFor),
     license: form.license.trim(),
     support: form.support.trim(),
@@ -1339,6 +1536,29 @@ export async function uploadPreviewImages(
   }>("/api/uploads/images", formData);
 
   return data.images?.map((image) => image.url).filter(Boolean) ?? [];
+}
+
+export async function uploadPreviewVideo(
+  file: File,
+  adminToken: string | null,
+) {
+  if (!adminToken) {
+    throw new Error("Admin token tidak tersedia.");
+  }
+
+  const formData = new FormData();
+  formData.append("video", file);
+
+  const data = await apiUpload<{ video?: { url?: string } }>(
+    "/api/uploads/video",
+    formData,
+  );
+
+  if (!data.video?.url) {
+    throw new Error("URL video tidak tersedia.");
+  }
+
+  return data.video.url;
 }
 
 export function reorderItems<Item>(

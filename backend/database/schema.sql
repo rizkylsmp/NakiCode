@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS designs (
   level VARCHAR(40) NOT NULL,
   accent_class VARCHAR(80) NOT NULL DEFAULT 'bg-naki-secondary',
   preview JSON NOT NULL,
+  video_url VARCHAR(500) NULL,
   features JSON NOT NULL,
   included_files JSON NOT NULL,
   source_code JSON NOT NULL DEFAULT ('[]'),
@@ -52,12 +53,14 @@ CREATE TABLE IF NOT EXISTS designs (
   support TEXT NOT NULL,
   demo_url VARCHAR(255) NOT NULL DEFAULT '#',
   lynk_url VARCHAR(500) NULL,
+  publication_status VARCHAR(20) NOT NULL DEFAULT 'published',
+  source_available BOOLEAN NOT NULL DEFAULT TRUE,
   is_featured BOOLEAN NOT NULL DEFAULT FALSE,
   deleted_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_designs_category_id (category_id),
-  KEY idx_designs_visibility (deleted_at, id),
+  KEY idx_designs_visibility (deleted_at, publication_status, id),
   CONSTRAINT fk_designs_category_id FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 

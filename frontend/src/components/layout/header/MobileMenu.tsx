@@ -24,7 +24,7 @@ export function MobileMenu({
   onToggleTheme,
 }: MobileMenuProps) {
   return (
-    <div className="border-t border-naki-steel bg-white px-5 py-4 lg:hidden">
+    <div className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-naki-steel bg-white px-4 py-4 sm:px-5 lg:hidden">
       <nav className="grid gap-1 text-sm font-medium text-naki-primary">
         {navItems.map((item) => (
           <Link
@@ -112,10 +112,26 @@ function AuthenticatedMobileMenu({
 function AdminMobileLinks({ onClose }: { onClose: () => void }) {
   return (
     <>
-      <MobileMenuLink label="Dashboard admin" to="/admin/dashboard" onClose={onClose} />
-      <MobileMenuLink label="Kelola design" to="/admin/design" onClose={onClose} />
-      <MobileMenuLink label="Order masuk" to="/admin/orders" onClose={onClose} />
-      <MobileMenuLink label="Portofolio" to="/admin/portfolio" onClose={onClose} />
+      <MobileMenuLink
+        label="Dashboard admin"
+        to="/admin/dashboard"
+        onClose={onClose}
+      />
+      <MobileMenuLink
+        label="Kelola design"
+        to="/admin/design"
+        onClose={onClose}
+      />
+      <MobileMenuLink
+        label="Order masuk"
+        to="/admin/orders"
+        onClose={onClose}
+      />
+      <MobileMenuLink
+        label="Portofolio"
+        to="/admin/portfolio"
+        onClose={onClose}
+      />
     </>
   );
 }
@@ -124,7 +140,11 @@ function UserMobileLinks({ onClose }: { onClose: () => void }) {
   return (
     <>
       <MobileMenuLink label="Profil saya" to="/akun-saya" onClose={onClose} />
-      <MobileMenuLink label="Pesanan saya" to="/pesanan-saya" onClose={onClose} />
+      <MobileMenuLink
+        label="Pesanan saya"
+        to="/pesanan-saya"
+        onClose={onClose}
+      />
       <MobileMenuLink label="Wishlist" to="/wishlist" onClose={onClose} />
     </>
   );

@@ -1,8 +1,11 @@
-import { Edit3, Plus, Search, Trash2, X } from "lucide-react";
+import { Copy, Edit3, Plus, Search, Trash2, X } from "lucide-react";
 import type React from "react";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { type TemplateItem } from "../../domain/content";
-import { adminTemplatesPageSize, type TemplateFormState } from "./AdminTemplateWorkspace.shared";
+import {
+  adminTemplatesPageSize,
+  type TemplateFormState,
+} from "./AdminTemplateWorkspace.shared";
 import { CategoryModal } from "./CategoryModal";
 import { TemplateFormModal } from "./TemplateFormModal";
 
@@ -32,10 +35,14 @@ type TemplatesPanelProps = {
   onTemplatesPageChange: (page: number) => void;
   onStartCreate: () => void;
   onStartEdit: (template: TemplateItem) => void;
+  onDuplicateTemplate?: (template: TemplateItem) => void;
   onCloseTemplateModal: () => void;
   onDeleteTemplate: (template: TemplateItem) => void;
   onSubmitTemplate: (event: React.FormEvent<HTMLFormElement>) => void;
-  onUpdateField: <Key extends keyof TemplateFormState>(key: Key, value: TemplateFormState[Key]) => void;
+  onUpdateField: <Key extends keyof TemplateFormState>(
+    key: Key,
+    value: TemplateFormState[Key],
+  ) => void;
   onOpenCategoryModal: () => void;
   onCloseCategoryModal: () => void;
   onSubmitCategory: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -74,6 +81,7 @@ export function TemplatesPanel({
   onTemplatesPageChange,
   onStartCreate,
   onStartEdit,
+  onDuplicateTemplate,
   onCloseTemplateModal,
   onDeleteTemplate,
   onSubmitTemplate,
@@ -101,7 +109,7 @@ export function TemplatesPanel({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-naki-primary">Design</h1>
           <p className="mt-1 text-sm text-naki-smoke">
@@ -121,7 +129,9 @@ export function TemplatesPanel({
       {/* Search & filter bar */}
       <div className="grid gap-3 rounded-xl border border-naki-steel bg-white p-4 shadow-sm md:grid-cols-[1fr_240px]">
         <label className="grid gap-1.5">
-          <span className="text-xs font-medium text-naki-smoke">Cari design</span>
+          <span className="text-xs font-medium text-naki-smoke">
+            Cari design
+          </span>
           <span className="flex h-10 items-center gap-2 rounded-lg border border-naki-steel bg-naki-page-bg px-3 focus-within:border-naki-primary">
             <Search size={15} className="text-naki-smoke" />
             <input
@@ -147,10 +157,14 @@ export function TemplatesPanel({
           </span>
         </label>
         <label className="grid gap-1.5">
-          <span className="text-xs font-medium text-naki-smoke">Filter category</span>
+          <span className="text-xs font-medium text-naki-smoke">
+            Filter category
+          </span>
           <select
             className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
-            onChange={(event) => onTemplateCategoryFilterChange(event.target.value)}
+            onChange={(event) =>
+              onTemplateCategoryFilterChange(event.target.value)
+            }
             value={templateCategoryFilter}
           >
             <option value="all">All categories</option>
@@ -200,8 +214,10 @@ export function TemplatesPanel({
             {paginatedTemplates.map((template, index) => (
               <article
                 key={template.id}
-                className={`flex items-center justify-between px-6 py-4 transition ${
-                  index !== paginatedTemplates.length - 1 ? "border-b border-naki-steel" : ""
+                className={`flex flex-col items-start gap-3 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
+                  index !== paginatedTemplates.length - 1
+                    ? "border-b border-naki-steel"
+                    : ""
                 } ${
                   selectedId === template.id
                     ? "bg-naki-frost"
@@ -216,16 +232,34 @@ export function TemplatesPanel({
                     <span className="shrink-0 rounded-md bg-naki-frost px-2 py-0.5 text-xs font-medium text-naki-smoke">
                       {template.category}
                     </span>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${template.publicationStatus === "draft" ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700"}`}
+                    >
+                      {template.publicationStatus === "draft"
+                        ? "Draft"
+                        : "Published"}
+                    </span>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-naki-smoke">
                     /design/{template.slug}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 ml-4">
+                <div className="flex w-full items-center justify-between gap-4 sm:ml-4 sm:w-auto sm:justify-end">
                   <p className="text-sm font-semibold text-naki-primary">
                     {template.price}
                   </p>
                   <div className="flex items-center gap-1">
+                    {onDuplicateTemplate ? (
+                      <button
+                        className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-secondary"
+                        onClick={() => onDuplicateTemplate(template)}
+                        type="button"
+                        aria-label={`Duplikat design ${template.title}`}
+                        title="Duplikat sebagai draft"
+                      >
+                        <Copy size={15} />
+                      </button>
+                    ) : null}
                     <button
                       className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
                       onClick={(e) => {

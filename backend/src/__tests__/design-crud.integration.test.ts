@@ -59,6 +59,7 @@ const design = {
   rating: 0,
   accentClass: 'bg-naki-secondary',
   preview: [{ image: '/uploads/design.webp', caption: 'Beranda' }],
+  videoUrl: '/uploads/design-preview.mp4',
   demoUrl: 'https://example.com',
   lynkUrl: 'https://lynk.id/naki',
   buyerCount: 0,
@@ -105,12 +106,15 @@ describe('Design CRUD API', () => {
 
     expect(unauthenticated.status).toBe(401);
     expect(response.status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ slug: design.slug }));
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: design.slug, videoUrl: design.videoUrl }),
+    );
   });
 
   it('rejects unsafe asset, demo, and Lynk URLs', async () => {
     const payloads = [
       { ...validPayload, preview: [{ image: 'data:image/png;base64,abc', caption: '' }] },
+      { ...validPayload, videoUrl: 'javascript:alert(1)' },
       { ...validPayload, demoUrl: 'javascript:alert(1)' },
       { ...validPayload, lynkUrl: 'https://example.com/not-lynk' },
     ];

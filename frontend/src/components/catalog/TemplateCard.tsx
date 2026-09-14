@@ -1,8 +1,10 @@
-import { ArrowRight, Code2, Heart, Star } from "lucide-react";
+import { ArrowRight, Code2, Film, Heart, Star } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { TemplateItem } from "../../domain/content";
 import { getTemplateCategoryPath } from "../../utils/template-url";
 import { TechStackBadge } from "../ui/TechStackBadge";
+import { ResponsiveImage } from "../ui/ResponsiveImage";
 
 type TemplateCardProps = {
   isAuthenticated: boolean;
@@ -19,16 +21,46 @@ export function TemplateCard({
   template,
   onToggleFavorite,
 }: TemplateCardProps) {
+  const [failedVideoUrl, setFailedVideoUrl] = useState<string | null>(null);
+  const hasVideoPreview =
+    Boolean(template.videoUrl) && failedVideoUrl !== template.videoUrl;
+
   return (
     <article className="group overflow-hidden rounded-2xl border border-naki-steel/60 bg-white shadow-sm transition duration-300 hover:border-blue-200 hover:shadow-md">
       <div className="relative aspect-[4/3] overflow-hidden bg-naki-frost">
-        {template.preview?.[0]?.image ? (
-          <Link to={`/design/${template.slug}`} aria-label={`Lihat design ${template.title}`}>
-            <img
+        {hasVideoPreview ? (
+          <Link
+            className="block h-full w-full"
+            to={`/design/${template.slug}`}
+            aria-label={`Lihat design ${template.title}`}
+          >
+            <video
+              aria-label={`Video preview ${template.title}`}
+              autoPlay
+              className="pointer-events-none h-full w-full object-cover"
+              loop
+              muted
+              onError={() => setFailedVideoUrl(template.videoUrl || null)}
+              playsInline
+              poster={template.preview?.[0]?.image || undefined}
+              preload="metadata"
+              src={template.videoUrl || undefined}
+            />
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-md bg-naki-primary/80 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
+              <Film size={13} aria-hidden="true" />
+              Video preview
+            </span>
+          </Link>
+        ) : template.preview?.[0]?.image ? (
+          <Link
+            to={`/design/${template.slug}`}
+            aria-label={`Lihat design ${template.title}`}
+          >
+            <ResponsiveImage
               className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
               src={template.preview[0].image}
               alt={template.title}
-              loading="lazy"
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             />
           </Link>
         ) : (
@@ -80,7 +112,10 @@ export function TemplateCard({
           Bisa disesuaikan
         </div>
         <h3 className="text-base font-semibold leading-tight text-naki-primary">
-          <Link className="transition hover:text-blue-500" to={`/design/${template.slug}`}>
+          <Link
+            className="transition hover:text-blue-500"
+            to={`/design/${template.slug}`}
+          >
             {template.title}
           </Link>
         </h3>
@@ -90,7 +125,9 @@ export function TemplateCard({
 
         <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-blue-500">
           <Star size={12} className="fill-blue-400 text-blue-400" />
-          <span>{template.rating > 0 ? template.rating.toFixed(1) : "Baru"}</span>
+          <span>
+            {template.rating > 0 ? template.rating.toFixed(1) : "Baru"}
+          </span>
           {template.reviews?.length ? (
             <span className="text-naki-smoke">
               ({template.reviews.length} ulasan)
@@ -100,9 +137,15 @@ export function TemplateCard({
 
         <div className="mt-3 flex items-end justify-between gap-3">
           <div>
-            <p className="text-xs text-naki-smoke">Source code mulai</p>
+            <p className="text-xs text-naki-smoke">
+              {template.sourceAvailable === false
+                ? "Layanan custom"
+                : "Source code mulai"}
+            </p>
             <p className="text-base font-bold text-naki-primary">
-              {template.price}
+              {template.sourceAvailable === false
+                ? "Konsultasi"
+                : template.price}
             </p>
           </div>
           <Link

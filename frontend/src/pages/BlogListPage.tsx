@@ -7,6 +7,7 @@ import { BlogCardSkeletonGrid } from "../components/ui/skeletons/BlogCardSkeleto
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import { absoluteSiteUrl } from "../utils/seo";
+import { ResponsiveImage } from "../components/ui/ResponsiveImage";
 
 export type BlogPostItem = {
   id: number;
@@ -33,7 +34,8 @@ export function BlogListPage() {
   const posts = data?.posts ?? [];
   const canonicalUrl = absoluteSiteUrl("/blog");
   const title = "Blog Website dan Bisnis Digital - Naki Code";
-  const description = "Tutorial dan artikel Naki Code tentang design website, React, Express, MySQL, dan workflow pembuatan website.";
+  const description =
+    "Tutorial dan artikel Naki Code tentang design website, React, Express, MySQL, dan workflow pembuatan website.";
 
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
@@ -56,8 +58,9 @@ export function BlogListPage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
           Blog Naki Code
         </p>
-        <h1 className="mt-3 text-3xl font-bold text-white md:text-4xl">
-          Tips, tutorial, dan insight seputar development, design, dan bisnis digital.
+        <h1 className="mx-auto mt-3 max-w-4xl text-2xl font-bold leading-tight text-white sm:text-3xl md:text-4xl">
+          Tips, tutorial, dan insight seputar development, design, dan bisnis
+          digital.
         </h1>
       </section>
 
@@ -77,7 +80,7 @@ export function BlogListPage() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {posts.map((post) => (
                 <Link
                   key={post.id}
@@ -86,11 +89,11 @@ export function BlogListPage() {
                 >
                   <div className="aspect-video overflow-hidden bg-gradient-to-br from-naki-frost to-naki-steel/50">
                     {post.coverImage ? (
-                      <img
+                      <ResponsiveImage
                         className="h-full w-full object-cover"
                         src={post.coverImage}
                         alt={`Cover artikel ${post.title}`}
-                        loading="lazy"
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                       />
                     ) : null}
                   </div>
@@ -101,8 +104,7 @@ export function BlogListPage() {
                         {post.author}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs text-naki-smoke">
-                        <Clock size={12} />
-                        5 menit
+                        <Clock size={12} />5 menit
                       </span>
                     </div>
                     <h2 className="mt-3 text-base font-semibold leading-snug text-naki-primary group-hover:text-blue-500">

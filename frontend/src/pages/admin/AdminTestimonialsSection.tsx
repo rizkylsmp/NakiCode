@@ -632,11 +632,11 @@ export function AdminTestimonialsSection({
 
       {isSourceDialogOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-naki-primary/40 p-3 backdrop-blur sm:px-4 sm:py-6"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full my-10 mx-4 max-w-lg rounded-2xl bg-white shadow-naki-card">
+          <div className="my-3 w-full max-w-lg rounded-2xl bg-white shadow-naki-card sm:my-10">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white/95 p-5 backdrop-blur rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold leading-tight text-naki-primary">
@@ -697,11 +697,11 @@ export function AdminTestimonialsSection({
 
       {isRatingPickerOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-naki-primary/40 p-3 backdrop-blur sm:px-4 sm:py-6"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full my-10 mx-4 max-w-2xl rounded-2xl bg-white shadow-naki-card">
+          <div className="my-3 w-full max-w-2xl rounded-2xl bg-white shadow-naki-card sm:my-10">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white/95 p-5 backdrop-blur rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold leading-tight text-naki-primary">
@@ -829,11 +829,11 @@ export function AdminTestimonialsSection({
 
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+          className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-naki-primary/40 p-3 backdrop-blur sm:px-4 sm:py-6"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full my-10 mx-4 max-w-2xl rounded-2xl bg-white shadow-naki-card">
+          <div className="my-3 w-full max-w-2xl rounded-2xl bg-white shadow-naki-card sm:my-10">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-naki-steel bg-white/95 p-5 backdrop-blur rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold leading-tight text-naki-primary">

@@ -40,6 +40,8 @@ const APP_MENU: MenuItem[] = [
   { key: "coupons", label: "Coupon", icon: TicketPercent },
 ];
 
+export const ADMIN_MENU_ITEMS: MenuItem[] = [...MAIN_MENU, ...APP_MENU];
+
 type NavSection = {
   label: string;
   items: MenuItem[];
@@ -57,7 +59,7 @@ export function AdminSidebar({
   onLogout,
 }: AdminSidebarProps) {
   return (
-    <aside className="fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-56 flex-col border-r border-naki-steel bg-white xl:w-60">
+    <aside className="fixed left-0 top-[73px] z-40 hidden h-[calc(100dvh-73px)] w-56 flex-col border-r border-naki-steel bg-white lg:flex xl:w-60">
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2.5 py-4 xl:px-3">
         {NAV_SECTIONS.map((section) => (
@@ -73,7 +75,8 @@ export function AdminSidebar({
                   <li key={item.key}>
                     <button
                       onClick={() => onNavigate(item.key)}
-                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition ${
+                      type="button"
+                      className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition ${
                         isActive
                           ? "bg-naki-frost text-naki-primary"
                           : "text-naki-smoke hover:bg-naki-frost/60 hover:text-naki-primary"
@@ -81,7 +84,9 @@ export function AdminSidebar({
                     >
                       <Icon
                         size={16}
-                        className={isActive ? "text-naki-primary" : "text-naki-smoke"}
+                        className={
+                          isActive ? "text-naki-primary" : "text-naki-smoke"
+                        }
                       />
                       {item.label}
                     </button>
@@ -107,8 +112,10 @@ export function AdminSidebar({
           </div>
           <button
             onClick={onLogout}
-            className="grid size-7 shrink-0 place-items-center rounded-md text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
+            className="grid size-10 shrink-0 place-items-center rounded-md text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
             title="Logout"
+            aria-label="Logout admin"
+            type="button"
           >
             <LogOut size={14} />
           </button>

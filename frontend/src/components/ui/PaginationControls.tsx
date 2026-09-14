@@ -7,6 +7,7 @@ type PaginationControlsProps = {
   pageSize: number;
   isLoading?: boolean;
   onPageChange: (page: number) => void;
+  getPageHref?: (page: number) => string;
 };
 
 export function PaginationControls({
@@ -16,6 +17,7 @@ export function PaginationControls({
   pageSize,
   isLoading = false,
   onPageChange,
+  getPageHref,
 }: PaginationControlsProps) {
   if (total <= pageSize && totalPages <= 1) {
     return null;
@@ -31,31 +33,81 @@ export function PaginationControls({
       aria-label="Pagination"
     >
       <p className="text-sm font-bold text-naki-smoke">
-        Halaman{" "}
-        <span className="font-black text-naki-primary">{page}</span> dari{" "}
-        <span className="font-black text-naki-primary">{safeTotalPages}</span>{" "}
-        ({total} data)
+        Halaman <span className="font-black text-naki-primary">{page}</span>{" "}
+        dari{" "}
+        <span className="font-black text-naki-primary">{safeTotalPages}</span> (
+        {total} data)
       </p>
-      <div className="flex gap-2">
-        <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel px-3 text-sm font-black text-naki-secondary transition hover:border-naki-smoke disabled:cursor-not-allowed disabled:text-naki-smoke"
+      <div className="grid grid-cols-2 gap-2 sm:flex">
+        <PaginationLink
           disabled={!canGoPrevious || isLoading}
+          href={getPageHref?.(page - 1)}
+          label="Sebelumnya"
           onClick={() => onPageChange(page - 1)}
-          type="button"
-        >
-          <ChevronLeft size={16} />
-          Sebelumnya
-        </button>
-        <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-naki-secondary px-3 text-sm font-black text-naki-frost transition hover:bg-naki-primary disabled:cursor-not-allowed disabled:bg-naki-smoke"
+          variant="secondary"
+          icon="previous"
+        />
+        <PaginationLink
           disabled={!canGoNext || isLoading}
+          href={getPageHref?.(page + 1)}
+          label="Berikutnya"
           onClick={() => onPageChange(page + 1)}
-          type="button"
-        >
-          Berikutnya
-          <ChevronRight size={16} />
-        </button>
+          variant="primary"
+          icon="next"
+        />
       </div>
     </nav>
+  );
+}
+
+type PaginationLinkProps = {
+  disabled: boolean;
+  href?: string;
+  label: string;
+  onClick: () => void;
+  variant: "primary" | "secondary";
+  icon: "previous" | "next";
+};
+
+function PaginationLink({
+  disabled,
+  href,
+  label,
+  onClick,
+  variant,
+  icon,
+}: PaginationLinkProps) {
+  const className = `inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-black transition sm:gap-2 sm:px-3 sm:text-sm ${
+    variant === "primary"
+      ? "bg-naki-secondary text-naki-frost hover:bg-naki-primary"
+      : "border border-naki-steel text-naki-secondary hover:border-naki-smoke"
+  } ${disabled ? "pointer-events-none cursor-not-allowed opacity-50" : ""}`;
+  const content = (
+    <>
+      {icon === "previous" ? <ChevronLeft size={16} /> : null}
+      {label}
+      {icon === "next" ? <ChevronRight size={16} /> : null}
+    </>
+  );
+
+  if (!href || disabled) {
+    return (
+      <span className={className} aria-disabled="true">
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      className={className}
+      href={href}
+      onClick={(event) => {
+        event.preventDefault();
+        onClick();
+      }}
+    >
+      {content}
+    </a>
   );
 }

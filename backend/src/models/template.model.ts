@@ -1,9 +1,9 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { pool } from '../db';
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { pool } from "../db";
 import {
   findRecentTemplateReviews,
   type TemplateReviewItem,
-} from './template-rating.model';
+} from "./template-rating.model";
 
 type TemplateRow = RowDataPacket & {
   id: number;
@@ -19,10 +19,14 @@ type TemplateRow = RowDataPacket & {
   accent_class?: string;
   accentClass?: string;
   preview: string | TemplatePreviewItem[];
+  video_url?: string | null;
+  videoUrl?: string | null;
   demo_url?: string;
   demoUrl?: string;
   lynk_url?: string | null;
   lynkUrl?: string | null;
+  publication_status?: "draft" | "published";
+  source_available?: number | boolean;
   buyer_count?: number;
   buyerCount?: number;
   features?: string | string[];
@@ -54,8 +58,11 @@ export type TemplateItem = {
   rating: number;
   accentClass: string;
   preview: TemplatePreviewItem[];
+  videoUrl: string | null;
   demoUrl: string;
   lynkUrl?: string | null;
+  publicationStatus: "draft" | "published";
+  sourceAvailable: boolean;
   buyerCount: number;
   features: string[];
   includedFiles: string[];
@@ -67,7 +74,7 @@ export type TemplateItem = {
 };
 export type TemplatePayload = Omit<
   TemplateItem,
-  'id' | 'categoryId' | 'rating' | 'buyerCount' | 'reviews'
+  "id" | "categoryId" | "rating" | "buyerCount" | "reviews"
 >;
 
 const templateSelect = `SELECT
@@ -83,8 +90,11 @@ const templateSelect = `SELECT
   COALESCE(rating_stats.rating, 0) AS rating,
   designs.accent_class,
   designs.preview,
+  designs.video_url,
   designs.demo_url,
   designs.lynk_url,
+  designs.publication_status,
+  designs.source_available,
   COALESCE(order_stats.buyer_count, 0) AS buyer_count,
   designs.features,
   designs.included_files,
@@ -106,10 +116,11 @@ LEFT JOIN (
   GROUP BY design_id
 ) AS order_stats ON order_stats.design_id = designs.id`;
 
-export async function findTemplates() {
+export async function findTemplates(includeDrafts = false) {
   const [rows] = await pool.query<TemplateRow[]>(
     `${templateSelect}
     WHERE designs.deleted_at IS NULL
+      ${includeDrafts ? "" : "AND designs.publication_status = 'published'"}
     ORDER BY designs.id DESC
     LIMIT 60`,
   );
@@ -117,10 +128,15 @@ export async function findTemplates() {
   return attachTemplateReviews(rows.map(normalizeTemplateRow));
 }
 
-export async function findTemplateBySlugOrId(slug: string) {
+export async function findTemplateBySlugOrId(
+  slug: string,
+  includeDrafts = false,
+) {
   const [rows] = await pool.query<TemplateRow[]>(
     `${templateSelect}
-    WHERE designs.deleted_at IS NULL AND (designs.slug = ? OR designs.id = ?)
+    WHERE designs.deleted_at IS NULL
+      ${includeDrafts ? "" : "AND designs.publication_status = 'published'"}
+      AND (designs.slug = ? OR designs.id = ?)
     LIMIT 1`,
     [slug, Number(slug) || 0],
   );
@@ -146,6 +162,7 @@ export async function createTemplate(payload: TemplatePayload) {
       level,
       accent_class,
       preview,
+      video_url,
       demo_url,
       lynk_url,
       features,
@@ -153,12 +170,14 @@ export async function createTemplate(payload: TemplatePayload) {
       source_code,
       suitable_for,
       license,
-      support
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      support,
+      publication_status,
+      source_available
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     serializeTemplatePayload(payload, category),
   );
 
-  return findTemplateBySlugOrId(String(result.insertId));
+  return findTemplateBySlugOrId(String(result.insertId), true);
 }
 
 export async function updateTemplate(id: number, payload: TemplatePayload) {
@@ -175,6 +194,7 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
       level = ?,
       accent_class = ?,
       preview = ?,
+      video_url = ?,
       demo_url = ?,
       lynk_url = ?,
       features = ?,
@@ -182,7 +202,9 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
       source_code = ?,
       suitable_for = ?,
       license = ?,
-      support = ?
+      support = ?,
+      publication_status = ?,
+      source_available = ?
     WHERE id = ? AND deleted_at IS NULL`,
     [...serializeTemplatePayload(payload, category), id],
   );
@@ -191,12 +213,12 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
     return null;
   }
 
-  return findTemplateBySlugOrId(String(id));
+  return findTemplateBySlugOrId(String(id), true);
 }
 
 export async function deleteTemplate(id: number) {
   const [result] = await pool.query<ResultSetHeader>(
-    'UPDATE designs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
+    "UPDATE designs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
     [id],
   );
 
@@ -206,29 +228,33 @@ export async function deleteTemplate(id: number) {
 export function normalizeTemplatePayload(
   body: Partial<TemplateItem>,
 ): TemplatePayload {
-  const title = String(body.title ?? '').trim();
+  const title = String(body.title ?? "").trim();
 
   return {
     slug: sanitizeSlug(body.slug) || slugify(title),
     title,
-    category: String(body.category ?? '').trim(),
-    description: String(body.description ?? '').trim(),
-    price: String(body.price ?? 'Rp0').trim(),
+    category: String(body.category ?? "").trim(),
+    description: String(body.description ?? "").trim(),
+    price: String(body.price ?? "Rp0").trim(),
     stack: normalizeArray(body.stack),
-    level: String(body.level ?? 'Pemula').trim(),
-    accentClass: String(body.accentClass ?? 'bg-naki-secondary').trim(),
+    level: String(body.level ?? "Pemula").trim(),
+    accentClass: String(body.accentClass ?? "bg-naki-secondary").trim(),
     preview: normalizePreviewArray(body.preview),
-    demoUrl: String(body.demoUrl ?? '#').trim(),
+    videoUrl: body.videoUrl ? String(body.videoUrl).trim() : null,
+    demoUrl: String(body.demoUrl ?? "#").trim(),
     lynkUrl: body.lynkUrl ? String(body.lynkUrl).trim() : null,
+    publicationStatus:
+      body.publicationStatus === "draft" ? "draft" : "published",
+    sourceAvailable: body.sourceAvailable !== false,
     features: normalizeArray(body.features),
     includedFiles: normalizeArray(body.includedFiles),
     sourceCode: normalizeArray(body.sourceCode),
     suitableFor: normalizeArray(body.suitableFor),
     license: String(
-      body.license ?? 'Boleh dipakai sesuai lisensi pembelian.',
+      body.license ?? "Boleh dipakai sesuai lisensi pembelian.",
     ).trim(),
     support: String(
-      body.support ?? 'Support setup dasar setelah pembelian.',
+      body.support ?? "Support setup dasar setelah pembelian.",
     ).trim(),
   };
 }
@@ -245,17 +271,23 @@ function normalizeTemplateRow(row: TemplateRow): TemplateItem {
     stack: parseStringArray(row.stack),
     level: row.level,
     rating: Number(row.rating),
-    accentClass: row.accent_class ?? row.accentClass ?? 'bg-naki-secondary',
+    accentClass: row.accent_class ?? row.accentClass ?? "bg-naki-secondary",
     preview: parsePreviewArray(row.preview),
-    demoUrl: row.demo_url ?? row.demoUrl ?? '#',
+    videoUrl: row.video_url ?? row.videoUrl ?? null,
+    demoUrl: row.demo_url ?? row.demoUrl ?? "#",
     lynkUrl: row.lynk_url ?? row.lynkUrl ?? null,
+    publicationStatus:
+      row.publication_status === "draft" ? "draft" : "published",
+    sourceAvailable: Boolean(row.source_available ?? true),
     buyerCount: row.buyer_count ?? row.buyerCount ?? 0,
     features: parseStringArray(row.features ?? []),
-    includedFiles: parseStringArray(row.included_files ?? row.includedFiles ?? []),
+    includedFiles: parseStringArray(
+      row.included_files ?? row.includedFiles ?? [],
+    ),
     sourceCode: parseStringArray(row.source_code ?? row.sourceCode ?? []),
     suitableFor: parseStringArray(row.suitable_for ?? row.suitableFor ?? []),
-    license: row.license ?? 'Boleh dipakai sesuai lisensi pembelian.',
-    support: row.support ?? 'Support setup dasar setelah pembelian.',
+    license: row.license ?? "Boleh dipakai sesuai lisensi pembelian.",
+    support: row.support ?? "Support setup dasar setelah pembelian.",
     reviews: [],
   };
 }
@@ -286,6 +318,7 @@ function serializeTemplatePayload(
     payload.level,
     payload.accentClass,
     JSON.stringify(payload.preview),
+    payload.videoUrl,
     payload.demoUrl,
     payload.lynkUrl,
     JSON.stringify(payload.features),
@@ -294,15 +327,16 @@ function serializeTemplatePayload(
     JSON.stringify(payload.suitableFor),
     payload.license,
     payload.support,
+    payload.publicationStatus,
+    payload.sourceAvailable,
   ];
 }
 
 async function resolveTemplateCategory(categoryName: string) {
   const normalizedName = categoryName.trim();
-  const [rows] = await pool.query<(RowDataPacket & { id: number; name: string })[]>(
-    'SELECT id, name FROM categories WHERE name = ? LIMIT 1',
-    [normalizedName],
-  );
+  const [rows] = await pool.query<
+    (RowDataPacket & { id: number; name: string })[]
+  >("SELECT id, name FROM categories WHERE name = ? LIMIT 1", [normalizedName]);
 
   if (rows[0]) {
     return { id: rows[0].id, name: rows[0].name };
@@ -310,7 +344,9 @@ async function resolveTemplateCategory(categoryName: string) {
 
   // Don't auto-create categories - they must be created explicitly via the categories API
   // This prevents deleted categories from being recreated when templates are saved
-  throw new Error(`Kategori "${normalizedName}" tidak ditemukan. Buat kategori terlebih dahulu.`);
+  throw new Error(
+    `Kategori "${normalizedName}" tidak ditemukan. Buat kategori terlebih dahulu.`,
+  );
 }
 
 function parseStringArray(value: string | string[]) {
@@ -323,7 +359,7 @@ function parseStringArray(value: string | string[]) {
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return value
-      .split(',')
+      .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
   }
@@ -346,27 +382,27 @@ function normalizePreviewArray(value: unknown): TemplatePreviewItem[] {
   if (Array.isArray(value)) {
     return value
       .map((item) => {
-        if (typeof item === 'string') {
+        if (typeof item === "string") {
           return stringToPreviewItem(item);
         }
 
-        if (item && typeof item === 'object') {
+        if (item && typeof item === "object") {
           const previewItem = item as Record<string, unknown>;
           return {
-            image: String(previewItem.image ?? '').trim(),
-            caption: String(previewItem.caption ?? '').trim(),
+            image: String(previewItem.image ?? "").trim(),
+            caption: String(previewItem.caption ?? "").trim(),
           };
         }
 
-        return { image: '', caption: '' };
+        return { image: "", caption: "" };
       })
       .filter((item) => item.image || item.caption);
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value
-      .split('\n')
-      .flatMap((line) => line.split(','))
+      .split("\n")
+      .flatMap((line) => line.split(","))
       .map((item) => stringToPreviewItem(item.trim()))
       .filter((item) => item.image || item.caption);
   }
@@ -375,15 +411,15 @@ function normalizePreviewArray(value: unknown): TemplatePreviewItem[] {
 }
 
 function stringToPreviewItem(value: string): TemplatePreviewItem {
-  if (value.startsWith('data:image/')) {
+  if (value.startsWith("data:image/")) {
     return {
-      image: '',
-      caption: 'Preview design perlu diupload ulang',
+      image: "",
+      caption: "Preview design perlu diupload ulang",
     };
   }
 
   return {
-    image: '',
+    image: "",
     caption: value,
   };
 }
@@ -393,10 +429,10 @@ function normalizeArray(value: unknown) {
     return value.map((item) => String(item).trim()).filter(Boolean);
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value
-      .split('\n')
-      .flatMap((line) => line.split(','))
+      .split("\n")
+      .flatMap((line) => line.split(","))
       .map((item) => item.trim())
       .filter(Boolean);
   }
@@ -405,13 +441,13 @@ function normalizeArray(value: unknown) {
 }
 
 function sanitizeSlug(value: unknown) {
-  return slugify(String(value ?? ''));
+  return slugify(String(value ?? ""));
 }
 
 function slugify(value: string) {
   return value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

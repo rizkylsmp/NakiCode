@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Top up games",
+    "slug": "top-up-games",
+    "title": "Jasa Website Top Up Game - Naki Code",
+    "description": "Pilih design website top up game sebagai referensi, lalu sesuaikan katalog voucher, metode pembayaran, akun, dan identitas brand bersama Naki Code.",
+    "heading": "Website top up game yang siap disesuaikan",
+    "intro": [
+      "Mulai dari design referensi yang sesuai dengan target pemain, kemudian sesuaikan katalog game, pilihan nominal, alur transaksi, promosi, dan tampilan brand.",
+      "Naki Code membantu mengembangkan website dari design pilihan menjadi pengalaman pemesanan yang responsif dan mudah digunakan."
+    ],
+    "benefits": ["Katalog game dan voucher terstruktur", "Alur pemesanan yang jelas", "Tampilan responsif untuk pengguna mobile"],
+    "question": "Apakah design top up game dapat memakai brand sendiri?",
+    "answer": "Bisa. Warna, logo, konten, katalog, metode transaksi, dan fitur dapat disesuaikan berdasarkan kebutuhan project."
+  },
+  {
+    "name": "E-commerce",
+    "slug": "e-commerce",
+    "title": "Jasa Pembuatan Website Toko Online - Naki Code",
+    "description": "Jelajahi design toko online untuk bisnis dan UMKM yang dapat disesuaikan dengan katalog produk, checkout, pembayaran, dan identitas brand.",
+    "heading": "Website toko online sesuai kebutuhan bisnismu",
+    "intro": [
+      "Gunakan design e-commerce sebagai titik awal untuk membangun toko online dengan katalog yang rapi, halaman produk informatif, dan alur pembelian yang mudah dipahami.",
+      "Struktur, konten, warna, integrasi pembayaran, dan fitur operasional dapat dibahas sesuai cara bisnis Anda melayani pelanggan."
+    ],
+    "benefits": ["Katalog dan detail produk", "Checkout yang mudah dipahami", "Siap dikembangkan dengan integrasi bisnis"],
+    "question": "Apakah website toko online dapat terhubung ke pembayaran?",
+    "answer": "Bisa. Integrasi pembayaran, checkout WhatsApp, pengelolaan pesanan, atau kebutuhan backend lain dapat dimasukkan ke scope project."
+  },
+  {
+    "name": "Portfolio",
+    "slug": "portfolio",
+    "title": "Jasa Website Portofolio Profesional - Naki Code",
+    "description": "Temukan design website portofolio untuk kreator, freelancer, dan profesional yang dapat disesuaikan dengan karya serta personal brand.",
+    "heading": "Portofolio digital yang menampilkan karya terbaikmu",
+    "intro": [
+      "Design portofolio membantu calon klien memahami keahlian, layanan, dan hasil kerja Anda dalam struktur yang ringkas dan meyakinkan.",
+      "Galeri, studi kasus, profil, kontak, dan gaya visual dapat disesuaikan agar selaras dengan karakter personal brand."
+    ],
+    "benefits": ["Galeri karya yang terarah", "Profil dan layanan mudah dipahami", "Kontak dan CTA untuk calon klien"],
+    "question": "Apakah saya dapat menggunakan foto dan karya sendiri?",
+    "answer": "Tentu. Konten, foto, karya, warna, tipografi, dan susunan halaman akan disesuaikan dengan materi yang Anda miliki."
+  },
+  {
+    "name": "Company Profile",
+    "slug": "company-profile",
+    "title": "Jasa Pembuatan Website Company Profile - Naki Code",
+    "description": "Pilih design company profile profesional yang dapat disesuaikan dengan profil perusahaan, layanan, portofolio, dan kebutuhan calon pelanggan.",
+    "heading": "Website company profile yang memperkuat kepercayaan",
+    "intro": [
+      "Website company profile membantu perusahaan menjelaskan identitas, layanan, pengalaman, dan cara menghubungi tim dalam satu kanal resmi.",
+      "Naki Code menyesuaikan design referensi dengan struktur informasi, identitas visual, serta tujuan bisnis perusahaan Anda."
+    ],
+    "benefits": ["Profil dan layanan perusahaan", "Portofolio atau studi kasus", "CTA konsultasi yang jelas"],
+    "question": "Apa saja halaman yang dapat dimasukkan?",
+    "answer": "Beranda, profil perusahaan, layanan, portofolio, artikel, kontak, dan halaman lain dapat disusun sesuai kebutuhan perusahaan."
+  },
+  {
+    "name": "CRUD",
+    "slug": "crud",
+    "title": "Jasa Website CRUD dan Admin Panel - Naki Code",
+    "description": "Design website CRUD dan admin panel untuk pengelolaan data yang dapat dikembangkan dengan autentikasi, database, laporan, dan workflow bisnis.",
+    "heading": "Sistem CRUD dan admin panel untuk operasional",
+    "intro": [
+      "Design CRUD cocok sebagai referensi awal untuk dashboard internal, pengelolaan produk, pelanggan, transaksi, konten, atau data operasional lainnya.",
+      "Hak akses, formulir, pencarian, filter, laporan, database, dan integrasi API dapat dikembangkan mengikuti workflow tim Anda."
+    ],
+    "benefits": ["Pengelolaan data terstruktur", "Hak akses dan autentikasi", "Dashboard yang menyesuaikan workflow"],
+    "question": "Apakah sistem dapat menggunakan database dan login?",
+    "answer": "Bisa. Database, autentikasi, pembagian role, API, laporan, dan fitur operasional dapat dikembangkan sesuai scope."
+  },
+  {
+    "name": "Web Bucin",
+    "slug": "web-bucin",
+    "title": "Jasa Pembuatan Website Romantis Custom - Naki Code",
+    "description": "Pilih design website romantis yang dapat disesuaikan dengan cerita, foto, pesan, musik, dan momen spesial untuk pasangan.",
+    "heading": "Website romantis yang dibuat lebih personal",
+    "intro": [
+      "Gunakan design sebagai awal, lalu isi website dengan cerita, foto, pesan, tanggal penting, dan kejutan digital yang bermakna.",
+      "Susunan halaman dan interaksi dapat disesuaikan agar hasil akhirnya terasa personal dan tetap nyaman dibuka melalui ponsel."
+    ],
+    "benefits": ["Cerita dan pesan personal", "Galeri momen spesial", "Tampilan responsif dan mudah dibagikan"],
+    "question": "Apakah foto, musik, dan pesan dapat diganti?",
+    "answer": "Bisa. Seluruh konten personal dapat disesuaikan selama aset yang digunakan memiliki izin dari pemiliknya."
+  }
+]

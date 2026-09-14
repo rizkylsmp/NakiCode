@@ -35,8 +35,11 @@ export type TemplateItem = {
   rating: number;
   accentClass: string;
   preview: TemplatePreviewItem[];
+  videoUrl?: string | null;
   demoUrl: string;
   lynkUrl?: string | null;
+  publicationStatus?: "draft" | "published";
+  sourceAvailable?: boolean;
   buyerCount: number;
   features: string[];
   includedFiles: string[];

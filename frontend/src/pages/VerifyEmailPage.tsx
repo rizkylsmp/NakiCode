@@ -116,7 +116,7 @@ export function VerifyEmailPage() {
       <Header />
 
       <section className="grid min-h-[76vh] place-items-center px-5 py-12 md:px-8 xl:px-12 2xl:px-16">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
+        <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-sm sm:p-8">
           <span className="grid size-12 place-items-center rounded-xl bg-naki-primary text-white">
             <MailCheck size={22} />
           </span>

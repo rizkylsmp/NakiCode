@@ -174,6 +174,7 @@ type ProjectsResponse = {
 function App() {
   const location = useLocation();
   const siteOrigin = getSiteOrigin();
+  const googleSiteVerification = import.meta.env.VITE_GOOGLE_SITE_VERIFICATION?.trim();
   const canonicalHomeUrl = absoluteSiteUrl("/");
   const isHomePage = location.pathname === "/";
   const isPrivatePage = [
@@ -358,6 +359,7 @@ function App() {
           <meta name="twitter:title" content="Naki Code - Jasa Pembuatan Website Berbasis Design" />
           <meta name="twitter:description" content="Pilih design website, konsultasikan kebutuhanmu, lalu kami sesuaikan hingga siap digunakan." />
           <meta name="twitter:image" content={absoluteSiteUrl("/logo.png")} />
+          {googleSiteVerification ? <meta name="google-site-verification" content={googleSiteVerification} /> : null}
           {isHomePage ? <link rel="canonical" href={canonicalHomeUrl} /> : null}
           {isHomePage ? (
             <script type="application/ld+json">

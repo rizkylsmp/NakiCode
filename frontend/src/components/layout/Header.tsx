@@ -142,7 +142,7 @@ export function Header() {
           Lewati ke konten utama
         </a>
       ) : null}
-      <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
+      <div className="flex w-full items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
         <SiteLogo />
 
         <nav className="hidden items-center gap-1 lg:flex">

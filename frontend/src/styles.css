@@ -47,11 +47,14 @@ html[data-theme="dark"] {
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 80px;
+  overflow-x: clip;
 }
 
 body {
+  min-width: 320px;
   margin: 0;
   background: var(--color-naki-page-bg);
+  overflow-x: clip;
 }
 
 html[data-theme="dark"] body {
@@ -60,6 +63,33 @@ html[data-theme="dark"] body {
 
 * {
   box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+iframe {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+a,
+button,
+td,
+th {
+  overflow-wrap: anywhere;
 }
 
 [id] {
@@ -335,6 +365,78 @@ html[data-theme="dark"] :is(input, textarea, select, option) {
   color-scheme: dark;
 }
 
+/* Native selects share one branded, accessible treatment across the app. */
+select:not([multiple]) {
+  appearance: none;
+  cursor: pointer;
+  border-color: var(--color-naki-steel);
+  border-radius: 0.75rem;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.875rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.75rem;
+  color: var(--color-naki-primary);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+select:not([multiple]):hover:not(:disabled) {
+  border-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 55%,
+    var(--color-naki-steel)
+  );
+}
+
+select:not([multiple]):focus-visible {
+  border-color: var(--color-naki-secondary);
+  outline: none;
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-naki-secondary) 22%, transparent);
+}
+
+select:not([multiple]):disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+select option {
+  background-color: #ffffff;
+  color: var(--color-naki-primary);
+}
+
+html[data-theme="dark"] select:not([multiple]) {
+  border-color: var(--color-naki-steel) !important;
+  background-color: var(--color-naki-frost) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2393c5fd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  color: #e5e7eb !important;
+  box-shadow: 0 1px 2px rgb(2 6 23 / 0.35);
+}
+
+html[data-theme="dark"] select:not([multiple]):hover:not(:disabled) {
+  border-color: var(--color-naki-secondary) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 9%,
+    var(--color-naki-frost)
+  ) !important;
+}
+
+html[data-theme="dark"] select:not([multiple]):focus-visible {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgb(59 130 246 / 0.3);
+}
+
+html[data-theme="dark"] select option {
+  background-color: var(--color-naki-frost);
+  color: #e5e7eb;
+}
+
 html[data-theme="dark"] :is(input, textarea, select):-webkit-autofill,
 html[data-theme="dark"] :is(input, textarea, select):-webkit-autofill:hover,
 html[data-theme="dark"] :is(input, textarea, select):-webkit-autofill:focus {
@@ -351,6 +453,41 @@ html[data-theme="dark"] .naki-inverse-cta {
 
 html[data-theme="dark"] .naki-inverse-cta:hover {
   background-color: #e2e8f0 !important;
+}
+
+/* Keep filled actions distinct from dark cards and page surfaces. */
+html[data-theme="dark"]
+  :is(button, a, [role="button"]).bg-naki-primary {
+  background-color: var(--color-naki-secondary) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"]
+  :is(button, a, [role="button"]).bg-naki-primary:hover,
+html[data-theme="dark"]
+  :is(button, a, [role="button"]).hover\:bg-naki-primary:hover,
+html[data-theme="dark"]
+  :is(button, a, [role="button"]).hover\:bg-naki-primary\/90:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 82%,
+    #ffffff
+  ) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"]
+  :is(button, [role="button"]).bg-naki-primary:disabled {
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 38%,
+    var(--color-naki-frost)
+  ) !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .group:hover .group-hover\:bg-naki-primary {
+  background-color: var(--color-naki-secondary) !important;
 }
 
 /* Auth actions stay visually distinct from the dark form surface. */
@@ -456,6 +593,16 @@ button {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 639px) {
+  html {
+    scroll-padding-top: 72px;
+  }
+
+  [id] {
+    scroll-margin-top: 72px;
   }
 }
 

@@ -2,6 +2,7 @@ import { ArrowRight, Layout, BarChart3, ShoppingCart, Smartphone, Server, FileTe
 import type { TemplateCategory } from "../../domain/content";
 import { Link } from "react-router-dom";
 import { Skeleton } from "../ui/skeletons/Skeleton";
+import { getTemplateCategoryPath } from "../../utils/template-url";
 
 type CategorySectionProps = {
   categories: TemplateCategory[];
@@ -69,7 +70,7 @@ export function CategorySection({ categories, isLoading = false }: CategorySecti
             ) : realCategories.map((title) => {
               const Icon = iconMap[title] ?? Code2;
               const description = descriptions[title] ?? `Design kategori ${title}`;
-              const href = `/design?category=${encodeURIComponent(title)}`;
+              const href = getTemplateCategoryPath(title);
 
               return (
                 <Link

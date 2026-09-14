@@ -22,7 +22,8 @@ function HeroAbstractShape() {
         alt=""
         width="1536"
         height="1024"
-        loading="eager"
+        loading="lazy"
+        fetchPriority="low"
         decoding="async"
       />
     </div>
@@ -130,6 +131,7 @@ export function Hero({
                 width="1122"
                 height="1402"
                 loading="eager"
+                fetchPriority="high"
                 decoding="async"
               />
             </div>

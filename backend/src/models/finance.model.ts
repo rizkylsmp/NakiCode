@@ -1,7 +1,7 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { pool } from '../db';
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { pool } from "../db";
 
-export type FinanceTransactionType = 'income' | 'expense' | 'refund';
+export type FinanceTransactionType = "income" | "expense" | "refund";
 
 type FinanceRow = RowDataPacket & {
   id: number;
@@ -17,7 +17,7 @@ type FinanceRow = RowDataPacket & {
   occurred_at: string;
   notes: string | null;
   attachment_url: string | null;
-  status: 'posted' | 'void';
+  status: "posted" | "void";
 };
 
 export type FinanceMutationInput = {
@@ -81,13 +81,17 @@ export async function findFinanceTransactions(input: {
 }) {
   const page = Math.max(1, input.page ?? 1);
   const pageSize = Math.max(1, Math.min(1000, input.pageSize ?? 20));
-  const filters = ["transactions.status = 'posted'", 'transactions.occurred_at >= ?', 'transactions.occurred_at < DATE_ADD(?, INTERVAL 1 DAY)'];
+  const filters = [
+    "transactions.status = 'posted'",
+    "transactions.occurred_at >= ?",
+    "transactions.occurred_at < DATE_ADD(?, INTERVAL 1 DAY)",
+  ];
   const params: Array<string | number> = [input.from, input.to];
   if (input.type) {
-    filters.push('transactions.transaction_type = ?');
+    filters.push("transactions.transaction_type = ?");
     params.push(input.type);
   }
-  const where = `WHERE ${filters.join(' AND ')}`;
+  const where = `WHERE ${filters.join(" AND ")}`;
   const [countRows] = await pool.query<RowDataPacket[]>(
     `SELECT COUNT(*) AS total FROM financial_transactions AS transactions ${where}`,
     params,
@@ -108,12 +112,24 @@ export async function findFinanceTransactions(input: {
   };
 }
 
-export async function createExpense(input: FinanceMutationInput, adminId: number | null) {
+export async function createExpense(
+  input: FinanceMutationInput,
+  adminId: number | null,
+) {
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO financial_transactions
       (category_id, transaction_type, amount, net_amount, payment_method, occurred_at, notes, attachment_url, created_by)
      VALUES (?, 'expense', ?, ?, ?, ?, ?, ?, ?)`,
-    [input.categoryId, input.amount, input.amount, input.paymentMethod, input.occurredAt, input.notes, input.attachmentUrl, adminId],
+    [
+      input.categoryId,
+      input.amount,
+      input.amount,
+      input.paymentMethod,
+      input.occurredAt,
+      input.notes,
+      input.attachmentUrl,
+      adminId,
+    ],
   );
   return result.insertId;
 }
@@ -123,7 +139,16 @@ export async function updateExpense(id: number, input: FinanceMutationInput) {
     `UPDATE financial_transactions
      SET category_id = ?, amount = ?, net_amount = ?, payment_method = ?, occurred_at = ?, notes = ?, attachment_url = ?
      WHERE id = ? AND transaction_type = 'expense' AND status = 'posted'`,
-    [input.categoryId, input.amount, input.amount, input.paymentMethod, input.occurredAt, input.notes, input.attachmentUrl, id],
+    [
+      input.categoryId,
+      input.amount,
+      input.amount,
+      input.paymentMethod,
+      input.occurredAt,
+      input.notes,
+      input.attachmentUrl,
+      id,
+    ],
   );
   return result.affectedRows > 0;
 }
@@ -146,10 +171,39 @@ export async function recordPaidOrderTransaction(orderId: number) {
        CONCAT('ORDER-', id, '-PAYMENT'), COALESCE(settlement_at, paid_at, CURRENT_TIMESTAMP),
        CONCAT('Pembayaran ', design_title)
      FROM orders
-     WHERE id = ? AND payment_status = 'paid' AND payment_amount IS NOT NULL
+     WHERE id = ?
+       AND payment_status IN ('paid', 'partial_refunded', 'refunded')
+       AND payment_amount IS NOT NULL
      ON DUPLICATE KEY UPDATE reference = reference`,
     [orderId],
   );
+}
+
+/**
+ * Reconciles paid orders that may not have reached the bookkeeping write after
+ * a successful gateway callback. The stable order reference makes this safe to
+ * run repeatedly and prevents duplicate income rows.
+ */
+export async function syncPaidOrderTransactions() {
+  const [result] = await pool.query<ResultSetHeader>(
+    `INSERT INTO financial_transactions
+      (order_id, transaction_type, amount, gateway_fee, net_amount, payment_method, reference, occurred_at, notes)
+     SELECT orders.id, 'income', orders.payment_amount, orders.gateway_fee_amount,
+       COALESCE(orders.net_amount, orders.payment_amount - orders.gateway_fee_amount),
+       orders.payment_method, CONCAT('ORDER-', orders.id, '-PAYMENT'),
+       COALESCE(orders.settlement_at, orders.paid_at, orders.updated_at, CURRENT_TIMESTAMP),
+       CONCAT('Pembayaran ', orders.design_title)
+     FROM orders
+     LEFT JOIN financial_transactions AS transactions
+       ON transactions.reference = CONCAT('ORDER-', orders.id, '-PAYMENT')
+     WHERE orders.payment_status IN ('paid', 'partial_refunded', 'refunded')
+       AND orders.payment_amount IS NOT NULL
+       AND orders.deleted_at IS NULL
+       AND transactions.id IS NULL
+     ON DUPLICATE KEY UPDATE reference = reference`,
+  );
+
+  return result.affectedRows;
 }
 
 export async function ensureOrderInvoice(orderId: number) {
@@ -164,7 +218,7 @@ export async function ensureOrderInvoice(orderId: number) {
   const order = orders[0];
   if (!order) return null;
   const date = new Date(order.paid_at ?? order.created_at ?? Date.now());
-  const invoiceNumber = `INV/${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(orderId).padStart(6, '0')}`;
+  const invoiceNumber = `INV/${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${String(orderId).padStart(6, "0")}`;
   const snapshot = JSON.stringify({
     designTitle: order.design_title,
     customerName: order.customer_name,
@@ -176,7 +230,18 @@ export async function ensureOrderInvoice(orderId: number) {
       (order_id, invoice_number, subtotal_amount, discount_amount, gateway_fee_amount, total_amount, currency, status, snapshot, issued_at, paid_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
      ON DUPLICATE KEY UPDATE invoice_number = invoice_number`,
-    [orderId, invoiceNumber, Number(order.subtotal_amount), Number(order.discount_amount ?? 0), Number(order.gateway_fee_amount ?? 0), Number(order.total_amount), order.currency ?? 'IDR', order.payment_status === 'paid' ? 'paid' : 'issued', snapshot, order.paid_at ?? null],
+    [
+      orderId,
+      invoiceNumber,
+      Number(order.subtotal_amount),
+      Number(order.discount_amount ?? 0),
+      Number(order.gateway_fee_amount ?? 0),
+      Number(order.total_amount),
+      order.currency ?? "IDR",
+      order.payment_status === "paid" ? "paid" : "issued",
+      snapshot,
+      order.paid_at ?? null,
+    ],
   );
   await pool.query(
     `UPDATE orders SET invoice_number = ?, invoice_issued_at = COALESCE(invoice_issued_at, CURRENT_TIMESTAMP) WHERE id = ?`,
@@ -185,7 +250,12 @@ export async function ensureOrderInvoice(orderId: number) {
   return invoiceNumber;
 }
 
-export async function recordOrderRefund(orderId: number, amount: number, notes: string | null, adminId: number | null) {
+export async function recordOrderRefund(
+  orderId: number,
+  amount: number,
+  notes: string | null,
+  adminId: number | null,
+) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -196,7 +266,10 @@ export async function recordOrderRefund(orderId: number, amount: number, notes: 
       [orderId],
     );
     const order = orders[0];
-    if (!order) { await connection.rollback(); return false; }
+    if (!order) {
+      await connection.rollback();
+      return false;
+    }
     const [refundRows] = await connection.query<RowDataPacket[]>(
       `SELECT COALESCE(SUM(amount), 0) AS refunded FROM financial_transactions
        WHERE order_id = ? AND transaction_type = 'refund' AND status = 'posted'`,
@@ -204,19 +277,33 @@ export async function recordOrderRefund(orderId: number, amount: number, notes: 
     );
     const paidAmount = Number(order.payment_amount ?? 0);
     const previousRefund = Number(refundRows[0]?.refunded ?? 0);
-    if (amount > paidAmount - previousRefund) { await connection.rollback(); return false; }
+    if (amount > paidAmount - previousRefund) {
+      await connection.rollback();
+      return false;
+    }
     const isFullyRefunded = previousRefund + amount >= paidAmount;
     await connection.query(
       `INSERT INTO financial_transactions
         (order_id, transaction_type, amount, net_amount, payment_method, reference, occurred_at, notes, created_by)
        VALUES (?, 'refund', ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)`,
-      [orderId, amount, amount, order.payment_method ?? null, `ORDER-${orderId}-REFUND-${Date.now()}`, notes, adminId],
+      [
+        orderId,
+        amount,
+        amount,
+        order.payment_method ?? null,
+        `ORDER-${orderId}-REFUND-${Date.now()}`,
+        notes,
+        adminId,
+      ],
     );
     await connection.query(
       `UPDATE orders SET payment_status = ?, refunded_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [isFullyRefunded ? 'refunded' : 'partial_refunded', orderId],
+      [isFullyRefunded ? "refunded" : "partial_refunded", orderId],
     );
-    await connection.query(`UPDATE invoices SET status = ? WHERE order_id = ?`, [isFullyRefunded ? 'refunded' : 'partial_refunded', orderId]);
+    await connection.query(
+      `UPDATE invoices SET status = ? WHERE order_id = ?`,
+      [isFullyRefunded ? "refunded" : "partial_refunded", orderId],
+    );
     await connection.commit();
     return true;
   } catch (error) {

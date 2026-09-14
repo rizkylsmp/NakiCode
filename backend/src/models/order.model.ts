@@ -1,5 +1,5 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { pool } from '../db';
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { pool } from "../db";
 
 type OrderRow = RowDataPacket & {
   id: number;
@@ -39,6 +39,7 @@ type OrderRow = RowDataPacket & {
   created_at?: string;
   template_price?: string | null;
   template_lynk_url?: string | null;
+  source_available?: number | boolean | null;
   included_files?: string | string[] | null;
   license?: string | null;
   support?: string | null;
@@ -82,14 +83,15 @@ export type OrderItem = {
   cancelledAt: string | null;
   templatePrice: string | null;
   templateLynkUrl: string | null;
-  deliveryStatus: 'locked' | 'available';
+  sourceAvailable: boolean;
+  deliveryStatus: "locked" | "available";
   sourceCodeItems: string[];
   setupGuide: string | null;
   demoUrl: string | null;
   createdAt: string;
 };
 
-export type OrderPayload = Omit<OrderItem, 'id' | 'createdAt'>;
+export type OrderPayload = Omit<OrderItem, "id" | "createdAt">;
 
 export type OrdersPageResult = {
   orders: OrderItem[];
@@ -99,12 +101,44 @@ export type OrdersPageResult = {
   totalPages: number;
 };
 
-export type AdminOrderStatusFilter = 'new' | 'contacted' | 'quotation' | 'awaiting_dp' | 'in_progress' | 'revision' | 'delivered' | 'completed' | 'cancelled' | 'deal' | 'closed';
-export type AdminPaymentStatusFilter = 'pending' | 'waiting_payment' | 'partial_paid' | 'paid' | 'failed' | 'expired' | 'partial_refunded' | 'refunded' | 'cancelled';
-export type UserOrderPaymentFilter = 'paid' | 'waiting_payment' | 'unpaid';
+export type AdminOrderStatusFilter =
+  | "new"
+  | "contacted"
+  | "quotation"
+  | "awaiting_dp"
+  | "in_progress"
+  | "revision"
+  | "delivered"
+  | "completed"
+  | "cancelled"
+  | "deal"
+  | "closed";
+export type AdminPaymentStatusFilter =
+  | "pending"
+  | "waiting_payment"
+  | "partial_paid"
+  | "paid"
+  | "failed"
+  | "expired"
+  | "partial_refunded"
+  | "refunded"
+  | "cancelled";
+export type UserOrderPaymentFilter = "paid" | "waiting_payment" | "unpaid";
 
-export const allowedOrderStatuses = new Set(['new', 'contacted', 'quotation', 'awaiting_dp', 'in_progress', 'revision', 'delivered', 'completed', 'cancelled', 'deal', 'closed']);
-export const successfulPaymentStatuses = new Set(['paid', 'partial_refunded']);
+export const allowedOrderStatuses = new Set([
+  "new",
+  "contacted",
+  "quotation",
+  "awaiting_dp",
+  "in_progress",
+  "revision",
+  "delivered",
+  "completed",
+  "cancelled",
+  "deal",
+  "closed",
+]);
+export const successfulPaymentStatuses = new Set(["paid", "partial_refunded"]);
 
 const orderSelect = `SELECT
   orders.id,
@@ -144,6 +178,7 @@ const orderSelect = `SELECT
   orders.created_at,
   designs.price AS template_price,
   designs.lynk_url AS template_lynk_url,
+  designs.source_available,
   designs.included_files,
   designs.license,
   designs.support,
@@ -160,16 +195,16 @@ export async function findOrdersPage(
     search?: string;
   } = {},
 ) {
-  const conditions = ['orders.deleted_at IS NULL'];
+  const conditions = ["orders.deleted_at IS NULL"];
   const params: Array<number | string> = [];
 
   if (filters.status) {
-    conditions.push('orders.status = ?');
+    conditions.push("orders.status = ?");
     params.push(filters.status);
   }
 
   if (filters.paymentStatus) {
-    conditions.push('orders.payment_status = ?');
+    conditions.push("orders.payment_status = ?");
     params.push(filters.paymentStatus);
   }
 
@@ -183,7 +218,7 @@ export async function findOrdersPage(
   return findOrdersPageInternal({
     page,
     pageSize,
-    whereClause: `WHERE ${conditions.join(' AND ')}`,
+    whereClause: `WHERE ${conditions.join(" AND ")}`,
     params,
   });
 }
@@ -194,20 +229,20 @@ export async function findOrdersPageByUser(
   pageSize = 10,
   paymentFilter?: UserOrderPaymentFilter,
 ) {
-  const filters = ['orders.user_id = ?', 'orders.deleted_at IS NULL'];
+  const filters = ["orders.user_id = ?", "orders.deleted_at IS NULL"];
   const params: Array<number | string> = [userId];
 
-  if (paymentFilter === 'paid') {
-    filters.push('orders.payment_status = ?');
-    params.push('paid');
+  if (paymentFilter === "paid") {
+    filters.push("orders.payment_status = ?");
+    params.push("paid");
   }
 
-  if (paymentFilter === 'waiting_payment') {
-    filters.push('orders.payment_status = ?');
-    params.push('waiting_payment');
+  if (paymentFilter === "waiting_payment") {
+    filters.push("orders.payment_status = ?");
+    params.push("waiting_payment");
   }
 
-  if (paymentFilter === 'unpaid') {
+  if (paymentFilter === "unpaid") {
     filters.push(
       "(orders.payment_status IS NULL OR orders.payment_status IN ('pending', 'failed'))",
     );
@@ -216,7 +251,7 @@ export async function findOrdersPageByUser(
   return findOrdersPageInternal({
     page,
     pageSize,
-    whereClause: `WHERE ${filters.join(' AND ')}`,
+    whereClause: `WHERE ${filters.join(" AND ")}`,
     params,
   });
 }
@@ -274,7 +309,8 @@ export async function createOrder(payload: OrderPayload) {
     ...payload,
     templatePrice: null,
     templateLynkUrl: null,
-    deliveryStatus: 'locked' as const,
+    sourceAvailable: true,
+    deliveryStatus: "locked" as const,
     sourceCodeItems: [],
     setupGuide: null,
     demoUrl: null,
@@ -284,7 +320,7 @@ export async function createOrder(payload: OrderPayload) {
 
 export async function updateOrderStatus(id: number, status: string) {
   const [result] = await pool.query<ResultSetHeader>(
-    'UPDATE orders SET status = ? WHERE id = ? AND deleted_at IS NULL',
+    "UPDATE orders SET status = ? WHERE id = ? AND deleted_at IS NULL",
     [status, id],
   );
 
@@ -293,7 +329,7 @@ export async function updateOrderStatus(id: number, status: string) {
 
 export async function updateOrdersStatus(ids: number[], status: string) {
   if (ids.length === 0) return 0;
-  const placeholders = ids.map(() => '?').join(', ');
+  const placeholders = ids.map(() => "?").join(", ");
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE orders SET status = ? WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
     [status, ...ids],
@@ -301,7 +337,11 @@ export async function updateOrdersStatus(ids: number[], status: string) {
   return result.affectedRows;
 }
 
-export async function setOrderQuote(id: number, amount: number, notes: string | null) {
+export async function setOrderQuote(
+  id: number,
+  amount: number,
+  notes: string | null,
+) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE orders SET quote_amount = ?, quote_notes = ?, quote_sent_at = CURRENT_TIMESTAMP,
       subtotal_amount = ?, discount_amount = 0, payment_amount = ?, net_amount = ?,
@@ -375,7 +415,7 @@ export async function startOrderPayment(
       payment_last_webhook_at = NULL
     WHERE id = ? AND user_id = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
     [
-      'waiting_payment',
+      "waiting_payment",
       payment.method,
       payment.reference,
       payment.url,
@@ -386,9 +426,9 @@ export async function startOrderPayment(
       payment.amount - (payment.gatewayFeeAmount ?? 0),
       id,
       userId,
-      'paid',
-      'partial_refunded',
-      'refunded',
+      "paid",
+      "partial_refunded",
+      "refunded",
     ],
   );
 
@@ -407,7 +447,7 @@ export async function confirmOrderPayment(id: number, userId: number) {
       settlement_at = CURRENT_TIMESTAMP,
       status = CASE WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress' ELSE status END
     WHERE id = ? AND user_id = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
-    ['paid', id, userId, 'paid', 'partial_refunded', 'refunded'],
+    ["paid", id, userId, "paid", "partial_refunded", "refunded"],
   );
 
   if (result.affectedRows === 0) {
@@ -417,7 +457,9 @@ export async function confirmOrderPayment(id: number, userId: number) {
   return findOrderByIdForUser(id, userId);
 }
 
-export async function markOrderPaidByPaymentReference(paymentReference: string) {
+export async function markOrderPaidByPaymentReference(
+  paymentReference: string,
+) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE orders
     SET payment_status = ?,
@@ -429,7 +471,7 @@ export async function markOrderPaidByPaymentReference(paymentReference: string) 
       settlement_at = CURRENT_TIMESTAMP,
       status = CASE WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress' ELSE status END
     WHERE payment_reference = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
-    ['paid', 'paid', paymentReference, 'paid', 'partial_refunded', 'refunded'],
+    ["paid", "paid", paymentReference, "paid", "partial_refunded", "refunded"],
   );
 
   return result.affectedRows > 0;
@@ -452,14 +494,14 @@ export async function markOrderPaymentFailedByReference(
       payment_last_webhook_at = CURRENT_TIMESTAMP
     WHERE payment_reference = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
     [
-      'failed',
+      "failed",
       failure.code ?? null,
       failure.reason ?? null,
-      failure.transactionStatus ?? 'failed',
+      failure.transactionStatus ?? "failed",
       paymentReference,
-      'paid',
-      'partial_refunded',
-      'refunded',
+      "paid",
+      "partial_refunded",
+      "refunded",
     ],
   );
 
@@ -479,7 +521,10 @@ export async function recordOrderPaymentWebhookStatus(
   );
 }
 
-export async function hasSuccessfulTemplateOrder(userId: number, templateId: number) {
+export async function hasSuccessfulTemplateOrder(
+  userId: number,
+  templateId: number,
+) {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT id
     FROM orders
@@ -552,15 +597,15 @@ export function normalizeOrderPayload(
   return {
     userId,
     templateId: Number(body.templateId) || null,
-    templateSlug: String(body.templateSlug ?? '').trim(),
-    templateTitle: String(body.templateTitle ?? '').trim(),
-    customerName: String(body.customerName ?? '').trim(),
-    customerContact: String(body.customerContact ?? '').trim(),
-    projectType: String(body.projectType ?? 'Konsultasi custom').trim(),
-    budgetRange: String(body.budgetRange ?? 'Belum ditentukan').trim(),
-    message: String(body.message ?? '').trim(),
-    status: 'new',
-    paymentStatus: 'pending',
+    templateSlug: String(body.templateSlug ?? "").trim(),
+    templateTitle: String(body.templateTitle ?? "").trim(),
+    customerName: String(body.customerName ?? "").trim(),
+    customerContact: String(body.customerContact ?? "").trim(),
+    projectType: String(body.projectType ?? "Konsultasi custom").trim(),
+    budgetRange: String(body.budgetRange ?? "Belum ditentukan").trim(),
+    message: String(body.message ?? "").trim(),
+    status: "new",
+    paymentStatus: "pending",
     paymentMethod: null,
     paymentReference: null,
     paymentUrl: null,
@@ -569,7 +614,7 @@ export function normalizeOrderPayload(
     discountAmount: 0,
     gatewayFeeAmount: 0,
     netAmount: null,
-    currency: 'IDR',
+    currency: "IDR",
     quoteAmount: null,
     quoteNotes: null,
     quoteSentAt: null,
@@ -585,7 +630,8 @@ export function normalizeOrderPayload(
     cancelledAt: null,
     templatePrice: null,
     templateLynkUrl: null,
-    deliveryStatus: 'locked',
+    sourceAvailable: true,
+    deliveryStatus: "locked",
     sourceCodeItems: [],
     setupGuide: null,
     demoUrl: null,
@@ -593,8 +639,11 @@ export function normalizeOrderPayload(
 }
 
 function normalizeOrderRow(row: OrderRow): OrderItem {
-  const isPaid = row.payment_status === 'paid' || row.payment_status === 'partial_refunded';
-  const sourceCodeItems = isPaid ? parseStringArray(row.included_files ?? []) : [];
+  const isPaid =
+    row.payment_status === "paid" || row.payment_status === "partial_refunded";
+  const sourceCodeItems = isPaid
+    ? parseStringArray(row.included_files ?? [])
+    : [];
   const guideParts = [row.license, row.support].filter(Boolean);
 
   return {
@@ -609,7 +658,7 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     budgetRange: row.budget_range,
     message: row.message,
     status: row.status,
-    paymentStatus: row.payment_status ?? 'pending',
+    paymentStatus: row.payment_status ?? "pending",
     paymentMethod: row.payment_method ?? null,
     paymentReference: row.payment_reference ?? null,
     paymentUrl: row.payment_url ?? null,
@@ -618,7 +667,7 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     discountAmount: Number(row.discount_amount ?? 0),
     gatewayFeeAmount: Number(row.gateway_fee_amount ?? 0),
     netAmount: row.net_amount ?? null,
-    currency: row.currency ?? 'IDR',
+    currency: row.currency ?? "IDR",
     quoteAmount: row.quote_amount ?? null,
     quoteNotes: row.quote_notes ?? null,
     quoteSentAt: row.quote_sent_at ?? null,
@@ -634,10 +683,12 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     cancelledAt: row.cancelled_at ?? null,
     templatePrice: row.template_price ?? null,
     templateLynkUrl: row.template_lynk_url ?? null,
-    deliveryStatus: isPaid ? 'available' : 'locked',
+    sourceAvailable: Boolean(row.source_available ?? true),
+    deliveryStatus: isPaid ? "available" : "locked",
     sourceCodeItems,
-    setupGuide: isPaid && guideParts.length > 0 ? guideParts.join('\n\n') : null,
-    demoUrl: isPaid ? row.demo_url ?? null : null,
+    setupGuide:
+      isPaid && guideParts.length > 0 ? guideParts.join("\n\n") : null,
+    demoUrl: isPaid ? (row.demo_url ?? null) : null,
     createdAt: row.created_at ?? new Date().toISOString(),
   };
 }
@@ -652,7 +703,7 @@ function parseStringArray(value: string | string[]) {
     return Array.isArray(parsed) ? parsed.map(String) : [];
   } catch {
     return value
-      .split(',')
+      .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
   }

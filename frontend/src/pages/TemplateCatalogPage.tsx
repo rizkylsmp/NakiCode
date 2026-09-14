@@ -7,6 +7,7 @@ import { TemplateFilterBar } from "../components/catalog/TemplateFilterBar";
 import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
 import { getTemplateCategoryPath } from "../utils/template-url";
 import { absoluteSiteUrl } from "../utils/seo";
+import { CategorySeoContent, getCategorySeo } from "../components/catalog/CategorySeoContent";
 
 type TemplateCatalogPageProps = {
   templates: TemplateItem[];
@@ -29,13 +30,14 @@ export function TemplateCatalogPage({
 }: TemplateCatalogPageProps) {
   const [sortBy, setSortBy] = useState("popular");
   const isCategoryPage = activeCategory !== "Semua";
+  const categorySeo = isCategoryPage ? getCategorySeo(activeCategory) : undefined;
   const categoryPath = getTemplateCategoryPath(activeCategory);
   const canonicalUrl = absoluteSiteUrl(categoryPath);
   const pageTitle = isCategoryPage
-    ? `Design ${activeCategory} - Naki Code`
+    ? categorySeo?.title ?? `Design ${activeCategory} - Naki Code`
     : "Koleksi Design Website - Naki Code";
   const pageDescription = isCategoryPage
-    ? `Koleksi design ${activeCategory} sebagai referensi website yang siap disesuaikan oleh Naki Code. Source code tersedia sebagai opsi.`
+    ? categorySeo?.description ?? `Koleksi design ${activeCategory} sebagai referensi website yang siap disesuaikan oleh Naki Code. Source code tersedia sebagai opsi.`
     : "Pilih design website sebagai inspirasi, lalu sesuaikan tampilan, konten, dan fiturnya bersama Naki Code.";
 
   const filteredTemplates = useMemo(() => {
@@ -125,6 +127,20 @@ export function TemplateCatalogPage({
     ],
   };
 
+  const categoryFaqSchema = categorySeo
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: categorySeo.question,
+            acceptedAnswer: { "@type": "Answer", text: categorySeo.answer },
+          },
+        ],
+      }
+    : null;
+
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
       <Helmet>
@@ -141,6 +157,7 @@ export function TemplateCatalogPage({
         {query.trim() ? <meta name="robots" content="noindex, follow" /> : null}
         <script type="application/ld+json">{JSON.stringify(itemListSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
+        {categoryFaqSchema ? <script type="application/ld+json">{JSON.stringify(categoryFaqSchema)}</script> : null}
       </Helmet>
 
       <Header />
@@ -183,6 +200,7 @@ export function TemplateCatalogPage({
           isLoading={isLoading}
         />
       </section>
+      {isCategoryPage ? <CategorySeoContent category={activeCategory} /> : null}
       </main>
 
       <Footer />

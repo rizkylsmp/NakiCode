@@ -6,7 +6,7 @@ export function SiteLogo() {
       aria-label="NakiCode home"
     >
       <img
-        className="naki-logo-image h-11 max-w-[156px] object-contain sm:h-12 sm:max-w-[176px]"
+        className="naki-logo-image size-10 object-contain min-[360px]:size-11 sm:size-12"
         src="/logo.png"
         alt="Naki Code"
         width="1024"

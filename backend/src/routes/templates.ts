@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import * as Sentry from '@sentry/node';
-import { z } from 'zod';
-import { requireAdmin, requireUser, type UserTokenPayload } from '../auth';
-import { createAdminAuditLog } from '../models/audit-log.model';
+import { Router } from "express";
+import * as Sentry from "@sentry/node";
+import { z } from "zod";
+import { requireAdmin, requireUser, type UserTokenPayload } from "../auth";
+import { createAdminAuditLog } from "../models/audit-log.model";
 import {
   createTemplate,
   deleteTemplate,
@@ -10,16 +10,16 @@ import {
   findTemplates,
   normalizeTemplatePayload,
   updateTemplate,
-} from '../models/template.model';
-import { hasSuccessfulTemplateOrder } from '../models/order.model';
+} from "../models/template.model";
+import { hasSuccessfulTemplateOrder } from "../models/order.model";
 import {
   createTemplateRating,
   hasUserRatedTemplate,
   normalizeTemplateRatingPayload,
-} from '../models/template-rating.model';
-import type { TemplateItem } from '../models/template.model';
-import { deleteCacheKeys, getJsonCache, setJsonCache } from '../redis-cache';
-import { parseBody, parseParams } from '../validation';
+} from "../models/template-rating.model";
+import type { TemplateItem } from "../models/template.model";
+import { deleteCacheKeys, getJsonCache, setJsonCache } from "../redis-cache";
+import { parseBody, parseParams } from "../validation";
 
 export const templatesRouter = Router();
 
@@ -27,50 +27,65 @@ const idParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
-const assetUrlSchema = z.string().trim().max(2048).refine(
-  (value) =>
-    !value || /^https?:\/\//i.test(value) || value.startsWith('/uploads/'),
-  { message: 'URL asset harus berupa HTTP(S) atau path upload lokal' },
-);
+const assetUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .refine(
+    (value) =>
+      !value || /^https?:\/\//i.test(value) || value.startsWith("/uploads/"),
+    { message: "URL asset harus berupa HTTP(S) atau path upload lokal" },
+  );
 
-const demoUrlSchema = z.string().trim().max(500).refine(
-  (value) => !value || value === '#' || /^https?:\/\//i.test(value),
-  { message: 'URL demo harus diawali http:// atau https://' },
-);
-
-const lynkUrlSchema = z.string().trim().max(500).nullable().optional().refine(
-  (value) => !value || /^https:\/\/(?:www\.)?lynk\.id(?:\/|$)/i.test(value),
-  { message: 'URL Lynk harus menggunakan HTTPS pada domain lynk.id' },
-);
-
-const templateBodySchema = z
-  .object({
-    slug: z.string().trim().max(180).optional(),
-    title: z.string().trim().min(1).max(160),
-    category: z.string().trim().min(1).max(80),
-    description: z.string().trim().min(1).max(10000),
-    price: z.string().trim().min(1).max(32).optional(),
-    stack: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
-    level: z.string().trim().min(1).max(40).optional(),
-    preview: z
-      .array(
-        z.object({
-          image: assetUrlSchema,
-          caption: z.string().trim().max(240),
-        }),
-      )
-      .max(20)
-      .optional(),
-    demoUrl: demoUrlSchema.optional(),
-    lynkUrl: lynkUrlSchema,
-    accentClass: z.string().trim().max(80).optional(),
-    features: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
-    includedFiles: z.array(z.string().trim().min(1).max(240)).max(100).optional(),
-    sourceCode: z.array(z.string().trim().min(1).max(500)).max(200).optional(),
-    suitableFor: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
-    license: z.string().trim().max(2000).optional(),
-    support: z.string().trim().max(2000).optional(),
+const demoUrlSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => !value || value === "#" || /^https?:\/\//i.test(value), {
+    message: "URL demo harus diawali http:// atau https://",
   });
+
+const lynkUrlSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .nullable()
+  .optional()
+  .refine(
+    (value) => !value || /^https:\/\/(?:www\.)?lynk\.id(?:\/|$)/i.test(value),
+    { message: "URL Lynk harus menggunakan HTTPS pada domain lynk.id" },
+  );
+
+const templateBodySchema = z.object({
+  slug: z.string().trim().max(180).optional(),
+  title: z.string().trim().min(1).max(160),
+  category: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(10000),
+  price: z.string().trim().min(1).max(32).optional(),
+  stack: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+  level: z.string().trim().min(1).max(40).optional(),
+  preview: z
+    .array(
+      z.object({
+        image: assetUrlSchema,
+        caption: z.string().trim().max(240),
+      }),
+    )
+    .max(20)
+    .optional(),
+  videoUrl: assetUrlSchema.nullable().optional(),
+  demoUrl: demoUrlSchema.optional(),
+  lynkUrl: lynkUrlSchema,
+  publicationStatus: z.enum(["draft", "published"]).optional(),
+  sourceAvailable: z.boolean().optional(),
+  accentClass: z.string().trim().max(80).optional(),
+  features: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
+  includedFiles: z.array(z.string().trim().min(1).max(240)).max(100).optional(),
+  sourceCode: z.array(z.string().trim().min(1).max(500)).max(200).optional(),
+  suitableFor: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
+  license: z.string().trim().max(2000).optional(),
+  support: z.string().trim().max(2000).optional(),
+});
 
 const ratingBodySchema = z.object({
   customerName: z.string().trim().max(120).optional(),
@@ -80,7 +95,10 @@ const ratingBodySchema = z.object({
 
 function isDuplicateEntryError(error: unknown) {
   return Boolean(
-    error && typeof error === 'object' && 'code' in error && error.code === 'ER_DUP_ENTRY',
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "ER_DUP_ENTRY",
   );
 }
 
@@ -94,8 +112,8 @@ async function createDesignAuditLog(
   }
 }
 
-templatesRouter.get('/', async (_request, response) => {
-  const cacheKey = 'templates:list';
+templatesRouter.get("/", async (_request, response) => {
+  const cacheKey = "templates:list";
   const cached = await getJsonCache<unknown>(cacheKey);
 
   if (cached) {
@@ -105,7 +123,7 @@ templatesRouter.get('/', async (_request, response) => {
 
   try {
     const payload = {
-      source: 'mysql',
+      source: "mysql",
       templates: await findTemplates(),
     };
 
@@ -114,13 +132,25 @@ templatesRouter.get('/', async (_request, response) => {
   } catch (error) {
     Sentry.captureException(error);
     response.status(503).json({
-      message: 'Database design belum tersedia',
+      message: "Database design belum tersedia",
       templates: [],
     });
   }
 });
 
-templatesRouter.post('/', requireAdmin, async (request, response) => {
+templatesRouter.get("/admin", requireAdmin, async (_request, response) => {
+  try {
+    response.json({ source: "mysql", templates: await findTemplates(true) });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(503).json({
+      message: "Database design belum tersedia",
+      templates: [],
+    });
+  }
+});
+
+templatesRouter.post("/", requireAdmin, async (request, response) => {
   const body = parseBody(templateBodySchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
 
@@ -135,36 +165,36 @@ templatesRouter.post('/', requireAdmin, async (request, response) => {
 
     await createDesignAuditLog({
       admin,
-      action: 'template.create',
-      entityType: 'template',
+      action: "template.create",
+      entityType: "template",
       entityId: template?.id ?? null,
       metadata: {
         title: payload.title,
         slug: payload.slug,
       },
     });
-    await deleteCacheKeys(['templates:list']);
+    await deleteCacheKeys(["templates:list"]);
 
     response.status(201).json({
-      source: 'mysql',
+      source: "mysql",
       template,
     });
   } catch (error) {
     if (isDuplicateEntryError(error)) {
-      response.status(409).json({ message: 'Slug design sudah digunakan' });
+      response.status(409).json({ message: "Slug design sudah digunakan" });
       return;
     }
-    const message = error instanceof Error ? error.message : '';
-    if (message.includes('tidak ditemukan')) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("tidak ditemukan")) {
       response.status(400).json({ message });
       return;
     }
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menyimpan design' });
+    response.status(500).json({ message: "Gagal menyimpan design" });
   }
 });
 
-templatesRouter.get('/:slug', async (request, response) => {
+templatesRouter.get("/:slug", async (request, response) => {
   const { slug } = request.params;
   const cacheKey = `templates:detail:${slug}`;
   const cached = await getJsonCache<unknown>(cacheKey);
@@ -178,12 +208,12 @@ templatesRouter.get('/:slug', async (request, response) => {
     const template = await findTemplateBySlugOrId(slug);
 
     if (!template) {
-      response.status(404).json({ message: 'Design tidak ditemukan' });
+      response.status(404).json({ message: "Design tidak ditemukan" });
       return;
     }
 
     const payload = {
-      source: 'mysql',
+      source: "mysql",
       template,
     };
 
@@ -191,11 +221,11 @@ templatesRouter.get('/:slug', async (request, response) => {
     response.json(payload);
   } catch (error) {
     Sentry.captureException(error);
-    response.status(503).json({ message: 'Database design belum tersedia' });
+    response.status(503).json({ message: "Database design belum tersedia" });
   }
 });
 
-templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
+templatesRouter.post("/:id/rating", requireUser, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const body = parseBody(ratingBodySchema, request, response);
   const user = response.locals.user as UserTokenPayload;
@@ -208,15 +238,18 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
     const template = await findTemplateBySlugOrId(String(params.id));
 
     if (!template) {
-      response.status(404).json({ message: 'Design tidak ditemukan' });
+      response.status(404).json({ message: "Design tidak ditemukan" });
       return;
     }
 
-    const hasPaidOrder = await hasSuccessfulTemplateOrder(user.userId, template.id);
+    const hasPaidOrder = await hasSuccessfulTemplateOrder(
+      user.userId,
+      template.id,
+    );
 
     if (!hasPaidOrder) {
       response.status(403).json({
-        message: 'Rating hanya bisa dikirim setelah order berhasil dibayar',
+        message: "Rating hanya bisa dikirim setelah order berhasil dibayar",
       });
       return;
     }
@@ -225,7 +258,7 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
 
     if (hasRated) {
       response.status(409).json({
-        message: 'User sudah memberi rating untuk design ini',
+        message: "User sudah memberi rating untuk design ini",
       });
       return;
     }
@@ -242,7 +275,7 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
 
     if (!payload.customerName || payload.rating < 1 || payload.rating > 5) {
       response.status(400).json({
-        message: 'customerName and rating 1-5 are required',
+        message: "customerName and rating 1-5 are required",
       });
       return;
     }
@@ -250,17 +283,17 @@ templatesRouter.post('/:id/rating', requireUser, async (request, response) => {
     await createTemplateRating(payload);
 
     response.status(201).json({
-      source: 'mysql',
+      source: "mysql",
       rating: payload,
       template: await findTemplateBySlugOrId(String(params.id)),
     });
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menyimpan rating' });
+    response.status(500).json({ message: "Gagal menyimpan rating" });
   }
 });
 
-templatesRouter.put('/:id', requireAdmin, async (request, response) => {
+templatesRouter.put("/:id", requireAdmin, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const body = parseBody(templateBodySchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
@@ -272,18 +305,21 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
   const payload = normalizeTemplatePayload(body as Partial<TemplateItem>);
 
   try {
-    const previousTemplate = await findTemplateBySlugOrId(String(params.id));
+    const previousTemplate = await findTemplateBySlugOrId(
+      String(params.id),
+      true,
+    );
     const template = await updateTemplate(params.id, payload);
 
     if (!template) {
-      response.status(404).json({ message: 'Design tidak ditemukan' });
+      response.status(404).json({ message: "Design tidak ditemukan" });
       return;
     }
 
     await createDesignAuditLog({
       admin,
-      action: 'template.update',
-      entityType: 'template',
+      action: "template.update",
+      entityType: "template",
       entityId: template.id,
       metadata: {
         title: template.title,
@@ -291,7 +327,7 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
       },
     });
     await deleteCacheKeys([
-      'templates:list',
+      "templates:list",
       `templates:detail:${template.slug}`,
       ...(previousTemplate && previousTemplate.slug !== template.slug
         ? [`templates:detail:${previousTemplate.slug}`]
@@ -299,25 +335,25 @@ templatesRouter.put('/:id', requireAdmin, async (request, response) => {
     ]);
 
     response.json({
-      source: 'mysql',
+      source: "mysql",
       template,
     });
   } catch (error) {
     if (isDuplicateEntryError(error)) {
-      response.status(409).json({ message: 'Slug design sudah digunakan' });
+      response.status(409).json({ message: "Slug design sudah digunakan" });
       return;
     }
-    const message = error instanceof Error ? error.message : '';
-    if (message.includes('tidak ditemukan')) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("tidak ditemukan")) {
       response.status(400).json({ message });
       return;
     }
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal mengubah design' });
+    response.status(500).json({ message: "Gagal mengubah design" });
   }
 });
 
-templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
+templatesRouter.delete("/:id", requireAdmin, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const admin = response.locals.admin as UserTokenPayload | null | undefined;
 
@@ -326,28 +362,28 @@ templatesRouter.delete('/:id', requireAdmin, async (request, response) => {
   }
 
   try {
-    const template = await findTemplateBySlugOrId(String(params.id));
+    const template = await findTemplateBySlugOrId(String(params.id), true);
     const wasDeleted = await deleteTemplate(params.id);
 
     if (!wasDeleted) {
-      response.status(404).json({ message: 'Design tidak ditemukan' });
+      response.status(404).json({ message: "Design tidak ditemukan" });
       return;
     }
 
     await createDesignAuditLog({
       admin,
-      action: 'template.soft_delete',
-      entityType: 'template',
+      action: "template.soft_delete",
+      entityType: "template",
       entityId: params.id,
     });
     await deleteCacheKeys([
-      'templates:list',
+      "templates:list",
       ...(template ? [`templates:detail:${template.slug}`] : []),
     ]);
 
     response.status(204).send();
   } catch (error) {
     Sentry.captureException(error);
-    response.status(500).json({ message: 'Gagal menghapus design' });
+    response.status(500).json({ message: "Gagal menghapus design" });
   }
 });

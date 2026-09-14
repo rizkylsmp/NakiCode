@@ -1,9 +1,14 @@
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  BadgeDollarSign,
   Download,
   Plus,
   RefreshCw,
+  Scale,
   SlidersHorizontal,
   Trash2,
+  type LucideIcon,
   WalletCards,
   X,
 } from "lucide-react";
@@ -37,11 +42,25 @@ type FinanceCategory = {
   categoryType: TransactionType;
 };
 type FinanceResponse = {
+  summary: {
+    income: number;
+    expense: number;
+    refunds: number;
+    fees: number;
+    netProfit: number;
+  };
   transactions: FinanceTransaction[];
   page: number;
   total: number;
   totalPages: number;
 };
+
+type PeriodPreset =
+  | "this_month"
+  | "last_month"
+  | "last_30_days"
+  | "this_year"
+  | "custom";
 type ExpenseForm = {
   id?: number;
   categoryId: string;
@@ -51,8 +70,8 @@ type ExpenseForm = {
   notes: string;
 };
 
-const today = new Date().toISOString().slice(0, 10);
-const monthStart = `${today.slice(0, 8)}01`;
+const initialPeriod = getPeriodRange("this_month");
+const today = initialPeriod.to;
 const emptyForm: ExpenseForm = {
   categoryId: "",
   amount: "",
@@ -62,8 +81,9 @@ const emptyForm: ExpenseForm = {
 };
 
 export function AdminFinanceSection() {
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(today);
+  const [period, setPeriod] = useState<PeriodPreset>("this_month");
+  const [from, setFrom] = useState(initialPeriod.from);
+  const [to, setTo] = useState(initialPeriod.to);
   const [type, setType] = useState<"all" | TransactionType>("all");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<FinanceResponse | null>(null);
@@ -100,6 +120,15 @@ export function AdminFinanceSection() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  function changePeriod(nextPeriod: PeriodPreset) {
+    setPeriod(nextPeriod);
+    setPage(1);
+    if (nextPeriod === "custom") return;
+    const range = getPeriodRange(nextPeriod);
+    setFrom(range.from);
+    setTo(range.to);
+  }
 
   async function saveExpense(event: React.FormEvent) {
     event.preventDefault();
@@ -215,6 +244,70 @@ export function AdminFinanceSection() {
           {status}
         </p>
       )}
+      <section className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-naki-card">
+        <div className="flex flex-col gap-3 border-b border-naki-steel px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 font-semibold text-naki-primary">
+              <Scale size={17} />
+              Statistik laba/rugi
+            </h2>
+            <p className="mt-0.5 text-xs text-naki-smoke">
+              Pemasukan checkout dihitung otomatis setelah pembayaran berhasil.
+            </p>
+          </div>
+          <label className="grid gap-1 text-xs font-medium text-naki-smoke sm:min-w-52">
+            Periode laporan
+            <select
+              aria-label="Periode statistik pembukuan"
+              className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm font-medium text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
+              value={period}
+              onChange={(event) =>
+                changePeriod(event.target.value as PeriodPreset)
+              }
+            >
+              <option value="this_month">Bulan ini</option>
+              <option value="last_month">Bulan lalu</option>
+              <option value="last_30_days">30 hari terakhir</option>
+              <option value="this_year">Tahun ini</option>
+              <option value="custom">Pilih tanggal sendiri</option>
+            </select>
+          </label>
+        </div>
+        <dl className="grid grid-cols-1 divide-y divide-naki-steel sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+          <FinanceMetric
+            icon={ArrowDownToLine}
+            label="Pemasukan bersih"
+            value={data?.summary.income ?? 0}
+            detail={`Biaya gateway ${money(data?.summary.fees ?? 0)}`}
+            tone="positive"
+          />
+          <FinanceMetric
+            icon={ArrowUpFromLine}
+            label="Pengeluaran"
+            value={data?.summary.expense ?? 0}
+            detail="Pengeluaran operasional tercatat"
+            tone="negative"
+          />
+          <FinanceMetric
+            icon={RefreshCw}
+            label="Refund"
+            value={data?.summary.refunds ?? 0}
+            detail="Dana yang dikembalikan"
+            tone="negative"
+          />
+          <FinanceMetric
+            icon={BadgeDollarSign}
+            label={
+              (data?.summary.netProfit ?? 0) >= 0
+                ? "Laba bersih"
+                : "Rugi bersih"
+            }
+            value={data?.summary.netProfit ?? 0}
+            detail="Pemasukan − pengeluaran − refund"
+            tone={(data?.summary.netProfit ?? 0) >= 0 ? "positive" : "negative"}
+          />
+        </dl>
+      </section>
       <section className="rounded-2xl border border-naki-steel bg-white p-4 shadow-naki-card">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
@@ -227,35 +320,12 @@ export function AdminFinanceSection() {
             </p>
           </div>
         </div>
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-[180px_180px_180px_1fr]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_1fr]">
           <label className="grid gap-1.5 text-xs font-medium text-naki-smoke">
-            Dari
-            <input
-              className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary"
-              type="date"
-              value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
-                setPage(1);
-              }}
-            />
-          </label>
-          <label className="grid gap-1.5 text-xs font-medium text-naki-smoke">
-            Sampai
-            <input
-              className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary"
-              type="date"
-              value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
-                setPage(1);
-              }}
-            />
-          </label>
-          <label className="grid gap-1.5 text-xs font-medium text-naki-smoke">
-            Jenis
+            Tampilkan transaksi
             <select
-              className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary"
+              aria-label="Jenis transaksi pembukuan"
+              className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
               value={type}
               onChange={(e) => {
                 setType(e.target.value as typeof type);
@@ -268,7 +338,7 @@ export function AdminFinanceSection() {
               <option value="refund">Refund</option>
             </select>
           </label>
-          <div className="flex items-end gap-2 xl:justify-end">
+          <div className="flex flex-wrap items-end gap-2 sm:justify-end">
             <button
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-naki-steel bg-white px-3 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
               onClick={() => void downloadReport("csv")}
@@ -287,6 +357,36 @@ export function AdminFinanceSection() {
             </button>
           </div>
         </div>
+        {period === "custom" && (
+          <div className="mt-3 grid gap-3 border-t border-naki-steel pt-3 sm:grid-cols-2 xl:max-w-md">
+            <label className="grid gap-1.5 text-xs font-medium text-naki-smoke">
+              Dari tanggal
+              <input
+                className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
+                type="date"
+                value={from}
+                max={to}
+                onChange={(event) => {
+                  setFrom(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className="grid gap-1.5 text-xs font-medium text-naki-smoke">
+              Sampai tanggal
+              <input
+                className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
+                type="date"
+                value={to}
+                min={from}
+                onChange={(event) => {
+                  setTo(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          </div>
+        )}
       </section>
       <section className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-naki-card">
         <div className="border-b border-naki-steel px-4 py-3">
@@ -612,6 +712,71 @@ function TypeBadge({ type }: { type: TransactionType }) {
     </span>
   );
 }
+
+function FinanceMetric({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: number;
+  detail: string;
+  tone: "positive" | "negative";
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-3 px-4 py-4 sm:px-5">
+      <span
+        className={`grid size-10 shrink-0 place-items-center rounded-xl ${
+          tone === "positive"
+            ? "bg-emerald-50 text-emerald-700"
+            : "bg-amber-50 text-amber-700"
+        }`}
+      >
+        <Icon aria-hidden="true" size={18} />
+      </span>
+      <div className="min-w-0">
+        <dt className="text-xs font-medium text-naki-smoke">{label}</dt>
+        <dd
+          className={`mt-1 text-lg font-bold tracking-tight ${
+            tone === "positive" ? "text-emerald-700" : "text-naki-primary"
+          }`}
+        >
+          {money(value)}
+        </dd>
+        <p className="mt-1 text-xs text-naki-smoke">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function getPeriodRange(period: Exclude<PeriodPreset, "custom"> | "custom") {
+  const now = new Date();
+  let start = new Date(now.getFullYear(), now.getMonth(), 1);
+  let end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (period === "last_month") {
+    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    end = new Date(now.getFullYear(), now.getMonth(), 0);
+  } else if (period === "last_30_days") {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+  } else if (period === "this_year") {
+    start = new Date(now.getFullYear(), 0, 1);
+  }
+
+  return { from: formatDateInput(start), to: formatDateInput(end) };
+}
+
+function formatDateInput(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function money(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

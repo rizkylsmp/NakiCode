@@ -52,6 +52,7 @@ Target UX:
 - React Router
 - TanStack React Query
 - `react-helmet-async` untuk meta tags/SEO
+- Build frontend menghasilkan HTML prerender untuk route publik statis, kategori, serta detail design/blog ketika `SITEMAP_API_URL` tersedia, lalu memvalidasi metadata dan konten crawlable sebelum selesai.
 - PWA: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `offline.html`
 - Analytics env-based: `VITE_ANALYTICS_PROVIDER=ga4|plausible|umami|none`
 - Struktur `frontend/src`: `app` untuk application shell/router, `contexts` untuk global state, `domain` untuk model/data bisnis, `services` untuk integrasi eksternal, `utils` untuk helper murni, `hooks` untuk custom hooks, serta `components` dan `pages` untuk UI.
@@ -65,7 +66,7 @@ Target UX:
 - Custom HMAC token auth (bukan JWT library)
 - BullMQ + Redis optional untuk email queue/cache
 - Nodemailer SMTP
-- Cloudinary optional untuk image upload, fallback local `/uploads`
+- Cloudinary optional untuk upload gambar dan video preview, fallback local `/uploads`
 - Swagger UI di `/api/docs`, OpenAPI JSON di `/api/openapi.json`
 - Sentry optional via `SENTRY_DSN`
 
@@ -76,6 +77,7 @@ Target UX:
 - SQL file migrations: `backend/database/migrations/*.sql` dijalankan manual via `npm run migrate:sql --workspace backend`.
 - Bootstrap DB: `backend/src/db.ts` -> create database dari `MYSQL_DATABASE`, apply baseline schema, ensure columns, run runtime migrations.
 - Data design memakai tabel `designs`, kategori memakai `categories`, dan relasinya melalui `designs.category_id` -> `categories.id`; kolom teks `designs.category` dipertahankan sebagai display fallback.
+- Design memiliki `publication_status` (`draft|published`) dan `source_available`; endpoint publik hanya mengembalikan published, sedangkan endpoint admin `/api/designs/admin` juga memuat draft.
 - MySQL wajib tersedia. Backend harus gagal start jika DB init gagal.
 - Pool MySQL mode lokal dibatasi hingga 3 koneksi dengan maksimal 1 koneksi idle; shutdown lokal menutup HTTP server dan pool secara graceful untuk mencegah koneksi tertinggal pada database remote.
 - Query manual dipisah di `backend/src/models/*`; route sebaiknya tidak menulis query besar langsung kecuali endpoint kecil/statistik.
@@ -122,6 +124,7 @@ Frontend optional:
 - `VITE_SITE_URL` untuk origin canonical metadata SEO (default production `https://nakicode.com`)
 - `SITE_URL` untuk origin URL yang dihasilkan oleh script sitemap
 - `SITEMAP_API_URL` agar build production dapat menambahkan route detail design dan blog dari API publik ke sitemap
+- `VITE_GOOGLE_SITE_VERIFICATION` untuk verifikasi Search Console melalui meta tag bila metode DNS tidak digunakan
 
 Jangan commit `.env`.
 
@@ -198,6 +201,8 @@ Admin:
 - Design/category/project/blog CRUD routes; design memakai `/api/designs` dengan `/api/templates` sebagai alias kompatibilitas sementara
 - `GET /api/admin/stats`
 - `POST /api/uploads/images` (admin)
+- `POST /api/uploads/video` (admin, satu video MP4/WebM/MOV maksimal 50 MB)
+- `POST /api/uploads/source` (admin, satu arsip ZIP/RAR valid maksimal 100 MB)
 
 Business:
 
@@ -282,18 +287,23 @@ Mode:
 
 ---
 
-## Upload & Image
+## Upload Media
 
 - Preview image design **tidak boleh** disimpan sebagai base64 di MySQL.
-- Admin upload via `POST /api/uploads/images`.
-- Jika `CLOUDINARY_URL` tersedia, gambar masuk Cloudinary.
-- Jika tidak, fallback local `/uploads`.
+- Form Design memakai satu drop zone media untuk gambar dan video melalui browse, drag & drop, atau paste; tipe file dipilah otomatis ke endpoint upload yang sesuai. Upload tetap berjalan ketika admin berpindah tab, statusnya tampil persisten pada header modal, dan penyimpanan Design menunggu upload selesai.
+- Input Design memakai wizard empat langkah (Informasi, Media, Detail, Penjualan), auto-slug, validasi per langkah, progres kelengkapan, autosave draft lokal, peringatan perubahan belum disimpan, status draft/published, opsi source dijual, dan aksi duplikasi sebagai draft. Checkout langsung ditolak oleh backend ketika source design tidak dijual.
+- Gambar admin diupload via `POST /api/uploads/images`.
+- Design dapat memiliki satu `video_url` opsional. Admin menguploadnya melalui `POST /api/uploads/video`; card katalog memprioritaskan video muted/autoplay/loop dan memakai gambar pertama sebagai poster serta fallback.
+- Jika `CLOUDINARY_URL` tersedia, gambar dan video masuk Cloudinary (video sebagai resource video); jika tidak, semua media fallback ke local `/uploads`.
+- Source ZIP/RAR diupload nyata maksimal 100 MB ke Cloudinary raw atau `/uploads/source`; ekstensi dan signature arsip divalidasi sebelum disimpan.
 - Frontend pakai `ResponsiveImage` untuk lazy loading, responsive sizes, dan Cloudinary srcset otomatis.
 
 ---
 
 ## UI / Styling Rules
 
+- Responsive dimulai dari lebar 320px. Layout publik memakai padding mobile ringkas, media tidak boleh melewati container, dan judul/aksi harus dapat wrap tanpa horizontal page scroll.
+- Admin memakai sidebar tetap mulai breakpoint `lg`; pada layar lebih kecil navigasi berubah menjadi selector sticky. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
 - Layout full width, jangan max-width sempit kecuali konten spesifik butuh.
 - Palette warna tinggal di `frontend/src/styles.css` lewat `@theme`.
 - Jangan hardcode hex color di `className`.
@@ -309,6 +319,7 @@ Mode:
   - `shadow-naki-soft`
   - `shadow-naki-card`
 - Background utama memakai class global `naki-frosted-grid` dari `frontend/src/styles.css`.
+- Dropdown native memakai standar global `select:not([multiple])` di `frontend/src/styles.css` agar chevron, border, hover, focus, disabled, dan dark mode konsisten tanpa styling browser bawaan.
 - App harus terasa seperti katalog jasa pembuatan website berbasis design referensi, bukan katalog produk siap pakai atau landing kosong.
 - Form status/error utama perlu `aria-live` region.
 
@@ -352,14 +363,14 @@ Admin:
 
 - Admin route `/admin/dashboard`
 - CRUD design
-- CRUD categories
+- CRUD categories dengan jumlah design aktif per kategori dan tooltip judul design saat indikator jumlah diarahkan atau difokuskan; kategori yang masih dipakai tidak dapat dihapus sampai seluruh design dipindahkan ke kategori lain
 - CRUD projects/portfolio dengan multi-foto, cover selection, dan preview asset
 - Blog/tutorial management API
 - Order management tab
 - Filter, pencarian server-side, update individual, dan bulk workflow order
 - Workflow jasa: baru, dihubungi, penawaran, menunggu DP, dikerjakan, revisi, diserahkan, selesai, atau dibatalkan
 - Penawaran harga admin untuk order custom sebelum pelanggan checkout
-- Pembukuan kas admin dengan pemasukan otomatis dari pembayaran, pengeluaran manual, refund parsial/penuh, ringkasan laba, serta ekspor CSV/PDF
+- Pembukuan kas admin dengan dropdown periode (bulan ini, bulan lalu, 30 hari, tahun ini, atau tanggal custom), filter jenis transaksi, statistik pemasukan/pengeluaran/refund/laba-rugi, pengeluaran manual, refund parsial/penuh, serta ekspor CSV/PDF. Checkout baru diakui sebagai pemasukan setelah pembayaran berhasil; webhook dan konfirmasi lokal mencatatnya secara idempoten, sedangkan pembukaan halaman pembukuan merekonsiliasi order paid lama yang belum memiliki transaksi kas.
 - Invoice bernomor stabil dengan snapshot pelanggan dan nominal transaksi; order bertransaksi tidak dapat dihapus
 - Soft delete design/order/project/blog
 - Audit trail admin
@@ -382,6 +393,7 @@ Backend/platform:
 - Frontend tests with Vitest/Testing Library
 - GitHub Actions CI
 - robots.txt + sitemap.xml
+- HTML prerender publik + validasi SEO output pada build
 - Bundle analyzer: `npm run build:analyze --workspace frontend`
 
 ---

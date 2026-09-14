@@ -27,7 +27,9 @@ export function WishlistPage({ templates }: WishlistPageProps) {
             <p className="text-sm font-semibold text-naki-secondary">
               Wishlist
             </p>
-            <h1 className="mt-2 text-4xl font-bold leading-tight">Design tersimpan</h1>
+            <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
+              Design tersimpan
+            </h1>
             <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
               Simpan design yang menarik sebagai referensi sebelum konsultasi.
             </p>
@@ -81,7 +83,7 @@ export function WishlistPage({ templates }: WishlistPageProps) {
                     {template.description}
                   </p>
                 </div>
-                <div className="flex gap-2 md:flex-col">
+                <div className="grid grid-cols-2 gap-2 md:flex md:flex-col">
                   <Link
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
                     to={`/design/${template.slug}`}

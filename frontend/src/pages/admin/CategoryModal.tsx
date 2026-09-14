@@ -45,12 +45,12 @@ export function CategoryModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 px-4 py-6 backdrop-blur"
+      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 p-3 backdrop-blur sm:px-4 sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="category-modal-title"
     >
-      <div className="w-full my-10 mx-4 max-w-3xl rounded-2xl bg-white shadow-sm">
+      <div className="my-3 w-full max-w-3xl rounded-2xl bg-white shadow-sm sm:my-10">
         <div className="sticky top-0 z-10 flex flex-col justify-between gap-3 border-b border-naki-steel bg-white/95 p-5 backdrop-blur sm:flex-row sm:items-start">
           <div>
             <h2 id="category-modal-title" className="text-2xl font-bold leading-tight text-naki-primary">

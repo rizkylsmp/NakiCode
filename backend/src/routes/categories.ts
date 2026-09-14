@@ -9,7 +9,6 @@ import {
   findTemplateCategoriesWithIds,
   updateTemplateCategory,
   deleteTemplateCategory,
-  isCategoryInUse,
 } from "../models/category.model";
 import { parseBody, parseParams } from "../validation";
 
@@ -143,7 +142,10 @@ categoriesRouter.delete("/:id", requireAdmin, async (request, response) => {
     const result = await deleteTemplateCategory(params.id);
 
     if (result.inUse) {
-      response.status(409).json({ message: "Kategori masih digunakan design" });
+      response.status(409).json({
+        message: `Kategori masih digunakan oleh ${result.designCount ?? 0} design`,
+        designCount: result.designCount ?? 0,
+      });
       return;
     }
 

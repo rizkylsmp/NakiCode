@@ -9,6 +9,13 @@ type CategoryRow = RowDataPacket & {
 type CategoryWithIdRow = RowDataPacket & {
   id: number;
   name: string;
+  design_count: number | string;
+};
+
+type CategoryDesignTitleRow = RowDataPacket & {
+  category_id: number | null;
+  category: string;
+  title: string;
 };
 
 export async function findTemplateCategories() {
@@ -21,10 +28,63 @@ export async function findTemplateCategories() {
 
 export async function findTemplateCategoriesWithIds() {
   const [rows] = await pool.query<CategoryWithIdRow[]>(
-    "SELECT id, name FROM categories ORDER BY sort_order ASC, id ASC",
+    `SELECT categories.id, categories.name, COUNT(designs.id) AS design_count
+    FROM categories
+    LEFT JOIN designs
+      ON designs.deleted_at IS NULL
+      AND (
+        designs.category_id = categories.id
+        OR (
+          designs.category_id IS NULL
+          AND TRIM(designs.category) = categories.name
+        )
+      )
+    GROUP BY categories.id, categories.name, categories.sort_order
+    ORDER BY categories.sort_order ASC, categories.id ASC`,
   );
 
-  return rows.map((row) => ({ id: row.id, name: row.name }));
+  const [designRows] = await pool.query<CategoryDesignTitleRow[]>(
+    `SELECT category_id, category, title
+    FROM designs
+    WHERE deleted_at IS NULL
+    ORDER BY title ASC`,
+  );
+  const titlesByCategoryId = new Map<number, string[]>();
+  const legacyTitlesByCategoryName = new Map<string, string[]>();
+
+  for (const design of designRows) {
+    const title = String(design.title ?? "").trim();
+    if (!title) continue;
+
+    if (design.category_id !== null && design.category_id !== undefined) {
+      const titles = titlesByCategoryId.get(design.category_id) ?? [];
+      titles.push(title);
+      titlesByCategoryId.set(design.category_id, titles);
+      continue;
+    }
+
+    const categoryName = String(design.category ?? "")
+      .trim()
+      .toLocaleLowerCase("id-ID");
+    if (!categoryName) continue;
+    const titles = legacyTitlesByCategoryName.get(categoryName) ?? [];
+    titles.push(title);
+    legacyTitlesByCategoryName.set(categoryName, titles);
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    designCount: Number(row.design_count ?? 0),
+    designTitles: [
+      ...(titlesByCategoryId.get(row.id) ?? []),
+      ...(
+        legacyTitlesByCategoryName.get(
+          row.name.trim().toLocaleLowerCase("id-ID"),
+        ) ?? []
+      ),
+    ],
+  }));
 }
 
 export async function createTemplateCategory(name: string) {
@@ -128,15 +188,19 @@ export async function deleteTemplateCategory(id: number) {
     return {
       deleted: false,
       inUse: false,
+      designCount: 0,
       categories: await findTemplateCategories(),
       adminCategories: await findTemplateCategoriesWithIds(),
     };
   }
 
-  if (await isCategoryInUseById(id, categoryName)) {
+  const designCount = await countCategoryUsageById(id, categoryName);
+
+  if (designCount > 0) {
     return {
       deleted: false,
       inUse: true,
+      designCount,
       categories: await findTemplateCategories(),
       adminCategories: await findTemplateCategoriesWithIds(),
     };
@@ -157,6 +221,7 @@ export async function deleteTemplateCategory(id: number) {
   return {
     deleted: result.affectedRows > 0,
     inUse: false,
+    designCount: 0,
     categories: await findTemplateCategories(),
     adminCategories: await findTemplateCategoriesWithIds(),
   };
@@ -168,13 +233,16 @@ export async function isCategoryInUse(categoryName: string): Promise<boolean> {
     [categoryName.trim()],
   );
 
-  return isCategoryInUseById(categoryRows[0]?.id ?? null, categoryName);
+  return (
+    (await countCategoryUsageById(categoryRows[0]?.id ?? null, categoryName)) >
+    0
+  );
 }
 
-async function isCategoryInUseById(
+async function countCategoryUsageById(
   categoryId: number | null,
   categoryName: string,
-): Promise<boolean> {
+): Promise<number> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT COUNT(*) as count
     FROM designs
@@ -186,5 +254,5 @@ async function isCategoryInUseById(
     [categoryId ?? 0, categoryName.trim()],
   );
 
-  return (rows[0]?.count ?? 0) > 0;
+  return Number(rows[0]?.count ?? 0);
 }

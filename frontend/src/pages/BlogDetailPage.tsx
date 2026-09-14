@@ -7,6 +7,7 @@ import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import type { BlogPostItem } from "./BlogListPage";
 import { absoluteSiteUrl } from "../utils/seo";
+import { ResponsiveImage } from "../components/ui/ResponsiveImage";
 
 type BlogPostResponse = {
   post: BlogPostItem;
@@ -34,9 +35,7 @@ export function BlogDetailPage() {
         },
         datePublished: post.createdAt,
         dateModified: post.publishedAt || post.createdAt,
-        ...(post.coverImage
-          ? { image: absoluteSiteUrl(post.coverImage) }
-          : {}),
+        ...(post.coverImage ? { image: absoluteSiteUrl(post.coverImage) } : {}),
         publisher: {
           "@type": "Organization",
           name: "Naki Code",
@@ -51,13 +50,41 @@ export function BlogDetailPage() {
   const canonicalUrl = post
     ? absoluteSiteUrl(`/blog/${post.slug}`)
     : absoluteSiteUrl("/blog");
+  const breadcrumbSchema = post
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: absoluteSiteUrl("/"),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Blog",
+            item: absoluteSiteUrl("/blog"),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: post.title,
+            item: canonicalUrl,
+          },
+        ],
+      }
+    : null;
 
   return (
     <main className="naki-frosted-grid min-h-screen text-naki-primary">
       <Helmet>
         <title>{post ? `${post.title} - Naki Code` : "Blog - Naki Code"}</title>
         {post ? <meta name="description" content={post.excerpt} /> : null}
-        {!isLoading && !post ? <meta name="robots" content="noindex, follow" /> : null}
+        {!isLoading && !post ? (
+          <meta name="robots" content="noindex, follow" />
+        ) : null}
         <link rel="canonical" href={canonicalUrl} />
         {post ? (
           <>
@@ -85,6 +112,11 @@ export function BlogDetailPage() {
             {articleSchema ? (
               <script type="application/ld+json">
                 {JSON.stringify(articleSchema)}
+              </script>
+            ) : null}
+            {breadcrumbSchema ? (
+              <script type="application/ld+json">
+                {JSON.stringify(breadcrumbSchema)}
               </script>
             ) : null}
           </>
@@ -128,22 +160,47 @@ export function BlogDetailPage() {
             <p className="mt-8 text-sm font-black uppercase text-naki-secondary">
               {post.author}
             </p>
-            <h1 className="mt-3 text-4xl font-black leading-tight md:text-5xl">
+            <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
               {post.title}
             </h1>
             <p className="mt-5 text-lg leading-8 text-naki-smoke">
               {post.excerpt}
             </p>
             {post.coverImage ? (
-              <img
+              <ResponsiveImage
                 className="mt-8 aspect-video w-full rounded-2xl object-cover shadow-naki-card"
                 src={post.coverImage}
                 alt={`Cover artikel ${post.title}`}
+                sizes="(min-width: 1280px) 72rem, 100vw"
+                loading="eager"
               />
             ) : null}
             <div className="mt-8 whitespace-pre-line rounded-xl border border-naki-steel bg-naki-frost p-6 text-base font-semibold leading-8 text-naki-primary shadow-naki-card">
               {post.content}
             </div>
+            <aside className="mt-8 rounded-xl border border-naki-steel bg-white p-6 shadow-naki-card">
+              <h2 className="text-lg font-semibold text-naki-primary">
+                Lanjutkan dari artikel ini
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-naki-smoke">
+                Temukan design sebagai referensi atau lihat hasil website yang
+                sudah dikerjakan Naki Code.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  className="rounded-lg bg-naki-primary px-4 py-2 text-sm font-semibold text-white"
+                  to="/design"
+                >
+                  Jelajahi design website
+                </Link>
+                <Link
+                  className="rounded-lg border border-naki-steel px-4 py-2 text-sm font-semibold text-naki-primary"
+                  to="/portofolio"
+                >
+                  Lihat portofolio
+                </Link>
+              </div>
+            </aside>
           </>
         ) : (
           <div className="mt-8 rounded-xl border border-naki-steel bg-naki-frost p-8 text-center shadow-naki-card">

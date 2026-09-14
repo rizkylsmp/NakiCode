@@ -72,7 +72,10 @@ function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
     <div className="rounded-lg border border-naki-steel bg-white px-3 py-2 shadow-lg">
       <p className="text-xs font-medium text-naki-primary">{label}</p>
       {payload.map((entry, index) => (
-        <p key={`${entry.name ?? "item"}-${index}`} className="text-xs text-naki-smoke">
+        <p
+          key={`${entry.name ?? "item"}-${index}`}
+          className="text-xs text-naki-smoke"
+        >
           {entry.name}:{" "}
           <span className="font-semibold text-naki-primary">{entry.value}</span>
         </p>
@@ -104,7 +107,9 @@ export function AdminDashboardPage({
       const monthLabel = d.toLocaleDateString("en-US", { month: "short" });
       const monthOrders = orders.filter((o) => {
         const od = new Date(o.createdAt);
-        return od.getMonth() === d.getMonth() && od.getFullYear() === d.getFullYear();
+        return (
+          od.getMonth() === d.getMonth() && od.getFullYear() === d.getFullYear()
+        );
       });
       months.push({
         name: monthLabel,
@@ -122,7 +127,10 @@ export function AdminDashboardPage({
     orders.forEach((o) => {
       statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
     });
-    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+    return Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value,
+    }));
   }, [orders]);
 
   // Payment status distribution
@@ -239,7 +247,7 @@ export function AdminDashboardPage({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-naki-primary">Dashboard</h1>
           <p className="mt-1 text-sm text-naki-smoke">
@@ -267,12 +275,18 @@ export function AdminDashboardPage({
               className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <div className={`grid size-10 place-items-center rounded-lg ${colors.bg}`}>
+                <div
+                  className={`grid size-10 place-items-center rounded-lg ${colors.bg}`}
+                >
                   <Icon size={20} className={colors.icon} />
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-medium ${
-                  stat.changeType === "up" ? "text-naki-primary" : "text-naki-secondary"
-                }`}>
+                <div
+                  className={`flex items-center gap-1 text-xs font-medium ${
+                    stat.changeType === "up"
+                      ? "text-naki-primary"
+                      : "text-naki-secondary"
+                  }`}
+                >
                   {stat.changeType === "up" ? (
                     <TrendingUp size={14} />
                   ) : (
@@ -282,7 +296,9 @@ export function AdminDashboardPage({
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-naki-primary">{stat.value}</p>
+                <p className="text-2xl font-bold text-naki-primary">
+                  {stat.value}
+                </p>
                 <p className="mt-1 text-sm text-naki-smoke">{stat.label}</p>
               </div>
             </div>
@@ -296,26 +312,62 @@ export function AdminDashboardPage({
         <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-naki-primary">Orders Trend</h2>
-              <p className="text-sm text-naki-smoke">Monthly orders over the last 6 months</p>
+              <h2 className="text-lg font-semibold text-naki-primary">
+                Orders Trend
+              </h2>
+              <p className="text-sm text-naki-smoke">
+                Monthly orders over the last 6 months
+              </p>
             </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ordersByMonth} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <AreaChart
+                data={ordersByMonth}
+                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor={CHART_COLORS.primary}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={CHART_COLORS.primary}
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                   <linearGradient id="colorPaid" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor={CHART_COLORS.success}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={CHART_COLORS.success}
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.frost} />
-                <XAxis dataKey="name" tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={{ stroke: CHART_COLORS.frost }} tickLine={false} />
-                <YAxis tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={CHART_COLORS.frost}
+                />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }}
+                  axisLine={{ stroke: CHART_COLORS.frost }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
@@ -341,7 +393,9 @@ export function AdminDashboardPage({
         {/* Order Status - Donut Chart */}
         <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-naki-primary">Order Status</h2>
+            <h2 className="text-lg font-semibold text-naki-primary">
+              Order Status
+            </h2>
             <p className="text-sm text-naki-smoke">Distribution by status</p>
           </div>
           <div className="h-64">
@@ -362,7 +416,11 @@ export function AdminDashboardPage({
                     {ordersByStatus.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={CHART_COLORS.palette[index % CHART_COLORS.palette.length]}
+                        fill={
+                          CHART_COLORS.palette[
+                            index % CHART_COLORS.palette.length
+                          ]
+                        }
                       />
                     ))}
                   </Pie>
@@ -383,22 +441,44 @@ export function AdminDashboardPage({
         {/* Payment Status - Bar Chart */}
         <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-naki-primary">Payment Status</h2>
+            <h2 className="text-lg font-semibold text-naki-primary">
+              Payment Status
+            </h2>
             <p className="text-sm text-naki-smoke">Orders by payment status</p>
           </div>
           <div className="h-64">
             {paymentStatusData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={paymentStatusData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.frost} />
-                  <XAxis dataKey="name" tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={{ stroke: CHART_COLORS.frost }} tickLine={false} />
-                  <YAxis tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <BarChart
+                  data={paymentStatusData}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={CHART_COLORS.frost}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }}
+                    axisLine={{ stroke: CHART_COLORS.frost }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="value" name="Orders" radius={[6, 6, 0, 0]}>
                     {paymentStatusData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={CHART_COLORS.palette[index % CHART_COLORS.palette.length]}
+                        fill={
+                          CHART_COLORS.palette[
+                            index % CHART_COLORS.palette.length
+                          ]
+                        }
                       />
                     ))}
                   </Bar>
@@ -415,8 +495,12 @@ export function AdminDashboardPage({
         {/* Templates by Category - Horizontal Bar Chart */}
         <div className="rounded-xl border border-naki-steel bg-white p-6 shadow-sm">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-naki-primary">Design per Kategori</h2>
-            <p className="text-sm text-naki-smoke">Distribution across categories</p>
+            <h2 className="text-lg font-semibold text-naki-primary">
+              Design per Kategori
+            </h2>
+            <p className="text-sm text-naki-smoke">
+              Distribution across categories
+            </p>
           </div>
           <div className="h-64">
             {templatesByCategory.length > 0 ? (
@@ -426,15 +510,36 @@ export function AdminDashboardPage({
                   layout="vertical"
                   margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.frost} horizontal={false} />
-                  <XAxis type="number" tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }} axisLine={false} tickLine={false} width={80} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={CHART_COLORS.frost}
+                    horizontal={false}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: CHART_COLORS.smoke, fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={80}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="value" name="Design" radius={[0, 6, 6, 0]}>
                     {templatesByCategory.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={CHART_COLORS.palette[index % CHART_COLORS.palette.length]}
+                        fill={
+                          CHART_COLORS.palette[
+                            index % CHART_COLORS.palette.length
+                          ]
+                        }
                       />
                     ))}
                   </Bar>
@@ -451,7 +556,9 @@ export function AdminDashboardPage({
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-lg font-semibold text-naki-primary">Quick Actions</h2>
+        <h2 className="text-lg font-semibold text-naki-primary">
+          Quick Actions
+        </h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -465,7 +572,9 @@ export function AdminDashboardPage({
                 }}
                 className="group flex flex-col gap-4 rounded-xl border border-naki-steel bg-white p-6 text-left shadow-sm transition hover:border-naki-primary/40 hover:shadow-md"
               >
-                <div className={`grid size-11 place-items-center rounded-lg ${colors.bg} transition group-hover:scale-110`}>
+                <div
+                  className={`grid size-11 place-items-center rounded-lg ${colors.bg} transition group-hover:scale-110`}
+                >
                   <Icon size={20} className={colors.icon} />
                 </div>
                 <div>
@@ -483,7 +592,9 @@ export function AdminDashboardPage({
       {/* Recent Orders */}
       <div className="rounded-xl border border-naki-steel bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-naki-steel px-6 py-4">
-          <h2 className="text-lg font-semibold text-naki-primary">Recent Orders</h2>
+          <h2 className="text-lg font-semibold text-naki-primary">
+            Recent Orders
+          </h2>
           <button
             onClick={() => onNavigate("orders")}
             className="flex items-center gap-1 text-sm font-medium text-naki-primary hover:opacity-80"
@@ -507,7 +618,9 @@ export function AdminDashboardPage({
                   <p className="text-sm font-medium text-naki-primary">
                     {order.customerName}
                   </p>
-                  <p className="text-xs text-naki-smoke">{order.templateTitle}</p>
+                  <p className="text-xs text-naki-smoke">
+                    {order.templateTitle}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-naki-primary">

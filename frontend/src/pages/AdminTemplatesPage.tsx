@@ -46,6 +46,7 @@ import {
   slugify,
   templateToForm,
   type AdminOrderFilters,
+  type AdminCategory,
   type AuthResponse,
   type BlogPostFormState,
   type BlogPostItem,
@@ -62,6 +63,7 @@ import {
 import { DeleteCategoryDialog } from "./admin/DeleteCategoryDialog";
 import { DeleteOrderDialog } from "./admin/DeleteOrderDialog";
 import { DeleteTemplateDialog } from "./admin/DeleteTemplateDialog";
+import { designDraftStorageKey } from "./admin/TemplateFormModal";
 
 /** Parse order filter state from URL query params. */
 function readOrderFiltersFromUrl(search: string): {
@@ -77,7 +79,10 @@ function readOrderFiltersFromUrl(search: string): {
   return {
     filters: {
       status:
-        status === "new" || status === "contacted" || status === "deal" || status === "closed"
+        status === "new" ||
+        status === "contacted" ||
+        status === "deal" ||
+        status === "closed"
           ? status
           : "all",
       paymentStatus:
@@ -152,7 +157,9 @@ export function AdminTemplatesPage({
   const initialOrderState = readOrderFiltersFromUrl(location.search);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [ordersPage, setOrdersPage] = useState(initialOrderState.page);
-  const [orderFilters, setOrderFilters] = useState<AdminOrderFilters>(initialOrderState.filters);
+  const [orderFilters, setOrderFilters] = useState<AdminOrderFilters>(
+    initialOrderState.filters,
+  );
   const [ordersMeta, setOrdersMeta] = useState({
     total: 0,
     totalPages: 1,
@@ -164,7 +171,9 @@ export function AdminTemplatesPage({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
-  const [updatingTemplateId, setUpdatingTemplateId] = useState<number | null>(null);
+  const [updatingTemplateId, setUpdatingTemplateId] = useState<number | null>(
+    null,
+  );
   const [status, setStatus] = useState("Siap mengelola katalog design.");
   const [categoryName, setCategoryName] = useState("");
   const [categoryStatus, setCategoryStatus] = useState(
@@ -173,27 +182,35 @@ export function AdminTemplatesPage({
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
+    null,
+  );
   const [editingCategoryName, setEditingCategoryName] = useState("");
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [categoriesWithIds, setCategoriesWithIds] = useState<Array<{ id: number; name: string }>>([]);
+  const [categoriesWithIds, setCategoriesWithIds] = useState<AdminCategory[]>(
+    [],
+  );
   const [ordersStatus, setOrdersStatus] = useState(
     "Login untuk melihat request konsultasi.",
   );
   const [deleteCandidateOrder, setDeleteCandidateOrder] =
     useState<OrderItem | null>(null);
-  const [deleteCandidateCategory, setDeleteCandidateCategory] =
-    useState<string | null>(null);
+  const [deleteCandidateCategory, setDeleteCandidateCategory] = useState<
+    string | null
+  >(null);
   const [deleteCandidateTemplate, setDeleteCandidateTemplate] =
     useState<TemplateItem | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
   const [blogPostsPage, setBlogPostsPage] = useState(1);
   const [blogSearch, setBlogSearch] = useState("");
-  const [blogForm, setBlogForm] = useState<BlogPostFormState>(defaultBlogPostFormState);
+  const [blogForm, setBlogForm] = useState<BlogPostFormState>(
+    defaultBlogPostFormState,
+  );
   const [blogStatus, setBlogStatus] = useState("");
   const [isSavingBlog, setIsSavingBlog] = useState(false);
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
-  const [deleteCandidateBlog, setDeleteCandidateBlog] = useState<BlogPostItem | null>(null);
+  const [deleteCandidateBlog, setDeleteCandidateBlog] =
+    useState<BlogPostItem | null>(null);
   const [isDeletingBlog, setIsDeletingBlog] = useState(false);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [testimonialsStatus, setTestimonialsStatus] = useState(
@@ -236,7 +253,14 @@ export function AdminTemplatesPage({
 
     // loadOrders and refreshCategoriesWithIds are intentionally omitted because this effect only syncs route into UI state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminSection, adminToken, isAdmin, location.hash, navigate, routeAdminView]);
+  }, [
+    adminSection,
+    adminToken,
+    isAdmin,
+    location.hash,
+    navigate,
+    routeAdminView,
+  ]);
 
   // Sync order filters from URL query params when navigating to/from the orders view.
   useEffect(() => {
@@ -249,7 +273,12 @@ export function AdminTemplatesPage({
 
     // When leaving the orders view, strip order params from the URL.
     const params = new URLSearchParams(location.search);
-    const orderKeys = ["ordersStatus", "ordersPaymentStatus", "ordersSearch", "ordersPage"];
+    const orderKeys = [
+      "ordersStatus",
+      "ordersPaymentStatus",
+      "ordersSearch",
+      "ordersPage",
+    ];
     let changed = false;
     for (const key of orderKeys) {
       if (params.has(key)) {
@@ -265,7 +294,7 @@ export function AdminTemplatesPage({
   useEffect(() => {
     let isActive = true;
 
-    apiGet<TemplatesResponse>("/api/designs")
+    apiGet<TemplatesResponse>("/api/designs/admin")
       .then((data: TemplatesResponse) => {
         if (isActive && Array.isArray(data.templates)) {
           onTemplatesChange(data.templates);
@@ -361,10 +390,16 @@ export function AdminTemplatesPage({
     [selectedId, templates],
   );
 
-  const syncCategoriesWithIds = useCallback((nextCategories: Array<{ id: number; name: string }>) => {
-    setCategoriesWithIds(nextCategories);
-    onCategoriesChange(["Semua", ...nextCategories.map((category) => category.name)]);
-  }, [onCategoriesChange]);
+  const syncCategoriesWithIds = useCallback(
+    (nextCategories: AdminCategory[]) => {
+      setCategoriesWithIds(nextCategories);
+      onCategoriesChange([
+        "Semua",
+        ...nextCategories.map((category) => category.name),
+      ]);
+    },
+    [onCategoriesChange],
+  );
 
   const filteredAdminTemplates = useMemo(() => {
     const normalizedSearch = templateSearch.trim().toLowerCase();
@@ -464,18 +499,48 @@ export function AdminTemplatesPage({
   function startCreate() {
     navigate("/admin/design#new-design");
     setSelectedId(null);
-    setForm(defaultFormState);
+    let restoredDraft = defaultFormState;
+    try {
+      const savedDraft = window.localStorage.getItem(designDraftStorageKey);
+      if (savedDraft) {
+        restoredDraft = { ...defaultFormState, ...JSON.parse(savedDraft) };
+      }
+    } catch {
+      window.localStorage.removeItem(designDraftStorageKey);
+    }
+    setForm(restoredDraft);
     setIsTemplateModalOpen(true);
-    setStatus("Mode tambah design baru.");
+    setStatus(
+      restoredDraft === defaultFormState
+        ? "Mode tambah design baru."
+        : "Draft lokal dipulihkan.",
+    );
   }
 
-  const startEdit = useCallback((template: TemplateItem) => {
-    navigate("/admin/design");
-    setSelectedId(template.id);
-    setForm(templateToForm(template));
+  function duplicateTemplate(template: TemplateItem) {
+    navigate("/admin/design#new-design");
+    setSelectedId(null);
+    setForm({
+      ...templateToForm(template),
+      id: undefined,
+      title: `${template.title} Copy`,
+      slug: "",
+      publicationStatus: "draft",
+    });
     setIsTemplateModalOpen(true);
-    setStatus(`Mengedit design ${template.title}.`);
-  }, [navigate]);
+    setStatus(`Salinan ${template.title} siap diedit sebagai draft.`);
+  }
+
+  const startEdit = useCallback(
+    (template: TemplateItem) => {
+      navigate("/admin/design");
+      setSelectedId(template.id);
+      setForm(templateToForm(template));
+      setIsTemplateModalOpen(true);
+      setStatus(`Mengedit design ${template.title}.`);
+    },
+    [navigate],
+  );
 
   function closeTemplateModal() {
     if (!isSaving) {
@@ -650,6 +715,7 @@ export function AdminTemplatesPage({
         : [data.template, ...templates];
 
       onTemplatesChange(nextTemplates);
+      window.localStorage.removeItem(designDraftStorageKey);
       setSelectedId(data.template.id);
       setForm(templateToForm(data.template));
       setIsTemplateModalOpen(false);
@@ -704,7 +770,10 @@ export function AdminTemplatesPage({
     setCategoryStatus("Memuat kategori...");
 
     try {
-      const response = await apiGet<{ source: string; categories: Array<{ id: number; name: string }> }>("/api/categories/admin");
+      const response = await apiGet<{
+        source: string;
+        categories: AdminCategory[];
+      }>("/api/categories/admin");
       const categories = response.categories ?? [];
       syncCategoriesWithIds(categories);
       setCategoryStatus(
@@ -728,7 +797,7 @@ export function AdminTemplatesPage({
       return;
     }
 
-    const category = categoriesWithIds.find(c => c.name === categoryName);
+    const category = categoriesWithIds.find((c) => c.name === categoryName);
     if (!category) {
       setCategoryStatus("Kategori tidak ditemukan.");
       return;
@@ -756,9 +825,12 @@ export function AdminTemplatesPage({
     setLoadingMessage("Memperbarui kategori...");
 
     try {
-      const data = await apiPut<CategoryMutationResponse>(`/api/categories/${editingCategoryId}`, {
-        name: newName,
-      });
+      const data = await apiPut<CategoryMutationResponse>(
+        `/api/categories/${editingCategoryId}`,
+        {
+          name: newName,
+        },
+      );
 
       onCategoriesChange(data.categories);
       if (Array.isArray(data.adminCategories)) {
@@ -778,7 +850,9 @@ export function AdminTemplatesPage({
       setEditingCategoryName("");
       setCategoryStatus(data.message ?? "Kategori berhasil diperbarui.");
     } catch (error) {
-      setCategoryStatus(getApiErrorMessage(error, "Gagal memperbarui kategori."));
+      setCategoryStatus(
+        getApiErrorMessage(error, "Gagal memperbarui kategori."),
+      );
     } finally {
       setIsSavingCategory(false);
       setLoadingMessage(null);
@@ -822,10 +896,14 @@ export function AdminTemplatesPage({
       setEditingCategory(null);
       setEditingCategoryId(null);
       setEditingCategoryName("");
-      setCategoryStatus(data.message ?? `Kategori "${name}" berhasil ditambahkan.`);
+      setCategoryStatus(
+        data.message ?? `Kategori "${name}" berhasil ditambahkan.`,
+      );
       setIsCategoryModalOpen(false);
     } catch (error) {
-      setCategoryStatus(getApiErrorMessage(error, "Gagal menambahkan kategori."));
+      setCategoryStatus(
+        getApiErrorMessage(error, "Gagal menambahkan kategori."),
+      );
     } finally {
       setIsSavingCategory(false);
       setLoadingMessage(null);
@@ -845,8 +923,12 @@ export function AdminTemplatesPage({
     setDeleteCandidateCategory(null);
 
     const category =
-      categoriesWithIds.find((currentCategory) => currentCategory.name === categoryName) ??
-      (await refreshCategoriesWithIds()).find((currentCategory) => currentCategory.name === categoryName);
+      categoriesWithIds.find(
+        (currentCategory) => currentCategory.name === categoryName,
+      ) ??
+      (await refreshCategoriesWithIds()).find(
+        (currentCategory) => currentCategory.name === categoryName,
+      );
     if (!category) {
       setCategoryStatus(`Kategori "${categoryName}" tidak ditemukan.`);
       return;
@@ -868,14 +950,24 @@ export function AdminTemplatesPage({
         syncCategoriesWithIds(data.adminCategories);
       } else {
         setCategoriesWithIds((currentCategories) =>
-          currentCategories.filter((currentCategory) => currentCategory.id !== category.id),
+          currentCategories.filter(
+            (currentCategory) => currentCategory.id !== category.id,
+          ),
         );
       }
-      setCategoryStatus(data.message ?? `Kategori "${categoryName}" berhasil dihapus.`);
+      setCategoryStatus(
+        data.message ?? `Kategori "${categoryName}" berhasil dihapus.`,
+      );
     } catch (error) {
-      const errorMessage = getApiErrorMessage(error, "Gagal menghapus kategori.");
+      const errorMessage = getApiErrorMessage(
+        error,
+        "Gagal menghapus kategori.",
+      );
       // Provide more specific error messages
-      if (errorMessage.includes("409") || errorMessage.includes("masih digunakan")) {
+      if (
+        errorMessage.includes("409") ||
+        errorMessage.includes("masih digunakan")
+      ) {
         setCategoryStatus(
           `Kategori "${categoryName}" masih digunakan oleh design. Pindahkan design ke kategori lain terlebih dahulu.`,
         );
@@ -1010,7 +1102,9 @@ export function AdminTemplatesPage({
   // Blog handlers
   async function loadBlogPosts() {
     try {
-      const res = await apiGet<{ source: string; posts: BlogPostItem[] }>("/api/blog/admin");
+      const res = await apiGet<{ source: string; posts: BlogPostItem[] }>(
+        "/api/blog/admin",
+      );
       setBlogPosts(res.posts ?? []);
     } catch (error) {
       setBlogStatus(getApiErrorMessage(error, "Gagal memuat artikel."));
@@ -1028,7 +1122,10 @@ export function AdminTemplatesPage({
     );
   }, [blogPosts, blogSearch]);
 
-  const blogPostsTotalPages = Math.max(1, Math.ceil(filteredBlogPosts.length / adminBlogPostsPageSize));
+  const blogPostsTotalPages = Math.max(
+    1,
+    Math.ceil(filteredBlogPosts.length / adminBlogPostsPageSize),
+  );
   const safeBlogPostsPage = Math.min(blogPostsPage, blogPostsTotalPages);
   const paginatedBlogPosts = filteredBlogPosts.slice(
     (safeBlogPostsPage - 1) * adminBlogPostsPageSize,
@@ -1077,7 +1174,11 @@ export function AdminTemplatesPage({
       return;
     }
 
-    if (!blogForm.title.trim() || !blogForm.excerpt.trim() || !blogForm.content.trim()) {
+    if (
+      !blogForm.title.trim() ||
+      !blogForm.excerpt.trim() ||
+      !blogForm.content.trim()
+    ) {
       setBlogStatus("Judul, ringkasan, dan konten artikel wajib diisi.");
       return;
     }
@@ -1264,7 +1365,9 @@ export function AdminTemplatesPage({
               projects={projects}
               orders={orders}
               onNavigate={navigateAdminView}
-              onRefreshOrders={() => loadOrders(adminToken, ordersPage, orderFilters)}
+              onRefreshOrders={() =>
+                loadOrders(adminToken, ordersPage, orderFilters)
+              }
             />
           )}
 
@@ -1301,6 +1404,7 @@ export function AdminTemplatesPage({
               onTemplatesPageChange={setTemplatesPage}
               onStartCreate={startCreate}
               onStartEdit={startEdit}
+              onDuplicateTemplate={duplicateTemplate}
               onCloseTemplateModal={closeTemplateModal}
               onDeleteTemplate={setDeleteCandidateTemplate}
               onSubmitTemplate={submitTemplate}
@@ -1327,7 +1431,9 @@ export function AdminTemplatesPage({
               ordersMeta={ordersMeta}
               isLoadingOrders={isLoadingOrders}
               updatingOrderId={updatingOrderId}
-              onRefreshOrders={() => loadOrders(adminToken, ordersPage, orderFilters)}
+              onRefreshOrders={() =>
+                loadOrders(adminToken, ordersPage, orderFilters)
+              }
               onOrderFiltersChange={updateOrderFilters}
               onOrdersPageChange={(page) => {
                 setOrdersPage(page);
@@ -1416,7 +1522,9 @@ export function AdminTemplatesPage({
             />
           )}
 
-          {activeAdminView === "coupons" && <AdminCouponsSection adminToken={adminToken} />}
+          {activeAdminView === "coupons" && (
+            <AdminCouponsSection adminToken={adminToken} />
+          )}
         </AdminLayout>
       )}
 
