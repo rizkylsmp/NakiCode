@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  BadgeCheck,
   CheckSquare,
   Inbox,
   MessageSquareText,
@@ -81,8 +82,12 @@ export function OrdersPanel({
     order: OrderItem;
     amount: string;
     notes: string;
+    depositPercent: string;
   } | null>(null);
   const [isSavingAction, setIsSavingAction] = useState(false);
+  const [confirmingLynkOrderId, setConfirmingLynkOrderId] = useState<
+    number | null
+  >(null);
   const failedOrders = orders.filter(
     (order) => order.paymentStatus === "failed" && order.paymentFailureReason,
   );
@@ -161,16 +166,21 @@ export function OrdersPanel({
 
     setIsBulkUpdating(true);
     try {
-      await apiPatch("/api/orders/bulk/status", {
-        ids: selectedVisibleOrderIds,
-        status: bulkStatus,
-      });
+      const result = await apiPatch<{ updated: number; skipped: number[] }>(
+        "/api/orders/bulk/status",
+        {
+          ids: selectedVisibleOrderIds,
+          status: bulkStatus,
+        },
+      );
       onRefreshOrders();
       setSelectedOrderIds((current) =>
         current.filter((orderId) => !selectedVisibleOrderIds.includes(orderId)),
       );
       setActionStatus(
-        `${selectedVisibleOrderIds.length} order berhasil diperbarui.`,
+        result.skipped.length > 0
+          ? `${result.updated} order diperbarui; ${result.skipped.length} dilewati karena transisinya tidak aman.`
+          : `${result.updated} order berhasil diperbarui.`,
       );
     } catch (error) {
       setActionStatus(
@@ -198,9 +208,19 @@ export function OrdersPanel({
     setIsSavingAction(true);
     try {
       if (actionDialog.kind === "quote") {
+        const depositPercent = Number(actionDialog.depositPercent);
+        if (
+          !Number.isInteger(depositPercent) ||
+          depositPercent < 10 ||
+          depositPercent > 90
+        ) {
+          setActionStatus("Persentase DP harus antara 10% sampai 90%.");
+          return;
+        }
         await apiPatch(`/api/orders/${actionDialog.order.id}/quote`, {
           amount,
           notes: actionDialog.notes || null,
+          depositPercent,
         });
         setActionStatus(
           "Penawaran tersimpan dan pelanggan telah diberi notifikasi.",
@@ -225,6 +245,24 @@ export function OrdersPanel({
       );
     } finally {
       setIsSavingAction(false);
+    }
+  }
+
+  async function confirmLynkPayment(order: OrderItem) {
+    setConfirmingLynkOrderId(order.id);
+    setActionStatus(`Mengonfirmasi pembayaran Lynk order #${order.id}...`);
+    try {
+      await apiPost(`/api/orders/${order.id}/payment/confirm-lynk`);
+      setActionStatus(
+        `Pembayaran Lynk order #${order.id} berhasil dikonfirmasi.`,
+      );
+      onRefreshOrders();
+    } catch (error) {
+      setActionStatus(
+        getApiErrorMessage(error, "Gagal mengonfirmasi pembayaran Lynk."),
+      );
+    } finally {
+      setConfirmingLynkOrderId(null);
     }
   }
 
@@ -521,6 +559,31 @@ export function OrdersPanel({
                       value={formatOrderDate(order.createdAt)}
                     />
                   </div>
+                  {order.quoteAmount ? (
+                    <div className="mt-3 rounded-lg border border-naki-steel bg-naki-frost p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-naki-primary">
+                          Penawaran Rp
+                          {order.quoteAmount.toLocaleString("id-ID")}
+                        </p>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-naki-smoke">
+                          {getQuoteStatusLabel(order.quoteStatus)}
+                        </span>
+                      </div>
+                      {order.orderType === "custom_project" ? (
+                        <p className="mt-1.5 text-xs font-medium text-naki-smoke">
+                          DP {order.depositPercent}% · Dibayar Rp
+                          {order.amountPaid.toLocaleString("id-ID")} · Sisa Rp
+                          {order.remainingAmount.toLocaleString("id-ID")}
+                        </p>
+                      ) : null}
+                      {order.quoteNotes ? (
+                        <p className="mt-1.5 text-sm leading-relaxed text-naki-smoke">
+                          {order.quoteNotes}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {order.paymentStatus === "failed" &&
                     order.paymentFailureReason && (
                       <div className="mt-3 rounded-lg border border-naki-secondary/20 bg-naki-frost p-3">
@@ -562,33 +625,54 @@ export function OrdersPanel({
                         )
                       }
                     >
-                      {orderStatusOptions.map((option) => (
+                      {getAllowedOrderStatusOptions(order).map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </select>
                   </label>
-                  {!["paid", "partial_refunded", "refunded"].includes(
+                  {["pending", "failed", "expired", "cancelled"].includes(
                     order.paymentStatus,
-                  ) && (
+                  ) &&
+                    order.orderType === "custom_project" &&
+                    !["completed", "closed", "cancelled"].includes(
+                      order.status,
+                    ) && (
+                      <button
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white text-xs font-medium text-naki-primary transition hover:bg-naki-frost"
+                        onClick={() =>
+                          setActionDialog({
+                            kind: "quote",
+                            order,
+                            amount: String(order.quoteAmount ?? ""),
+                            notes: order.quoteNotes ?? "",
+                            depositPercent: String(order.depositPercent ?? 50),
+                          })
+                        }
+                        type="button"
+                      >
+                        <BadgeDollarSign size={14} />
+                        {order.quoteAmount
+                          ? "Ubah penawaran"
+                          : "Beri penawaran"}
+                      </button>
+                    )}
+                  {order.paymentStatus === "waiting_payment" &&
+                  order.paymentMethod?.toLowerCase() === "lynk" ? (
                     <button
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white text-xs font-medium text-naki-primary transition hover:bg-naki-frost"
-                      onClick={() =>
-                        setActionDialog({
-                          kind: "quote",
-                          order,
-                          amount: String(order.quoteAmount ?? ""),
-                          notes: order.quoteNotes ?? "",
-                        })
-                      }
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={confirmingLynkOrderId === order.id}
+                      onClick={() => void confirmLynkPayment(order)}
                       type="button"
                     >
-                      <BadgeDollarSign size={14} />
-                      {order.quoteAmount ? "Ubah penawaran" : "Beri penawaran"}
+                      <BadgeCheck size={14} />
+                      {confirmingLynkOrderId === order.id
+                        ? "Mengonfirmasi..."
+                        : "Konfirmasi bayar Lynk"}
                     </button>
-                  )}
-                  {["paid", "partial_refunded"].includes(
+                  ) : null}
+                  {["partial_paid", "paid", "partial_refunded"].includes(
                     order.paymentStatus,
                   ) && (
                     <button
@@ -597,8 +681,11 @@ export function OrdersPanel({
                         setActionDialog({
                           kind: "refund",
                           order,
-                          amount: String(order.paymentAmount ?? ""),
+                          amount: String(
+                            order.amountPaid || order.paymentAmount || "",
+                          ),
                           notes: "",
+                          depositPercent: "50",
                         })
                       }
                       type="button"
@@ -712,6 +799,33 @@ export function OrdersPanel({
                   }
                 />
               </label>
+              {actionDialog.kind === "quote" ? (
+                <label
+                  className="grid gap-1.5 text-xs font-medium text-naki-smoke"
+                  htmlFor="order-action-deposit"
+                >
+                  DP awal (%)
+                  <input
+                    id="order-action-deposit"
+                    required
+                    inputMode="numeric"
+                    min={10}
+                    max={90}
+                    type="number"
+                    className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm font-semibold text-naki-primary"
+                    value={actionDialog.depositPercent}
+                    onChange={(event) =>
+                      setActionDialog({
+                        ...actionDialog,
+                        depositPercent: event.target.value,
+                      })
+                    }
+                  />
+                  <span className="font-normal">
+                    Sisa pembayaran otomatis menjadi tagihan pelunasan.
+                  </span>
+                </label>
+              ) : null}
               <label
                 className="grid gap-1.5 text-xs font-medium text-naki-smoke"
                 htmlFor="order-action-notes"
@@ -835,6 +949,39 @@ function PaymentBadge({ status }: { status: OrderItem["paymentStatus"] }) {
       {getPaymentStatusLabel(status)}
     </span>
   );
+}
+
+function getQuoteStatusLabel(status: OrderItem["quoteStatus"]) {
+  if (status === "accepted") return "Disetujui pelanggan";
+  if (status === "rejected") return "Ditolak pelanggan";
+  return "Menunggu respons";
+}
+
+function getAllowedOrderStatusOptions(order: OrderItem) {
+  const transitions: Record<string, OrderStatus[]> = {
+    new: ["contacted", "quotation", "cancelled"],
+    contacted: ["quotation", "awaiting_dp", "cancelled"],
+    quotation: ["contacted", "awaiting_dp", "cancelled"],
+    awaiting_dp: ["quotation", "in_progress", "cancelled"],
+    in_progress: ["revision", "delivered", "cancelled"],
+    revision: ["in_progress", "delivered", "cancelled"],
+    delivered: ["revision", "completed", "closed"],
+    completed: ["closed"],
+    cancelled: ["contacted"],
+    deal: ["in_progress", "closed", "cancelled"],
+    closed: [],
+  };
+  const current = order.status as OrderStatus;
+  const allowed = new Set<OrderStatus>([
+    current,
+    ...(transitions[current] ?? []),
+  ]);
+  if (
+    !["pending", "failed", "expired", "cancelled"].includes(order.paymentStatus)
+  ) {
+    allowed.delete("cancelled");
+  }
+  return orderStatusOptions.filter((option) => allowed.has(option.value));
 }
 
 function getOrderBadgeClass(status: OrderStatus) {

@@ -6,5 +6,3 @@ export const headerNavItems: HeaderNavItem[] = [
   { label: "Portofolio", href: "/portofolio" },
   { label: "Blog", href: "/blog" },
 ];
-
-export const themeStorageKey = "naki-theme";

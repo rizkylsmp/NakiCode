@@ -150,6 +150,7 @@ export async function findTemplateBySlugOrId(
 
 export async function createTemplate(payload: TemplatePayload) {
   const category = await resolveTemplateCategory(payload.category);
+  await releaseDeletedTemplateSlug(payload.slug);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO designs (
       slug,
@@ -182,6 +183,7 @@ export async function createTemplate(payload: TemplatePayload) {
 
 export async function updateTemplate(id: number, payload: TemplatePayload) {
   const category = await resolveTemplateCategory(payload.category);
+  await releaseDeletedTemplateSlug(payload.slug);
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE designs SET
       slug = ?,
@@ -218,11 +220,23 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
 
 export async function deleteTemplate(id: number) {
   const [result] = await pool.query<ResultSetHeader>(
-    "UPDATE designs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+    `UPDATE designs
+    SET slug = CONCAT('__deleted__', id, '__', LEFT(slug, 140)),
+        deleted_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND deleted_at IS NULL`,
     [id],
   );
 
   return result.affectedRows > 0;
+}
+
+export async function releaseDeletedTemplateSlug(slug: string) {
+  await pool.query<ResultSetHeader>(
+    `UPDATE designs
+    SET slug = CONCAT('__deleted__', id, '__', LEFT(slug, 140))
+    WHERE slug = ? AND deleted_at IS NOT NULL`,
+    [slug],
+  );
 }
 
 export function normalizeTemplatePayload(
@@ -441,7 +455,11 @@ function normalizeArray(value: unknown) {
 }
 
 function sanitizeSlug(value: unknown) {
-  return slugify(String(value ?? ""));
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/^https?:\/\/[^/]+\/design\//i, "")
+    .replace(/^\/?design\//i, "");
+  return slugify(normalized);
 }
 
 function slugify(value: string) {

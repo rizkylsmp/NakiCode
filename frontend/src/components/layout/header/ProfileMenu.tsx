@@ -33,7 +33,7 @@ export function ProfileMenu({
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-sm font-medium transition hover:border-naki-steel/80 hover:bg-naki-frost"
+        className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition hover:bg-naki-frost ${isAdmin ? "bg-naki-frost" : "border border-naki-steel bg-white hover:border-naki-steel/80"}`}
         aria-expanded={isOpen}
         aria-haspopup="menu"
         onClick={onToggle}

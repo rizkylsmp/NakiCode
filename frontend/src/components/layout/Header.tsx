@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiGet, apiPatch } from "../../services/api-client";
 import { useAuth } from "../../contexts/auth-context";
-import { headerNavItems, themeStorageKey } from "./header/header-data";
+import { headerNavItems } from "./header/header-data";
+import { applyTheme, resolveInitialTheme } from "../../utils/theme";
 import { MobileMenu } from "./header/MobileMenu";
 import { NotificationMenu } from "./header/NotificationMenu";
 import { ProfileMenu } from "./header/ProfileMenu";
@@ -31,12 +32,9 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [hasMainContent, setHasMainContent] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = window.localStorage.getItem(themeStorageKey);
-    if (savedTheme === "dark") return true;
-    if (savedTheme === "light") return false;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => resolveInitialTheme() === "dark",
+  );
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
@@ -123,9 +121,7 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    const theme = isDarkMode ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem(themeStorageKey, theme);
+    applyTheme(isDarkMode ? "dark" : "light");
   }, [isDarkMode]);
 
   useEffect(() => {
@@ -163,7 +159,7 @@ export function Header() {
 
         <div className="hidden items-center gap-2 lg:flex">
           <button
-            className="grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
+            className="grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:text-naki-secondary"
             type="button"
             aria-label="Cari design"
             onClick={() => setIsSearchOpen(true)}
@@ -216,7 +212,7 @@ export function Header() {
 
         <div className="flex items-center gap-1 lg:hidden">
           <button
-            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:bg-naki-frost"
+            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary"
             aria-label="Cari design"
             onClick={() => setIsSearchOpen(true)}
             type="button"
@@ -227,7 +223,7 @@ export function Header() {
             <PrizeButton mobile onClick={requestCouponBannerReopen} />
           ) : null}
           <button
-            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:bg-naki-frost"
+            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary"
             aria-expanded={isMobileMenuOpen}
             aria-label={isMobileMenuOpen ? "Tutup menu" : "Buka menu"}
             onClick={() => setIsMobileMenuOpen((current) => !current)}

@@ -38,7 +38,7 @@ type TemplatesPanelProps = {
   onDuplicateTemplate?: (template: TemplateItem) => void;
   onCloseTemplateModal: () => void;
   onDeleteTemplate: (template: TemplateItem) => void;
-  onSubmitTemplate: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmitTemplate: (publicationStatus: "draft" | "published") => void;
   onUpdateField: <Key extends keyof TemplateFormState>(
     key: Key,
     value: TemplateFormState[Key],
@@ -296,9 +296,14 @@ export function TemplatesPanel({
       />
       <TemplateFormModal
         categoryOptions={categoryOptions}
+        existingSlugs={templates.map((template) => ({
+          id: template.id,
+          slug: template.slug,
+        }))}
         form={form}
         isOpen={isTemplateModalOpen}
         isSaving={isSaving}
+        saveStatus={status}
         selectedTemplate={selectedTemplate}
         adminToken={adminToken}
         onClose={onCloseTemplateModal}

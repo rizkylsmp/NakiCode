@@ -78,6 +78,7 @@ Target UX:
 - Bootstrap DB: `backend/src/db.ts` -> create database dari `MYSQL_DATABASE`, apply baseline schema, ensure columns, run runtime migrations.
 - Data design memakai tabel `designs`, kategori memakai `categories`, dan relasinya melalui `designs.category_id` -> `categories.id`; kolom teks `designs.category` dipertahankan sebagai display fallback.
 - Design memiliki `publication_status` (`draft|published`) dan `source_available`; endpoint publik hanya mengembalikan published, sedangkan endpoint admin `/api/designs/admin` juga memuat draft.
+- Soft-delete Design mengganti slug internal record terhapus agar slug publiknya dapat digunakan kembali; migrasi runtime juga membebaskan slug dari record lama yang sudah terhapus.
 - MySQL wajib tersedia. Backend harus gagal start jika DB init gagal.
 - Pool MySQL mode lokal dibatasi hingga 3 koneksi dengan maksimal 1 koneksi idle; shutdown lokal menutup HTTP server dan pool secara graceful untuk mencegah koneksi tertinggal pada database remote.
 - Query manual dipisah di `backend/src/models/*`; route sebaiknya tidak menulis query besar langsung kecuali endpoint kecil/statistik.
@@ -181,6 +182,7 @@ Auth/user:
 Orders/payment:
 
 - `GET /api/orders/my`
+- `POST /api/orders/:id/quote/respond`
 - `POST /api/orders/:id/payment`
 - `POST /api/orders/:id/payment/confirm`
 - `POST /api/payments/midtrans/webhook`
@@ -198,6 +200,8 @@ Admin:
 
 - `GET /api/orders` (admin)
 - `PATCH /api/orders/:id/status` (admin)
+- `PATCH /api/orders/:id/quote` (admin)
+- `POST /api/orders/:id/payment/confirm-lynk` (admin)
 - Design/category/project/blog CRUD routes; design memakai `/api/designs` dengan `/api/templates` sebagai alias kompatibilitas sementara
 - `GET /api/admin/stats`
 - `POST /api/uploads/images` (admin)
@@ -246,6 +250,7 @@ Status pembayaran dasar:
 
 - `pending`
 - `waiting_payment`
+- `partial_paid`
 - `paid`
 - `failed`
 
@@ -255,23 +260,38 @@ Kolom order terkait:
 - `payment_method`
 - `payment_reference`
 - `payment_url`
+- `order_type`
+- `deposit_percent`
+- `amount_paid`
+- `payment_stage`
+- `quote_status`
+- `quote_responded_at`
 - `paid_at`
 
 Mode:
 
-- `PAYMENT_PROVIDER=dev` membuat reference pembayaran lokal/manual.
+- `PAYMENT_PROVIDER=dev` membuat reference pembayaran lokal/manual hanya untuk development.
 - `PAYMENT_PROVIDER=midtrans` memakai Snap redirect URL jika `MIDTRANS_SERVER_KEY` ada.
+- Production gagal start jika provider bukan Midtrans atau `MIDTRANS_SERVER_KEY` kosong; webhook tanpa server key atau signature valid selalu ditolak.
 - Deployment Vercel production (`VERCEL_ENV=production`) selalu memakai endpoint Midtrans live; preview dan development tetap sandbox kecuali `MIDTRANS_IS_PRODUCTION=true` diaktifkan eksplisit.
 - Checkout menyediakan dua provider: Midtrans dan Lynk.
-- Midtrans mendukung QRIS/DANA, kupon, serta pembaruan status otomatis melalui webhook.
-- Lynk memakai `templates.lynk_url` per design, hanya menerima URL HTTPS pada domain `lynk.id`, dan mencatat sesi checkout eksternal pada order.
+- Midtrans mendukung QRIS/DANA, kupon khusus pembelian source code, serta pembaruan status otomatis melalui webhook.
+- Satu order hanya boleh memiliki satu sesi pembayaran aktif; pembuatan sesi diserialisasi dengan database advisory lock agar reference lama tidak tertimpa oleh request paralel.
+- Order dipisahkan menjadi `source_purchase` dan `custom_project`; tipe ini menentukan harga, tahap pembayaran, penggunaan kupon, dan hak akses delivery.
+- Pembelian source code memakai harga katalog, dibayar penuh dalam satu tahap, dan baru membuka source/panduan setelah lunas.
+- Proyek website custom wajib memiliki penawaran admin yang diterima pengguna. Admin memilih DP awal 10–90%; pembayaran pertama mencatat `partial_paid`, sisa nominal otomatis menjadi tagihan pelunasan, dan order menjadi `paid` setelah total penerimaan mencapai nilai penawaran.
+- Setiap percobaan pembayaran tersimpan di `order_payment_sessions` dengan reference unik, tahap `full`/`deposit`/`balance`, nominal, status, dan metadata webhook. Kolom pembayaran di `orders` tetap menjadi snapshot sesi terbaru untuk kompatibilitas.
+- Penawaran tidak dapat diubah saat pembayaran aktif atau setelah DP tercatat.
+- Kupon direservasi saat sesi pembayaran dibuat, dihitung terhadap kuota selama masih aktif, menjadi redeemed setelah paid, dan dilepas saat gagal, kedaluwarsa, ditolak, atau order dibatalkan.
+- Lynk hanya tersedia untuk pembelian penuh source code, memakai `templates.lynk_url` per design, hanya menerima URL HTTPS pada domain `lynk.id`, dan mencatat sesi checkout eksternal pada order. DP/pelunasan custom wajib memakai Midtrans agar nominal dinamisnya tervalidasi gateway.
 - Tombol `via Lynk` mewajibkan login, membuat order internal terlebih dahulu, lalu mencatat sesi Lynk berstatus `waiting_payment` sebelum redirect; order langsung tampil di Pesanan Saya.
-- Transaksi serta akses produk Lynk mengikuti halaman/akun Lynk; status paid dan delivery internal Naki Code tetap khusus flow Midtrans atau konfirmasi internal.
+- Transaksi Lynk dikonfirmasi melalui aksi admin khusus sebelum invoice, pembukuan, notifikasi, dan akses delivery dibuka.
 - QRIS memakai e-wallet/QRIS gateway.
 - DANA memakai channel DANA jika merchant aktif.
 - Webhook Midtrans validasi `signature_key`, lalu set paid untuk `settlement` atau `capture` fraud `accept`.
-- Manual/dev confirm tetap ada sebagai fallback.
-- Source code/panduan dikunci sampai `payment_status = paid`.
+- Manual confirm hanya menerima sesi berlabel dev dan ditolak pada production.
+- Perubahan status order mengikuti transition map; lompatan status berbahaya dan pembatalan saat pembayaran aktif/lunas ditolak backend.
+- Source code/panduan hanya tersedia untuk order `source_purchase` dengan `payment_status = paid`; pembayaran proyek custom tidak pernah membuka paket source.
 - Rating design hanya diterima jika user punya order paid untuk design itu.
 
 ---
@@ -303,7 +323,7 @@ Mode:
 ## UI / Styling Rules
 
 - Responsive dimulai dari lebar 320px. Layout publik memakai padding mobile ringkas, media tidak boleh melewati container, dan judul/aksi harus dapat wrap tanpa horizontal page scroll.
-- Admin memakai sidebar tetap mulai breakpoint `lg`; pada layar lebih kecil navigasi berubah menjadi selector sticky. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
+- Admin memakai sidebar tetap mulai breakpoint `lg`; pada layar lebih kecil navigasi memakai tombol sticky yang membuka drawer ber-overlay lengkap dengan indikator menu aktif, profil admin, dan dukungan Escape. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
 - Layout full width, jangan max-width sempit kecuali konten spesifik butuh.
 - Palette warna tinggal di `frontend/src/styles.css` lewat `@theme`.
 - Jangan hardcode hex color di `className`.
@@ -369,9 +389,9 @@ Admin:
 - Order management tab
 - Filter, pencarian server-side, update individual, dan bulk workflow order
 - Workflow jasa: baru, dihubungi, penawaran, menunggu DP, dikerjakan, revisi, diserahkan, selesai, atau dibatalkan
-- Penawaran harga admin untuk order custom sebelum pelanggan checkout
-- Pembukuan kas admin dengan dropdown periode (bulan ini, bulan lalu, 30 hari, tahun ini, atau tanggal custom), filter jenis transaksi, statistik pemasukan/pengeluaran/refund/laba-rugi, pengeluaran manual, refund parsial/penuh, serta ekspor CSV/PDF. Checkout baru diakui sebagai pemasukan setelah pembayaran berhasil; webhook dan konfirmasi lokal mencatatnya secara idempoten, sedangkan pembukaan halaman pembukuan merekonsiliasi order paid lama yang belum memiliki transaksi kas.
-- Invoice bernomor stabil dengan snapshot pelanggan dan nominal transaksi; order bertransaksi tidak dapat dihapus
+- Penawaran harga admin untuk order custom beserta persentase DP sebelum pelanggan checkout
+- Pembukuan kas admin dengan dropdown periode (bulan ini, bulan lalu, 30 hari, tahun ini, atau tanggal custom), filter jenis transaksi, statistik pemasukan/pengeluaran/refund/laba-rugi, pengeluaran manual, refund parsial/penuh, serta ekspor CSV/PDF. Pembayaran penuh, DP, dan pelunasan masing-masing diakui sebagai pemasukan setelah berhasil; webhook dan konfirmasi lokal mencatat setiap reference secara idempoten, sedangkan pembukaan halaman pembukuan merekonsiliasi pembayaran lama yang belum memiliki transaksi kas.
+- Invoice bernomor stabil dengan snapshot pelanggan dan total order; proyek custom berstatus parsial setelah DP dan lunas setelah pelunasan, serta order bertransaksi tidak dapat dihapus
 - Soft delete design/order/project/blog
 - Audit trail admin
 - Admin stats endpoint: total orders, revenue, orders by status, top designs, recent orders, weekly revenue

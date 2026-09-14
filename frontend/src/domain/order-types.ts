@@ -1,4 +1,13 @@
-export type PaymentStatus = "pending" | "waiting_payment" | "partial_paid" | "paid" | "failed" | "expired" | "partial_refunded" | "refunded" | "cancelled";
+export type PaymentStatus =
+  | "pending"
+  | "waiting_payment"
+  | "partial_paid"
+  | "paid"
+  | "failed"
+  | "expired"
+  | "partial_refunded"
+  | "refunded"
+  | "cancelled";
 
 export type OrderItem = {
   id: number;
@@ -11,6 +20,7 @@ export type OrderItem = {
   projectType: string;
   budgetRange: string;
   message: string;
+  orderType: "source_purchase" | "custom_project";
   status: string;
   paymentStatus: PaymentStatus;
   paymentMethod: string | null;
@@ -25,6 +35,12 @@ export type OrderItem = {
   quoteAmount: number | null;
   quoteNotes: string | null;
   quoteSentAt: string | null;
+  quoteStatus: "pending" | "accepted" | "rejected" | null;
+  quoteRespondedAt: string | null;
+  depositPercent: number;
+  amountPaid: number;
+  paymentStage: "full" | "deposit" | "balance" | "complete" | "legacy_full";
+  remainingAmount: number;
   invoiceNumber: string | null;
   invoiceIssuedAt: string | null;
   paymentFailureCode: string | null;
@@ -60,11 +76,16 @@ export function getPaymentStatusLabel(status: string) {
       return "Menunggu pembayaran";
     case "failed":
       return "Pembayaran gagal";
-    case "partial_paid": return "Bayar sebagian";
-    case "expired": return "Kedaluwarsa";
-    case "partial_refunded": return "Refund sebagian";
-    case "refunded": return "Direfund";
-    case "cancelled": return "Dibatalkan";
+    case "partial_paid":
+      return "Bayar sebagian";
+    case "expired":
+      return "Kedaluwarsa";
+    case "partial_refunded":
+      return "Refund sebagian";
+    case "refunded":
+      return "Direfund";
+    case "cancelled":
+      return "Dibatalkan";
     default:
       return "Belum bayar";
   }
@@ -72,6 +93,64 @@ export function getPaymentStatusLabel(status: string) {
 
 export function canRateOrder(order: OrderItem) {
   return order.paymentStatus === "paid" && order.templateId !== null;
+}
+
+export function getOrderStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    new: "Baru",
+    contacted: "Sudah dihubungi",
+    quotation: "Menunggu respons penawaran",
+    awaiting_dp: "Menunggu pembayaran",
+    in_progress: "Sedang dikerjakan",
+    revision: "Dalam revisi",
+    delivered: "Sudah diserahkan",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+    deal: "Disepakati",
+    closed: "Ditutup",
+  };
+
+  return labels[status] ?? status;
+}
+
+export function canStartOrderCheckout(order: OrderItem) {
+  const restartable = ["pending", "failed", "expired", "cancelled"].includes(
+    order.paymentStatus,
+  );
+  const awaitingBalance =
+    order.orderType === "custom_project" &&
+    order.paymentStatus === "partial_paid";
+  return (
+    (restartable || awaitingBalance) &&
+    !["completed", "closed", "cancelled"].includes(order.status) &&
+    (order.orderType === "source_purchase" ||
+      (Boolean(order.quoteAmount) && order.quoteStatus === "accepted"))
+  );
+}
+
+export function getOrderPayableAmount(order: OrderItem) {
+  if (order.orderType === "custom_project" && order.quoteAmount) {
+    if (order.amountPaid > 0) {
+      return Math.max(0, order.quoteAmount - order.amountPaid);
+    }
+    return Math.round(order.quoteAmount * (order.depositPercent / 100));
+  }
+
+  return parseCurrencyAmount(order.templatePrice);
+}
+
+export function getOrderPaymentActionLabel(order: OrderItem) {
+  if (order.orderType === "source_purchase") return "Bayar penuh";
+  if (order.amountPaid > 0 || order.paymentStage === "balance") {
+    return "Bayar pelunasan";
+  }
+  return `Bayar DP ${order.depositPercent}%`;
+}
+
+export function getOrderTypeLabel(order: OrderItem) {
+  return order.orderType === "source_purchase"
+    ? "Pembelian source code"
+    : "Pembuatan website custom";
 }
 
 export function canConfirmPaymentManually(order: OrderItem) {
@@ -91,4 +170,23 @@ export function getWaitingPaymentMessage(order: OrderItem) {
   }
 
   return "Selesaikan pembayaran di halaman bayar. Status paid akan otomatis berubah setelah gateway mengirim webhook.";
+}
+
+function parseCurrencyAmount(value: string | null | undefined) {
+  const text = String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  const numericValue = Number(
+    text
+      .replace(/rp/g, "")
+      .replace(/[^\d.,]/g, "")
+      .replace(/\./g, "")
+      .replace(",", "."),
+  );
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return 0;
+  if (text.includes("jt") || text.includes("juta"))
+    return Math.round(numericValue * 1_000_000);
+  if (text.includes("k")) return Math.round(numericValue * 1000);
+  return Math.round(numericValue);
 }

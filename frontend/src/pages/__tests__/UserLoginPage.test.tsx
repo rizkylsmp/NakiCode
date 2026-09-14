@@ -88,9 +88,9 @@ describe("UserLoginPage", () => {
 
     // Should show error message
     await waitFor(() => {
-      expect(
-        screen.getByText(/Konfirmasi password belum sama/i),
-      ).toBeInTheDocument();
+      const errorStatus = screen.getByRole("alert");
+      expect(errorStatus).toHaveTextContent(/Konfirmasi password belum sama/i);
+      expect(errorStatus).toHaveClass("text-red-600");
     });
   });
 

@@ -27,17 +27,31 @@ export function TemplateCard({
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-naki-steel/60 bg-white shadow-sm transition duration-300 hover:border-blue-200 hover:shadow-md">
-      <div className="relative aspect-[4/3] overflow-hidden bg-naki-frost">
+      <div
+        className="relative aspect-[4/3] overflow-hidden bg-naki-frost"
+        data-testid="design-card-media"
+      >
         {hasVideoPreview ? (
           <Link
-            className="block h-full w-full"
+            className="relative block h-full w-full"
             to={`/design/${template.slug}`}
             aria-label={`Lihat design ${template.title}`}
           >
+            {template.preview?.[0]?.image ? (
+              <ResponsiveImage
+                alt=""
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                src={template.preview[0].image}
+              />
+            ) : (
+              <span className="absolute inset-0 bg-gradient-to-br from-naki-primary/15 via-naki-frost to-naki-secondary/20" />
+            )}
+            <span className="absolute inset-0 bg-white/10" />
             <video
               aria-label={`Video preview ${template.title}`}
               autoPlay
-              className="pointer-events-none h-full w-full object-cover"
+              className="pointer-events-none relative z-10 h-full w-full object-contain"
               loop
               muted
               onError={() => setFailedVideoUrl(template.videoUrl || null)}
@@ -46,18 +60,26 @@ export function TemplateCard({
               preload="metadata"
               src={template.videoUrl || undefined}
             />
-            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-md bg-naki-primary/80 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
+            <span className="absolute bottom-3 left-3 z-20 inline-flex items-center gap-1.5 rounded-md bg-naki-primary/80 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
               <Film size={13} aria-hidden="true" />
               Video preview
             </span>
           </Link>
         ) : template.preview?.[0]?.image ? (
           <Link
+            className="relative block h-full w-full"
             to={`/design/${template.slug}`}
             aria-label={`Lihat design ${template.title}`}
           >
             <ResponsiveImage
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              alt=""
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+              src={template.preview[0].image}
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            />
+            <span className="absolute inset-0 bg-white/10" />
+            <ResponsiveImage
+              className="relative z-10 h-full w-full object-contain"
               src={template.preview[0].image}
               alt={template.title}
               sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
@@ -70,14 +92,14 @@ export function TemplateCard({
         )}
 
         <Link
-          className="absolute left-3 top-3 rounded-md bg-white/90 px-2 py-0.5 text-xs font-medium text-naki-primary backdrop-blur transition hover:text-blue-500"
+          className="absolute left-3 top-3 z-20 rounded-md bg-white/90 px-2 py-0.5 text-xs font-medium text-naki-primary backdrop-blur transition hover:text-blue-500"
           to={getTemplateCategoryPath(template.category)}
           onClick={(event) => event.stopPropagation()}
         >
           {template.category}
         </Link>
 
-        <div className="absolute right-3 top-3 flex gap-2">
+        <div className="absolute right-3 top-3 z-20 flex gap-2">
           {isAuthenticated ? (
             <button
               className={`grid size-11 place-items-center rounded-full transition disabled:cursor-wait disabled:opacity-60 ${

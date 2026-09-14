@@ -21,8 +21,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
+  Film,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -76,6 +77,19 @@ type UserAuthFormState = {
 type OrderMutationResponse = {
   order: OrderItem;
 };
+
+type PreviewMediaItem =
+  | {
+      type: "image";
+      src: string;
+      caption: string;
+    }
+  | {
+      type: "video";
+      src: string;
+      caption: string;
+      poster?: string;
+    };
 
 type UserAuthResponse = {
   token?: string;
@@ -149,21 +163,49 @@ export function TemplateDetailPage({
   const [, setShareStatus] = useState("");
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const previewImages = template?.preview.filter((item) => item.image) ?? [];
+  const previewMedia = useMemo<PreviewMediaItem[]>(() => {
+    if (!template) return [];
+
+    const images: PreviewMediaItem[] = template.preview
+      .filter((item) => item.image)
+      .map((item) => ({
+        type: "image",
+        src: item.image,
+        caption: item.caption,
+      }));
+
+    if (template.videoUrl) {
+      return [
+        {
+          type: "video",
+          src: template.videoUrl,
+          caption: `Video preview ${template.title}`,
+          poster: template.preview.find((item) => item.image)?.image,
+        },
+        ...images,
+      ];
+    }
+
+    return images;
+  }, [template]);
 
   const showPreviousPreview = useCallback(() => {
     setActivePreviewIndex((current) =>
-      previewImages.length
-        ? (current - 1 + previewImages.length) % previewImages.length
+      previewMedia.length
+        ? (current - 1 + previewMedia.length) % previewMedia.length
         : 0,
     );
-  }, [previewImages.length]);
+  }, [previewMedia.length]);
 
   const showNextPreview = useCallback(() => {
     setActivePreviewIndex((current) =>
-      previewImages.length ? (current + 1) % previewImages.length : 0,
+      previewMedia.length ? (current + 1) % previewMedia.length : 0,
     );
-  }, [previewImages.length]);
+  }, [previewMedia.length]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [slug]);
 
   useEffect(() => {
     function syncUserSession() {
@@ -416,6 +458,7 @@ export function TemplateDetailPage({
     setConsultationStatus("Mengirim request konsultasi...");
     try {
       await apiPost<OrderMutationResponse>("/api/orders", {
+        orderType: "custom_project",
         templateId: selectedTemplate.id,
         templateSlug: selectedTemplate.slug,
         templateTitle: selectedTemplate.title,
@@ -434,7 +477,7 @@ export function TemplateDetailPage({
         budgetRange: consultationForm.budgetRange,
       });
       setConsultationStatus(
-        "Order terkirim. Lanjutkan pembayaran lewat menu Pesanan Saya.",
+        "Permintaan custom terkirim. Tim NAKI Code akan menyiapkan penawaran dan nominal DP.",
       );
     } catch {
       setConsultationStatus(
@@ -457,6 +500,7 @@ export function TemplateDetailPage({
     setCheckoutStatus("Membuat order dan sesi pembayaran...");
     try {
       const orderData = await apiPost<OrderMutationResponse>("/api/orders", {
+        orderType: "source_purchase",
         templateId: selectedTemplate.id,
         templateSlug: selectedTemplate.slug,
         templateTitle: selectedTemplate.title,
@@ -653,29 +697,45 @@ export function TemplateDetailPage({
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
             {/* Left: Preview + Details */}
             <div>
-              {/* Preview images */}
+              {/* Preview media */}
               <div className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-sm">
-                {previewImages[activePreviewIndex]?.image ? (
+                {previewMedia[activePreviewIndex] ? (
                   <div className="group relative aspect-[16/10] overflow-hidden bg-naki-frost">
-                    <button
-                      className="block h-full w-full cursor-zoom-in"
-                      onClick={() => setIsPreviewOpen(true)}
-                      type="button"
-                      aria-label="Buka preview layar penuh"
-                    >
-                      <img
-                        className="h-full w-full object-contain"
-                        src={previewImages[activePreviewIndex].image}
-                        alt={
-                          previewImages[activePreviewIndex].caption ||
-                          selectedTemplate.title
-                        }
+                    {previewMedia[activePreviewIndex].type === "video" ? (
+                      <video
+                        aria-label={previewMedia[activePreviewIndex].caption}
+                        autoPlay
+                        className="h-full w-full bg-naki-primary object-contain"
+                        controls
+                        muted
+                        playsInline
+                        poster={previewMedia[activePreviewIndex].poster}
+                        preload="metadata"
+                        src={previewMedia[activePreviewIndex].src}
                       />
-                    </button>
-                    <span className="pointer-events-none absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-white/90 text-naki-primary opacity-0 shadow-sm transition group-hover:opacity-100">
-                      <Maximize2 size={17} />
-                    </span>
-                    {previewImages.length > 1 ? (
+                    ) : (
+                      <button
+                        className="block h-full w-full cursor-zoom-in"
+                        onClick={() => setIsPreviewOpen(true)}
+                        type="button"
+                        aria-label="Buka preview layar penuh"
+                      >
+                        <img
+                          className="h-full w-full object-contain"
+                          src={previewMedia[activePreviewIndex].src}
+                          alt={
+                            previewMedia[activePreviewIndex].caption ||
+                            selectedTemplate.title
+                          }
+                        />
+                      </button>
+                    )}
+                    {previewMedia[activePreviewIndex].type === "image" ? (
+                      <span className="pointer-events-none absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-white/90 text-naki-primary opacity-0 shadow-sm transition group-hover:opacity-100">
+                        <Maximize2 size={17} />
+                      </span>
+                    ) : null}
+                    {previewMedia.length > 1 ? (
                       <>
                         <PreviewArrow
                           direction="previous"
@@ -686,7 +746,7 @@ export function TemplateDetailPage({
                           onClick={showNextPreview}
                         />
                         <span className="absolute bottom-3 right-3 rounded-full bg-naki-primary/85 px-3 py-1 text-xs font-semibold text-white">
-                          {activePreviewIndex + 1} / {previewImages.length}
+                          {activePreviewIndex + 1} / {previewMedia.length}
                         </span>
                       </>
                     ) : null}
@@ -697,26 +757,41 @@ export function TemplateDetailPage({
                   </div>
                 )}
                 {/* Thumbnail row */}
-                {previewImages.length > 1 && (
+                {previewMedia.length > 1 && (
                   <div className="flex gap-2 overflow-x-auto border-t border-naki-steel/60 p-3">
-                    {previewImages.map((item, index) =>
-                      item.image ? (
-                        <button
-                          key={index}
-                          className={`h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${activePreviewIndex === index ? "border-blue-500" : "border-transparent opacity-65 hover:opacity-100"}`}
-                          onClick={() => setActivePreviewIndex(index)}
-                          type="button"
-                          aria-label={`Tampilkan preview ${index + 1}`}
-                          aria-current={activePreviewIndex === index}
-                        >
+                    {previewMedia.map((item, index) => (
+                      <button
+                        key={`${item.type}-${item.src}`}
+                        className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 bg-naki-frost transition ${activePreviewIndex === index ? "border-blue-500" : "border-transparent opacity-65 hover:opacity-100"}`}
+                        onClick={() => setActivePreviewIndex(index)}
+                        type="button"
+                        aria-label={`Tampilkan ${item.type === "video" ? "video" : "gambar"} preview ${index + 1}`}
+                        aria-current={activePreviewIndex === index}
+                      >
+                        {item.type === "video" ? (
+                          <>
+                            <video
+                              aria-hidden="true"
+                              className="h-full w-full object-cover"
+                              muted
+                              playsInline
+                              poster={item.poster}
+                              preload="metadata"
+                              src={item.src}
+                            />
+                            <span className="absolute inset-0 grid place-items-center bg-naki-primary/35 text-white">
+                              <Film aria-hidden="true" size={20} />
+                            </span>
+                          </>
+                        ) : (
                           <img
                             className="h-full w-full object-cover"
-                            src={item.image}
+                            src={item.src}
                             alt={item.caption || ""}
                           />
-                        </button>
-                      ) : null,
-                    )}
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1128,7 +1203,6 @@ export function TemplateDetailPage({
                         >
                           <option>Pembuatan website dari design</option>
                           <option>Design dan website custom</option>
-                          <option>Beli source code design</option>
                           <option>Integrasi backend</option>
                           <option>Konsultasi project</option>
                         </select>
@@ -1189,7 +1263,7 @@ export function TemplateDetailPage({
       </div>
 
       {/* Expanded Preview Modal */}
-      {isPreviewOpen && previewImages[activePreviewIndex]?.image && (
+      {isPreviewOpen && previewMedia[activePreviewIndex] && (
         <div
           className="fixed inset-0 z-[500] grid place-items-center bg-black/85 p-3 backdrop-blur-sm md:p-6"
           role="dialog"
@@ -1210,17 +1284,31 @@ export function TemplateDetailPage({
               <X size={18} />
             </button>
             <div className="relative min-h-0 flex-1">
-              <img
-                className="h-full w-full object-contain"
-                src={previewImages[activePreviewIndex].image}
-                alt={
-                  previewImages[activePreviewIndex].caption ||
-                  selectedTemplate.title
-                }
-                loading="eager"
-                decoding="async"
-              />
-              {previewImages.length > 1 ? (
+              {previewMedia[activePreviewIndex].type === "video" ? (
+                <video
+                  aria-label={previewMedia[activePreviewIndex].caption}
+                  autoPlay
+                  className="h-full w-full object-contain"
+                  controls
+                  muted
+                  playsInline
+                  poster={previewMedia[activePreviewIndex].poster}
+                  preload="metadata"
+                  src={previewMedia[activePreviewIndex].src}
+                />
+              ) : (
+                <img
+                  className="h-full w-full object-contain"
+                  src={previewMedia[activePreviewIndex].src}
+                  alt={
+                    previewMedia[activePreviewIndex].caption ||
+                    selectedTemplate.title
+                  }
+                  loading="eager"
+                  decoding="async"
+                />
+              )}
+              {previewMedia.length > 1 ? (
                 <>
                   <PreviewArrow
                     direction="previous"
@@ -1237,11 +1325,11 @@ export function TemplateDetailPage({
             </div>
             <div className="mt-3 flex items-center justify-between gap-4 rounded-lg bg-white/95 px-4 py-3 text-sm text-naki-primary">
               <p className="min-w-0 truncate font-medium">
-                {previewImages[activePreviewIndex].caption ||
+                {previewMedia[activePreviewIndex].caption ||
                   `${selectedTemplate.title} - preview ${activePreviewIndex + 1}`}
               </p>
               <span className="shrink-0 text-xs font-semibold text-naki-smoke">
-                {activePreviewIndex + 1} / {previewImages.length}
+                {activePreviewIndex + 1} / {previewMedia.length}
               </span>
             </div>
           </div>

@@ -36,6 +36,12 @@ import {
 } from "../utils/user-session";
 
 type AuthMode = "login" | "register";
+type AuthStatusTone = "neutral" | "error" | "success";
+
+type AuthStatus = {
+  message: string;
+  tone: AuthStatusTone;
+};
 
 type UserAuthResponse = {
   token?: string;
@@ -62,7 +68,10 @@ export function UserLoginPage() {
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>("login");
   const [form, setForm] = useState(defaultForm);
-  const [status, setStatus] = useState("Masuk untuk melanjutkan ke akunmu.");
+  const [status, setStatus] = useState<AuthStatus>({
+    message: "Masuk untuk melanjutkan ke akunmu.",
+    tone: "neutral",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [captcha, setCaptcha] = useState<CaptchaState>(() =>
@@ -111,7 +120,10 @@ export function UserLoginPage() {
   const handleGoogleCredential = useCallback(
     async (credential: string) => {
       setIsSubmitting(true);
-      setStatus("Menghubungkan akun Google...");
+      setStatus({
+        message: "Menghubungkan akun Google...",
+        tone: "neutral",
+      });
 
       try {
         const data = await apiPost<UserAuthResponse>("/api/auth/user/google", {
@@ -119,9 +131,13 @@ export function UserLoginPage() {
         });
         completeAuthentication(data);
       } catch (error) {
-        setStatus(
-          getApiErrorMessage(error, "Login Google gagal. Silakan coba lagi."),
-        );
+        setStatus({
+          message: getApiErrorMessage(
+            error,
+            "Login Google gagal. Silakan coba lagi.",
+          ),
+          tone: "error",
+        });
       } finally {
         setIsSubmitting(false);
       }
@@ -130,7 +146,7 @@ export function UserLoginPage() {
   );
 
   const handleGoogleError = useCallback((message: string) => {
-    setStatus(message);
+    setStatus({ message, tone: "error" });
   }, []);
 
   async function submitAuth(event: React.FormEvent<HTMLFormElement>) {
@@ -138,28 +154,39 @@ export function UserLoginPage() {
 
     if (mode === "register") {
       if (form.password !== form.confirmPassword) {
-        setStatus("Konfirmasi password belum sama.");
+        setStatus({
+          message: "Konfirmasi password belum sama.",
+          tone: "error",
+        });
         return;
       }
 
       // Validate password strength
       if (!isPasswordStrong(form.password)) {
-        setStatus(
-          "Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan lebih baik.",
-        );
+        setStatus({
+          message:
+            "Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan lebih baik.",
+          tone: "error",
+        });
         return;
       }
 
       // Validate captcha (checkbox + honeypot + timing)
       const captchaValidation = validateCaptcha(captcha);
       if (!captchaValidation.valid) {
-        setStatus(captchaValidation.error || "Validasi keamanan gagal.");
+        setStatus({
+          message: captchaValidation.error || "Validasi keamanan gagal.",
+          tone: "error",
+        });
         return;
       }
     }
 
     setIsSubmitting(true);
-    setStatus(mode === "login" ? "Memeriksa akun..." : "Membuat akun...");
+    setStatus({
+      message: mode === "login" ? "Memeriksa akun..." : "Membuat akun...",
+      tone: "neutral",
+    });
 
     try {
       const data = await apiPost<UserAuthResponse>(
@@ -188,16 +215,18 @@ export function UserLoginPage() {
           nextTarget,
         );
         setVerificationUrl(nextVerificationUrl);
-        setStatus(
-          "Akun berhasil dibuat. OTP sudah dikirim ke email pendaftar.",
-        );
+        setStatus({
+          message: "Akun berhasil dibuat. OTP sudah dikirim ke email pendaftar.",
+          tone: "success",
+        });
         navigate(nextVerificationUrl, { replace: true });
         return;
       }
 
-      setStatus(
-        "Akun berhasil diproses. OTP verifikasi sudah dikirim ke email.",
-      );
+      setStatus({
+        message: "Akun berhasil diproses. OTP verifikasi sudah dikirim ke email.",
+        tone: "success",
+      });
     } catch (error) {
       const errorData = getApiErrorData<UserAuthResponse>(error);
 
@@ -207,21 +236,24 @@ export function UserLoginPage() {
           nextTarget,
         );
         setVerificationUrl(nextVerificationUrl);
-        setStatus(
-          "Email belum diverifikasi. Cek inbox atau buka verifikasi di bawah.",
-        );
+        setStatus({
+          message:
+            "Email belum diverifikasi. Cek inbox atau buka verifikasi di bawah.",
+          tone: "error",
+        });
         navigate(nextVerificationUrl, { replace: true });
         return;
       }
 
-      setStatus(
-        getApiErrorMessage(
+      setStatus({
+        message: getApiErrorMessage(
           error,
           mode === "login"
             ? "Login gagal. Cek username/email dan password."
             : "Daftar gagal. Username/email mungkin sudah dipakai.",
         ),
-      );
+        tone: "error",
+      });
       if (mode === "register") {
         setCaptcha(initializeCaptcha());
       }
@@ -345,11 +377,13 @@ export function UserLoginPage() {
                     }`}
                     onClick={() => {
                       setMode(item);
-                      setStatus(
-                        item === "login"
+                      setStatus({
+                        message:
+                          item === "login"
                           ? "Masuk untuk melanjutkan ke akunmu."
                           : "Lengkapi data untuk membuat akun baru.",
-                      );
+                        tone: "neutral",
+                      });
                     }}
                     role="tab"
                     aria-selected={mode === item}
@@ -560,12 +594,18 @@ export function UserLoginPage() {
                 </button>
               </form>
               <p
-                className="mt-4 rounded-xl bg-naki-page-bg px-4 py-3 text-xs leading-relaxed text-naki-smoke ring-1 ring-naki-steel"
-                aria-live="polite"
+                className={`mt-4 rounded-xl px-4 py-3 text-xs leading-relaxed ring-1 ${
+                  status.tone === "error"
+                    ? "bg-red-50 text-red-600 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800"
+                    : status.tone === "success"
+                      ? "bg-naki-page-bg text-emerald-600 ring-emerald-200 dark:text-emerald-400 dark:ring-emerald-800"
+                      : "bg-naki-page-bg text-naki-smoke ring-naki-steel"
+                }`}
+                aria-live={status.tone === "error" ? "assertive" : "polite"}
                 aria-atomic="true"
-                role="status"
+                role={status.tone === "error" ? "alert" : "status"}
               >
-                {status}
+                {status.message}
               </p>
               {verificationUrl ? (
                 <div className="mt-4 rounded-xl bg-naki-page-bg p-4 ring-1 ring-naki-steel">

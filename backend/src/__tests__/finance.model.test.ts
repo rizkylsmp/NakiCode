@@ -14,11 +14,16 @@ describe("finance model", () => {
   });
 
   it("backfills missing paid orders with an idempotent bookkeeping query", async () => {
-    dbMock.query.mockResolvedValueOnce([{ affectedRows: 2 }]);
+    dbMock.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([{ affectedRows: 2 }]);
     const { syncPaidOrderTransactions } =
       await import("../models/finance.model");
 
     await expect(syncPaidOrderTransactions()).resolves.toBe(2);
+    expect(dbMock.query).toHaveBeenCalledWith(
+      expect.stringContaining("payments.status = 'paid'"),
+    );
     expect(dbMock.query).toHaveBeenCalledWith(
       expect.stringContaining(
         "orders.payment_status IN ('paid', 'partial_refunded', 'refunded')",

@@ -1,11 +1,21 @@
 import crypto from "node:crypto";
 import express from "express";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { createUserToken } from "../auth";
 import { config } from "../config";
 import { createPaymentWebhookEvent } from "../models/payment-webhook-event.model";
 import {
+  findOrderById,
+  findOrderByIdForUser,
   findOrderByPaymentReference,
   markOrderPaidByPaymentReference,
 } from "../models/order.model";
@@ -24,10 +34,15 @@ vi.mock("../models/order.model", async () => {
   return {
     ...actual,
     findOrderByPaymentReference: vi.fn(async () => null),
+    findOrderById: vi.fn(async () => null),
     findOrderByIdForUser: vi.fn(async () => null),
     markOrderPaidByPaymentReference: vi.fn(async () => undefined),
     markOrderPaymentFailedByReference: vi.fn(async () => undefined),
     recordOrderPaymentWebhookStatus: vi.fn(async () => undefined),
+    withOrderPaymentLock: vi.fn(
+      async (_orderId: number, operation: () => Promise<unknown>) =>
+        operation(),
+    ),
   };
 });
 
@@ -40,6 +55,17 @@ vi.mock("../models/finance.model", () => ({
   ensureOrderInvoice: vi.fn(async () => "INV/TEST"),
   recordPaidOrderTransaction: vi.fn(async () => undefined),
 }));
+
+vi.mock("../models/business.model", async () => {
+  const actual = await vi.importActual<
+    typeof import("../models/business.model")
+  >("../models/business.model");
+  return {
+    ...actual,
+    redeemCouponReservation: vi.fn(async () => true),
+    releaseCouponReservation: vi.fn(async () => true),
+  };
+});
 
 vi.mock("../models/notification.model", async () => {
   const actual = await vi.importActual<
@@ -85,10 +111,19 @@ function webhookPayload(transactionStatus: string) {
 }
 
 describe("Payments API Integration", () => {
+  const originalServerKey = config.payment.midtransServerKey;
   const userToken = createUserToken({
     id: 10,
     username: "user-test",
     role: "user",
+  });
+
+  beforeAll(() => {
+    config.payment.midtransServerKey = "test-midtrans-server-key";
+  });
+
+  afterAll(() => {
+    config.payment.midtransServerKey = originalServerKey;
   });
 
   beforeEach(() => {
@@ -110,6 +145,17 @@ describe("Payments API Integration", () => {
       expect([200, 400, 404]).toContain(response.status);
     });
 
+    it("rejects a webhook with an invalid signature", async () => {
+      const response = await request(webhookApp)
+        .post("/api/payments/midtrans/webhook")
+        .send({
+          ...webhookPayload("settlement"),
+          signature_key: "invalid-signature",
+        });
+
+      expect(response.status).toBe(401);
+    });
+
     it("handles settlement status", async () => {
       const response = await request(webhookApp)
         .post("/api/payments/midtrans/webhook")
@@ -126,6 +172,13 @@ describe("Payments API Integration", () => {
         paymentAmount: 150000,
       } as Awaited<ReturnType<typeof findOrderByPaymentReference>>);
       vi.mocked(markOrderPaidByPaymentReference).mockResolvedValueOnce(false);
+      vi.mocked(findOrderById).mockResolvedValueOnce({
+        id: 12,
+        userId: 10,
+        orderType: "source_purchase",
+        paymentStatus: "paid",
+        templateTitle: "Landing Page",
+      } as Awaited<ReturnType<typeof findOrderById>>);
 
       const response = await request(webhookApp)
         .post("/api/payments/midtrans/webhook")
@@ -133,7 +186,10 @@ describe("Payments API Integration", () => {
 
       expect(response.status).toBe(200);
       expect(ensureOrderInvoice).toHaveBeenCalledWith(12);
-      expect(recordPaidOrderTransaction).toHaveBeenCalledWith(12);
+      expect(recordPaidOrderTransaction).toHaveBeenCalledWith(
+        12,
+        "ORDER-000001",
+      );
     });
 
     it("handles pending status", async () => {
@@ -185,6 +241,34 @@ describe("Payments API Integration", () => {
         .send({ method: "transfer" });
 
       expect(response.status).toBe(401);
+    });
+
+    it("rejects Lynk for a custom-project deposit", async () => {
+      vi.mocked(findOrderByIdForUser).mockResolvedValueOnce({
+        id: 1,
+        userId: 10,
+        orderType: "custom_project",
+        status: "awaiting_dp",
+        paymentStatus: "pending",
+        paymentReference: null,
+        paymentUrl: null,
+        quoteAmount: 1_000_000,
+        quoteStatus: "accepted",
+        depositPercent: 50,
+        amountPaid: 0,
+        templateId: 2,
+        templatePrice: "Rp750.000",
+        templateTitle: "Landing Page",
+        sourceAvailable: false,
+      } as Awaited<ReturnType<typeof findOrderByIdForUser>>);
+
+      const response = await request(orderPaymentApp)
+        .post("/api/orders/1/payment")
+        .set("Authorization", `Bearer ${userToken}`)
+        .send({ provider: "lynk" });
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toContain("harus memakai Midtrans");
     });
 
     it("validates payment method", async () => {

@@ -1,11 +1,11 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { pool } from '../db';
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { pool } from "../db";
 
 type CouponRow = RowDataPacket & {
   id: number;
   code: string;
   description: string;
-  discount_type: 'percent' | 'fixed';
+  discount_type: "percent" | "fixed";
   discount_value: number;
   active: number;
   expires_at?: string | null;
@@ -19,7 +19,7 @@ type CouponRow = RowDataPacket & {
 export type CouponInput = {
   code: string;
   description: string;
-  discountType: 'percent' | 'fixed';
+  discountType: "percent" | "fixed";
   discountValue: number;
   active: boolean;
   expiresAt: string | null;
@@ -40,7 +40,7 @@ type BundleRow = RowDataPacket & {
 export type CouponValidation = {
   code: string;
   description: string;
-  discountType: 'percent' | 'fixed';
+  discountType: "percent" | "fixed";
   discountValue: number;
   discountAmount: number;
   finalAmount: number;
@@ -50,7 +50,7 @@ export type CouponBanner = {
   id: number;
   code: string;
   description: string;
-  discountType: 'percent' | 'fixed';
+  discountType: "percent" | "fixed";
   discountValue: number;
   imageUrl: string;
 };
@@ -76,7 +76,15 @@ export async function validateCoupon(code: string, amount: number) {
       coupons.discount_value, coupons.active, coupons.expires_at, coupons.max_redemptions,
       COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
-    LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
+    LEFT JOIN coupon_redemptions
+      ON coupon_redemptions.coupon_id = coupons.id
+      AND (
+        coupon_redemptions.status = 'redeemed'
+        OR (
+          coupon_redemptions.status = 'reserved'
+          AND coupon_redemptions.reservation_expires_at > CURRENT_TIMESTAMP
+        )
+      )
     WHERE coupons.code = ?
       AND coupons.deleted_at IS NULL
       AND active = TRUE
@@ -94,7 +102,7 @@ export async function validateCoupon(code: string, amount: number) {
   }
 
   const discountAmount =
-    coupon.discount_type === 'percent'
+    coupon.discount_type === "percent"
       ? Math.round(amount * (Number(coupon.discount_value) / 100))
       : Number(coupon.discount_value);
   const boundedDiscount = Math.max(0, Math.min(amount, discountAmount));
@@ -115,29 +123,110 @@ export async function recordCouponRedemption(payload: {
   userId: number | null;
   discountAmount: number;
 }) {
-  const [rows] = await pool.query<Array<RowDataPacket & { id: number }>>(
-    `SELECT id FROM coupons
-     WHERE code = ? AND deleted_at IS NULL AND active = TRUE
-     LIMIT 1`,
-    [payload.couponCode.toUpperCase()],
-  );
-  const couponId = rows[0]?.id;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [coupons] = await connection.query<
+      Array<RowDataPacket & { id: number; max_redemptions: number | null }>
+    >(
+      `SELECT id, max_redemptions FROM coupons
+       WHERE code = ? AND deleted_at IS NULL AND active = TRUE
+         AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+       LIMIT 1 FOR UPDATE`,
+      [payload.couponCode.toUpperCase()],
+    );
+    const coupon = coupons[0];
+    if (!coupon) {
+      await connection.rollback();
+      return null;
+    }
 
-  if (!couponId) {
-    return null;
+    const [existingRows] = await connection.query<
+      Array<
+        RowDataPacket & {
+          id: number;
+          coupon_id: number;
+          status: string;
+          active_reservation: number;
+        }
+      >
+    >(
+      `SELECT id, coupon_id, status,
+        (reservation_expires_at > CURRENT_TIMESTAMP) AS active_reservation
+       FROM coupon_redemptions
+       WHERE order_id = ? LIMIT 1`,
+      [payload.orderId],
+    );
+    const existing = existingRows[0];
+    if (existing?.status === 'redeemed') {
+      await connection.commit();
+      return existing.id;
+    }
+    const alreadyConsumesQuota =
+      existing?.coupon_id === coupon.id &&
+      existing.status === 'reserved' &&
+      Boolean(existing.active_reservation);
+
+    if (!alreadyConsumesQuota && coupon.max_redemptions !== null) {
+      const [counts] = await connection.query<
+        Array<RowDataPacket & { total: number }>
+      >(
+        `SELECT COUNT(*) AS total FROM coupon_redemptions
+         WHERE coupon_id = ? AND (
+           status = 'redeemed'
+           OR (status = 'reserved' AND reservation_expires_at > CURRENT_TIMESTAMP)
+         )`,
+        [coupon.id],
+      );
+      if (Number(counts[0]?.total ?? 0) >= coupon.max_redemptions) {
+        await connection.rollback();
+        return null;
+      }
+    }
+
+    const [result] = await connection.query<ResultSetHeader>(
+      `INSERT INTO coupon_redemptions (
+        coupon_id, order_id, user_id, discount_amount, status,
+        reservation_expires_at, redeemed_at
+      ) VALUES (?, ?, ?, ?, 'reserved', DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 24 HOUR), NULL)
+      ON DUPLICATE KEY UPDATE
+        coupon_id = VALUES(coupon_id),
+        user_id = VALUES(user_id),
+        discount_amount = VALUES(discount_amount),
+        status = 'reserved',
+        reservation_expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 24 HOUR),
+        redeemed_at = NULL`,
+      [coupon.id, payload.orderId, payload.userId, payload.discountAmount],
+    );
+    await connection.commit();
+    return result.insertId || payload.orderId;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
+}
 
+export async function redeemCouponReservation(orderId: number) {
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO coupon_redemptions (
-      coupon_id,
-      order_id,
-      user_id,
-      discount_amount
-    ) VALUES (?, ?, ?, ?)`,
-    [couponId, payload.orderId, payload.userId, payload.discountAmount],
+    `UPDATE coupon_redemptions
+     SET status = 'redeemed', redeemed_at = CURRENT_TIMESTAMP,
+       reservation_expires_at = NULL
+     WHERE order_id = ? AND status = 'reserved'`,
+    [orderId],
   );
+  return result.affectedRows > 0;
+}
 
-  return result.insertId;
+export async function releaseCouponReservation(orderId: number) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE coupon_redemptions
+     SET status = 'released', reservation_expires_at = NULL
+     WHERE order_id = ? AND status = 'reserved'`,
+    [orderId],
+  );
+  return result.affectedRows > 0;
 }
 
 function mapCoupon(row: CouponRow) {
@@ -165,7 +254,9 @@ export async function findCoupons() {
       coupons.show_banner, coupons.created_at,
       COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
-    LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
+    LEFT JOIN coupon_redemptions
+      ON coupon_redemptions.coupon_id = coupons.id
+      AND coupon_redemptions.status = 'redeemed'
     WHERE coupons.deleted_at IS NULL
     GROUP BY coupons.id
     ORDER BY coupons.created_at DESC`,
@@ -181,7 +272,15 @@ export async function findActiveCouponBanners(): Promise<CouponBanner[]> {
       coupons.max_redemptions, coupons.created_at,
       COUNT(coupon_redemptions.id) AS redemption_count
     FROM coupons
-    LEFT JOIN coupon_redemptions ON coupon_redemptions.coupon_id = coupons.id
+    LEFT JOIN coupon_redemptions
+      ON coupon_redemptions.coupon_id = coupons.id
+      AND (
+        coupon_redemptions.status = 'redeemed'
+        OR (
+          coupon_redemptions.status = 'reserved'
+          AND coupon_redemptions.reservation_expires_at > CURRENT_TIMESTAMP
+        )
+      )
     WHERE coupons.deleted_at IS NULL
       AND coupons.active = TRUE
       AND coupons.show_banner = TRUE
@@ -201,7 +300,7 @@ export async function findActiveCouponBanners(): Promise<CouponBanner[]> {
     description: row.description,
     discountType: row.discount_type,
     discountValue: Number(row.discount_value),
-    imageUrl: row.image_url ?? '',
+    imageUrl: row.image_url ?? "",
   }));
 }
 
@@ -248,11 +347,12 @@ export async function updateCoupon(id: number, input: CouponInput) {
 
 export async function deleteCoupon(id: number) {
   const [usage] = await pool.query<Array<RowDataPacket & { total: number }>>(
-    'SELECT COUNT(*) AS total FROM coupon_redemptions WHERE coupon_id = ?', [id],
+    "SELECT COUNT(*) AS total FROM coupon_redemptions WHERE coupon_id = ?",
+    [id],
   );
   const archived = Number(usage[0]?.total ?? 0) > 0;
   const [result] = await pool.query<ResultSetHeader>(
-    'UPDATE coupons SET active = FALSE, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
+    "UPDATE coupons SET active = FALSE, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
     [id],
   );
   return { found: result.affectedRows > 0, archived };

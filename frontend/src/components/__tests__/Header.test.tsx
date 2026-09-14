@@ -79,6 +79,13 @@ describe("Header Component", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /admin/i }));
 
+    expect(screen.getByRole("button", { name: /admin/i })).toHaveClass(
+      "bg-naki-frost",
+    );
+    expect(screen.getByRole("button", { name: /admin/i })).not.toHaveClass(
+      "border",
+    );
+
     expect(
       screen.getByRole("menuitem", { name: /dashboard admin/i }),
     ).toHaveAttribute("href", "/admin/dashboard");
@@ -149,7 +156,15 @@ describe("Header Component", () => {
   it("opens the design search dialog", () => {
     renderHeader();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /cari design/i })[0]);
+    const searchButtons = screen.getAllByRole("button", {
+      name: /cari design/i,
+    });
+    expect(searchButtons).toHaveLength(2);
+    searchButtons.forEach((button) => {
+      expect(button).not.toHaveClass("border", "bg-white", "bg-naki-frost");
+    });
+
+    fireEvent.click(searchButtons[0]);
 
     expect(
       screen.getByRole("dialog", { name: /cari design/i }),

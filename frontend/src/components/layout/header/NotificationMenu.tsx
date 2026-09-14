@@ -27,7 +27,7 @@ export function NotificationMenu({
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="relative grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
+        className="relative grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:text-naki-secondary"
         aria-expanded={isOpen}
         aria-haspopup="menu"
         onClick={onToggle}

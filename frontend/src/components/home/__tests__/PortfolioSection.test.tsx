@@ -30,6 +30,20 @@ describe("PortfolioGrid", () => {
       route: "/portofolio",
     });
 
+    const portfolioCover = screen.getByRole("img", { name: "Astra Studio" });
+    const decorativeBackground = document.querySelector('img[aria-hidden="true"]');
+
+    expect(portfolioCover).toHaveClass("object-contain");
+    expect(portfolioCover.closest("article")).toHaveClass(
+      "border",
+      "border-naki-steel/60",
+      "hover:border-blue-200",
+    );
+    expect(decorativeBackground).toHaveClass("object-cover", "blur-xl");
+    expect(screen.getByText("Company Profile").parentElement).toHaveClass(
+      "z-20",
+    );
+
     await user.click(
       screen.getByRole("button", { name: /preview astra studio/i }),
     );

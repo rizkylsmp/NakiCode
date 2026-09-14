@@ -1,12 +1,15 @@
 import {
+  AlertTriangle,
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleAlert,
   FileText,
   Image,
   Loader2,
   Package,
+  Rocket,
   Save,
   ShoppingBag,
   X,
@@ -28,6 +31,7 @@ import {
   frontendStackOptions,
   levelOptions,
   licenseOptions,
+  normalizeDesignSlug,
   slugify,
   supportOptions,
   type MediaUploadState,
@@ -49,14 +53,16 @@ export const designDraftStorageKey = "naki-admin-design-draft-v1";
 
 type Props = {
   categoryOptions: string[];
+  existingSlugs?: Array<{ id: number; slug: string }>;
   form: TemplateFormState;
   isOpen: boolean;
   isSaving: boolean;
+  saveStatus?: string;
   selectedTemplate: TemplateItem | undefined;
   adminToken: string | null;
   onClose: () => void;
   onStartCreate: () => void;
-  onSubmitTemplate: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmitTemplate: (publicationStatus: "draft" | "published") => void;
   onUpdateField: <K extends keyof TemplateFormState>(
     key: K,
     value: TemplateFormState[K],
@@ -65,9 +71,11 @@ type Props = {
 
 export function TemplateFormModal({
   categoryOptions,
+  existingSlugs = [],
   form,
   isOpen,
   isSaving,
+  saveStatus = "",
   selectedTemplate,
   adminToken,
   onClose,
@@ -75,8 +83,9 @@ export function TemplateFormModal({
   onUpdateField,
 }: Props) {
   const [activeStep, setActiveStep] = useState<StepKey>("info");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [isSaveMenuOpen, setIsSaveMenuOpen] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const initialSnapshot = useRef("");
   const wasOpen = useRef(false);
@@ -86,6 +95,23 @@ export function TemplateFormModal({
     status: "idle",
   });
   const isEditing = form.id !== undefined;
+  const primaryPublicationStatus = form.publicationStatus;
+  const primarySaveLabel = isSaving
+    ? "Menyimpan..."
+    : isEditing
+      ? "Simpan perubahan"
+      : form.publicationStatus === "draft"
+        ? "Simpan draft"
+        : "Publikasikan";
+  const effectiveSlug = normalizeDesignSlug(form.slug || form.title);
+  const isSlugUsed = Boolean(
+    effectiveSlug &&
+      existingSlugs.some(
+        (design) =>
+          design.id !== form.id &&
+          normalizeDesignSlug(design.slug) === effectiveSlug,
+      ),
+  );
   const complete = useMemo(
     () => ({
       info: Boolean(
@@ -114,6 +140,8 @@ export function TemplateFormModal({
       initialSnapshot.current = JSON.stringify(form);
       setActiveStep("info");
       setValidationMessage("");
+      setShowUnsavedDialog(false);
+      setIsSaveMenuOpen(false);
     }
     wasOpen.current = isOpen;
   }, [form, isOpen, selectedTemplate?.id]);
@@ -137,21 +165,27 @@ export function TemplateFormModal({
   if (!isOpen || typeof document === "undefined") return null;
 
   function requestClose() {
-    if (
-      JSON.stringify(form) === initialSnapshot.current ||
-      window.confirm("Ada perubahan yang belum disimpan. Tutup form?")
-    )
+    if (JSON.stringify(form) === initialSnapshot.current) {
       onClose();
+      return;
+    }
+    setShowUnsavedDialog(true);
   }
-  function validate(event: React.FormEvent<HTMLFormElement>) {
+  function validate(publicationIntent: "draft" | "published") {
+    setIsSaveMenuOpen(false);
     if (!form.title.trim() || !form.category || !form.description.trim()) {
-      event.preventDefault();
       setActiveStep("info");
       setValidationMessage("Lengkapi judul, kategori, dan deskripsi.");
       return;
     }
-    if (form.publicationStatus === "published" && !complete.media) {
-      event.preventDefault();
+    if (isSlugUsed) {
+      setActiveStep("info");
+      setValidationMessage(
+        "Slug sudah digunakan. Gunakan slug lain sebelum menyimpan design.",
+      );
+      return;
+    }
+    if (publicationIntent === "published" && !complete.media) {
       setActiveStep("media");
       setValidationMessage(
         "Design published memerlukan minimal satu gambar atau video.",
@@ -159,19 +193,17 @@ export function TemplateFormModal({
       return;
     }
     if (form.sourceAvailable && !form.price.trim()) {
-      event.preventDefault();
       setActiveStep("sales");
       setValidationMessage("Isi harga atau nonaktifkan penjualan source code.");
       return;
     }
     if (mediaUploadState.isUploading) {
-      event.preventDefault();
       setActiveStep("media");
       setValidationMessage("Tunggu upload media selesai.");
       return;
     }
     setValidationMessage("");
-    onSubmitTemplate(event);
+    onSubmitTemplate(publicationIntent);
   }
 
   const content: Record<StepKey, React.ReactNode> = {
@@ -182,42 +214,60 @@ export function TemplateFormModal({
           text="Isi informasi yang akan dibaca pelanggan di katalog."
         />
         <div className="grid gap-4 md:grid-cols-2">
-          <Field
-            label="Judul"
-            value={form.title}
-            onChange={(value) => {
-              onUpdateField("title", value);
-              if (!isEditing) onUpdateField("slug", slugify(value));
-            }}
-            required
-          />
-          <SelectField
-            label="Kategori"
-            value={form.category}
-            options={categoryOptions}
-            onChange={(value) => onUpdateField("category", value)}
-          />
-          <SelectField
-            label="Level"
-            value={form.level}
-            options={levelOptions}
-            onChange={(value) => onUpdateField("level", value)}
-          />
-          <button
-            className="h-11 rounded-xl border border-naki-steel bg-white px-4 text-left text-sm font-medium text-naki-primary hover:bg-naki-frost"
-            onClick={() => setShowAdvanced((v) => !v)}
-            type="button"
-          >
-            {showAdvanced ? "Sembunyikan" : "Tampilkan"} pengaturan lanjutan
-          </button>
+          <div className="order-1">
+            <Field
+              label="Judul"
+              value={form.title}
+              onChange={(value) => {
+                onUpdateField("title", value);
+                if (!isEditing) onUpdateField("slug", slugify(value));
+              }}
+              required
+            />
+          </div>
+          <div className="order-3 md:order-2">
+            <SelectField
+              label="Kategori"
+              value={form.category}
+              options={categoryOptions}
+              onChange={(value) => onUpdateField("category", value)}
+            />
+          </div>
+          <div className="order-2 md:order-3">
+            <SelectField
+              label="Level"
+              value={form.level}
+              options={levelOptions}
+              onChange={(value) => onUpdateField("level", value)}
+            />
+          </div>
+          <div className="order-4 grid gap-1.5">
+            <Field
+              label="Slug"
+              value={form.slug}
+              onChange={(value) =>
+                onUpdateField("slug", normalizeDesignSlug(value))
+              }
+              placeholder="contoh-design"
+            />
+            <p
+              className={`text-xs font-medium ${
+                isSlugUsed
+                  ? "text-red-600"
+                  : effectiveSlug
+                    ? "text-emerald-600"
+                    : "text-naki-smoke"
+              }`}
+              aria-live="polite"
+            >
+              {isSlugUsed
+                ? "Slug sudah digunakan oleh design lain."
+                : effectiveSlug
+                  ? `Slug tersedia: /design/${effectiveSlug}`
+                  : "Slug otomatis mengikuti judul dan tetap bisa diedit."}
+            </p>
+          </div>
         </div>
-        {showAdvanced ? (
-          <Field
-            label="Slug"
-            value={form.slug}
-            onChange={(value) => onUpdateField("slug", slugify(value))}
-          />
-        ) : null}
         <TextArea
           label="Deskripsi"
           value={form.description}
@@ -294,32 +344,19 @@ export function TemplateFormModal({
     sales: (
       <div className="space-y-5">
         <Heading
-          title="Publikasi dan penjualan"
-          text="Simpan sebagai draft atau publikasikan setelah semua informasi siap."
+          title="Penjualan source code"
+          text="Atur ketersediaan, harga, checkout, lisensi, support, dan paket source code."
         />
-        <div className="grid gap-4 md:grid-cols-2">
-          <SelectField
-            label="Status"
-            value={form.publicationStatus}
-            options={[
-              { label: "Draft", value: "draft" },
-              { label: "Published", value: "published" },
-            ]}
-            onChange={(value) =>
-              onUpdateField("publicationStatus", value as "draft" | "published")
+        <label className="flex min-h-11 items-center gap-3 rounded-xl border border-naki-steel bg-naki-frost px-4 text-sm font-medium text-naki-primary md:w-fit">
+          <input
+            checked={form.sourceAvailable}
+            onChange={(e) =>
+              onUpdateField("sourceAvailable", e.target.checked)
             }
+            type="checkbox"
           />
-          <label className="flex min-h-11 items-center gap-3 rounded-xl border border-naki-steel bg-naki-frost px-4 text-sm font-medium text-naki-primary">
-            <input
-              checked={form.sourceAvailable}
-              onChange={(e) =>
-                onUpdateField("sourceAvailable", e.target.checked)
-              }
-              type="checkbox"
-            />
-            Source code dijual
-          </label>
-        </div>
+          Source code dijual
+        </label>
         {form.sourceAvailable ? (
           <>
             <div className="grid gap-4 md:grid-cols-2">
@@ -364,12 +401,14 @@ export function TemplateFormModal({
   };
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 p-0 backdrop-blur sm:px-4 sm:py-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="design-form-title"
-    >
+    <>
+      <div
+        className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto bg-naki-primary/40 p-0 backdrop-blur sm:px-4 sm:py-6"
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={showUnsavedDialog || undefined}
+        aria-labelledby="design-form-title"
+      >
       <div className="min-h-dvh w-full bg-white shadow-sm sm:my-6 sm:min-h-0 sm:max-w-5xl sm:rounded-2xl">
         <header className="sticky top-0 z-20 border-b border-naki-steel bg-white/95 p-4 backdrop-blur sm:rounded-t-2xl sm:p-5">
           <div className="flex items-start justify-between gap-4">
@@ -428,7 +467,13 @@ export function TemplateFormModal({
             })}
           </div>
         </header>
-        <form className="p-4 sm:p-6" onSubmit={validate}>
+        <form
+          className="p-4 sm:p-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            validate(form.publicationStatus);
+          }}
+        >
           {validationMessage ? (
             <div
               className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
@@ -449,8 +494,16 @@ export function TemplateFormModal({
               {mediaUploadState.message}
             </p>
           ) : null}
+          {saveStatus ? (
+            <p
+              className="mb-4 rounded-xl border border-naki-steel bg-naki-frost px-4 py-3 text-sm font-medium text-naki-primary"
+              aria-live="polite"
+            >
+              {saveStatus}
+            </p>
+          ) : null}
           {content[activeStep]}
-          <footer className="mt-7 flex flex-col-reverse gap-3 border-t border-naki-steel pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <footer className="sticky bottom-0 z-20 -mx-4 -mb-4 mt-7 flex flex-col-reverse gap-3 border-t border-naki-steel bg-white/95 px-4 pb-4 pt-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pb-6">
             <button
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary disabled:opacity-40"
               disabled={activeIndex === 0}
@@ -471,24 +524,188 @@ export function TemplateFormModal({
                   <ChevronRight size={17} />
                 </button>
               ) : null}
-              <button
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
-                disabled={isSaving || mediaUploadState.isUploading}
-                type="submit"
-              >
-                <Save size={17} />
-                {isSaving
-                  ? "Menyimpan..."
-                  : form.publicationStatus === "draft"
-                    ? "Simpan draft"
-                    : "Publikasikan"}
-              </button>
+              <div className="relative flex min-w-0 overflow-visible rounded-xl shadow-sm">
+                <button
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-l-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  disabled={isSaving || mediaUploadState.isUploading}
+                  onClick={() => validate(primaryPublicationStatus)}
+                  type="button"
+                >
+                  <Save size={17} />
+                  {primarySaveLabel}
+                </button>
+                <button
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-r-xl border-l border-white/20 bg-naki-primary text-white transition hover:opacity-90 disabled:opacity-50"
+                  disabled={isSaving || mediaUploadState.isUploading}
+                  aria-expanded={isSaveMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Pilih cara menyimpan"
+                  onClick={() => setIsSaveMenuOpen((current) => !current)}
+                  type="button"
+                >
+                  <ChevronUp
+                    className={`transition ${isSaveMenuOpen ? "rotate-0" : "rotate-180"}`}
+                    size={16}
+                  />
+                </button>
+                {isSaveMenuOpen ? (
+                  <div
+                    className="absolute bottom-full right-0 z-30 mb-2 w-72 overflow-hidden rounded-xl border border-naki-steel bg-white p-1.5 shadow-xl"
+                    role="menu"
+                    aria-label="Pilihan simpan design"
+                  >
+                    <PublicationAction
+                      current={form.publicationStatus === "draft"}
+                      description="Simpan tanpa menampilkan design di katalog."
+                      icon={<FileText size={17} />}
+                      label="Simpan sebagai draft"
+                      onSelect={() => validate("draft")}
+                      status="draft"
+                    />
+                    <PublicationAction
+                      current={form.publicationStatus === "published"}
+                      description="Tampilkan design di katalog setelah validasi."
+                      icon={<Rocket size={17} />}
+                      label="Publikasikan"
+                      onSelect={() => validate("published")}
+                      status="published"
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </footer>
         </form>
       </div>
-    </div>,
+      </div>
+      {showUnsavedDialog ? (
+        <UnsavedChangesDialog
+          publicationStatus={form.publicationStatus}
+          onCancel={() => setShowUnsavedDialog(false)}
+          onDiscard={() => {
+            setShowUnsavedDialog(false);
+            onClose();
+          }}
+        />
+      ) : null}
+    </>,
     document.body,
+  );
+}
+
+function PublicationAction({
+  current,
+  description,
+  icon,
+  label,
+  onSelect,
+  status,
+}: {
+  current: boolean;
+  description: string;
+  icon: React.ReactNode;
+  label: string;
+  onSelect: () => void;
+  status: "draft" | "published";
+}) {
+  return (
+    <button
+      className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-naki-frost"
+      data-publication-status={status}
+      onClick={onSelect}
+      role="menuitem"
+      type="button"
+    >
+      <span
+        className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg ${
+          status === "published"
+            ? "bg-naki-primary text-white"
+            : "bg-naki-frost text-naki-smoke"
+        }`}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center justify-between gap-2 text-sm font-semibold text-naki-primary">
+          {label}
+          {current ? (
+            <span className="rounded-full bg-naki-frost px-2 py-0.5 text-[10px] font-semibold uppercase text-naki-smoke">
+              Saat ini
+            </span>
+          ) : null}
+        </span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-naki-smoke">
+          {description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function UnsavedChangesDialog({
+  publicationStatus,
+  onCancel,
+  onDiscard,
+}: {
+  publicationStatus: "draft" | "published";
+  onCancel: () => void;
+  onDiscard: () => void;
+}) {
+  const isDraft = publicationStatus === "draft";
+
+  return (
+    <div
+      className="fixed inset-0 z-[10000] grid place-items-center bg-naki-primary/60 px-4 py-6 backdrop-blur-sm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="unsaved-design-title"
+      aria-describedby="unsaved-design-description"
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-xl">
+        <div className="flex items-start gap-3 border-b border-naki-steel bg-naki-frost p-5">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+            <AlertTriangle size={21} />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-naki-smoke">
+              Perubahan belum disimpan
+            </p>
+            <h2
+              id="unsaved-design-title"
+              className="mt-1 text-xl font-bold text-naki-primary"
+            >
+              {isDraft
+                ? "Draft ini belum disimpan"
+                : "Perubahan belum dipublikasikan"}
+            </h2>
+          </div>
+        </div>
+        <p
+          id="unsaved-design-description"
+          className="p-5 text-sm leading-relaxed text-naki-smoke"
+        >
+          Jika form ditutup sekarang, perubahan terakhir pada design akan
+          hilang. Kembali ke form untuk menyimpan terlebih dahulu.
+        </p>
+        <div className="flex flex-col-reverse gap-2 border-t border-naki-steel bg-naki-frost p-4 sm:flex-row sm:justify-end">
+          <button
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-naki-steel bg-white px-4 text-sm font-semibold text-naki-primary transition hover:bg-naki-page-bg"
+            onClick={onDiscard}
+            type="button"
+          >
+            Buang perubahan
+          </button>
+          <button
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90"
+            autoFocus
+            onClick={onCancel}
+            type="button"
+          >
+            Kembali mengedit
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

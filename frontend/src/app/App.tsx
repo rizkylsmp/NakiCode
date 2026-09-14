@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
+import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
@@ -521,8 +522,16 @@ function App() {
 function RouteLoading() {
   return (
     <div className="naki-frosted-grid grid min-h-screen place-items-center text-naki-primary">
-      <div className="rounded-xl border border-naki-steel bg-white px-5 py-4 text-sm font-semibold shadow-sm">
-        Memuat halaman...
+      <div
+        className="relative z-10 flex items-center gap-3 rounded-xl border border-naki-steel bg-naki-frost px-5 py-4 text-sm font-semibold text-naki-primary shadow-naki-card"
+        aria-live="polite"
+        role="status"
+      >
+        <Loader2
+          aria-hidden="true"
+          className="size-5 animate-spin text-naki-secondary"
+        />
+        <span>Memuat halaman...</span>
       </div>
     </div>
   );

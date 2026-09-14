@@ -82,19 +82,20 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
   );
 
   // Consultation form
-  const [consultationForm, setConsultationForm] = useState<ConsultationFormState>(
-    defaultConsultationForm,
-  );
-  const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false);
+  const [consultationForm, setConsultationForm] =
+    useState<ConsultationFormState>(defaultConsultationForm);
+  const [isSubmittingConsultation, setIsSubmittingConsultation] =
+    useState(false);
   const [consultationStatus, setConsultationStatus] = useState(
     "Isi form untuk membuat website dari design ini atau membeli source code.",
   );
 
   // User auth panel
-  const [userAuthMode, setUserAuthMode] = useState<"login" | "register">("login");
-  const [userAuthForm, setUserAuthForm] = useState<UserAuthFormState>(
-    defaultUserAuthForm,
+  const [userAuthMode, setUserAuthMode] = useState<"login" | "register">(
+    "login",
   );
+  const [userAuthForm, setUserAuthForm] =
+    useState<UserAuthFormState>(defaultUserAuthForm);
   const [isSubmittingUserAuth, setIsSubmittingUserAuth] = useState(false);
   const [userAuthStatus, setUserAuthStatus] = useState("");
   const [verificationUrl, setVerificationUrl] = useState("");
@@ -162,14 +163,20 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
 
   // Form updaters
   const updateConsultationField = useCallback(
-    <Key extends keyof ConsultationFormState>(key: Key, value: ConsultationFormState[Key]) => {
+    <Key extends keyof ConsultationFormState>(
+      key: Key,
+      value: ConsultationFormState[Key],
+    ) => {
       setConsultationForm((prev) => ({ ...prev, [key]: value }));
     },
     [],
   );
 
   const updateUserAuthField = useCallback(
-    <Key extends keyof UserAuthFormState>(key: Key, value: UserAuthFormState[Key]) => {
+    <Key extends keyof UserAuthFormState>(
+      key: Key,
+      value: UserAuthFormState[Key],
+    ) => {
       setUserAuthForm((prev) => ({ ...prev, [key]: value }));
     },
     [],
@@ -184,18 +191,21 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
 
       setIsSubmittingUserAuth(true);
 
-      if (userAuthMode === "register" && userAuthForm.password !== userAuthForm.confirmPassword) {
+      if (
+        userAuthMode === "register" &&
+        userAuthForm.password !== userAuthForm.confirmPassword
+      ) {
         setUserAuthStatus("Password dan konfirmasi tidak sama.");
         setIsSubmittingUserAuth(false);
         return;
       }
 
-      if (
-        userAuthMode === "register"
-      ) {
+      if (userAuthMode === "register") {
         const captchaResult = validateCaptcha(captcha);
         if (!captchaResult.valid) {
-          setUserAuthStatus(captchaResult.error ?? "Verifikasi keamanan belum lengkap.");
+          setUserAuthStatus(
+            captchaResult.error ?? "Verifikasi keamanan belum lengkap.",
+          );
           setIsSubmittingUserAuth(false);
           return;
         }
@@ -235,7 +245,8 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
         if (userAuthMode === "register" && response.verificationUrl) {
           setVerificationUrl(response.verificationUrl);
           setUserAuthStatus(
-            response.message ?? "Akun berhasil dibuat. Silakan cek email untuk verifikasi.",
+            response.message ??
+              "Akun berhasil dibuat. Silakan cek email untuk verifikasi.",
           );
           setUserAuthForm(defaultUserAuthForm);
           return;
@@ -261,13 +272,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
         setIsSubmittingUserAuth(false);
       }
     },
-    [
-      isSubmittingUserAuth,
-      userAuthMode,
-      userAuthForm,
-      captcha,
-      navigate,
-    ],
+    [isSubmittingUserAuth, userAuthMode, userAuthForm, captcha, navigate],
   );
 
   // Submit consultation / order
@@ -285,6 +290,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
 
       try {
         const response = await apiPost<OrderMutationResponse>("/api/orders", {
+          orderType: "custom_project",
           templateId: template.id,
           templateSlug: template.slug,
           templateTitle: template.title,
@@ -301,7 +307,7 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
         setConsultationForm(defaultConsultationForm);
 
         if (response.order?.id) {
-          navigate(`/checkout/${response.order.id}`);
+          navigate("/pesanan-saya");
         }
       } catch {
         setConsultationStatus("Gagal mengirim konsultasi.");
@@ -313,47 +319,45 @@ export function useTemplateDetailPage(template: TemplateItem | null) {
   );
 
   // Direct checkout
-  const startDirectCheckout = useCallback(
-    async () => {
-      if (!userToken || !template) {
-        setCheckoutStatus("Silakan login terlebih dahulu.");
-        return;
-      }
+  const startDirectCheckout = useCallback(async () => {
+    if (!userToken || !template) {
+      setCheckoutStatus("Silakan login terlebih dahulu.");
+      return;
+    }
 
-      setIsStartingCheckout(true);
-      setCheckoutStatus("Membuat order...");
+    setIsStartingCheckout(true);
+    setCheckoutStatus("Membuat order...");
 
-      try {
-        const response = await apiPost<OrderMutationResponse>("/api/orders", {
-          templateId: template.id,
-          templateSlug: template.slug,
-          templateTitle: template.title,
-          customerName: userUsername ?? "",
-          customerContact: "",
-          projectType: "Beli source code design",
-          budgetRange: template.price,
-          message: "",
-        });
+    try {
+      const response = await apiPost<OrderMutationResponse>("/api/orders", {
+        orderType: "source_purchase",
+        templateId: template.id,
+        templateSlug: template.slug,
+        templateTitle: template.title,
+        customerName: userUsername ?? "",
+        customerContact: "",
+        projectType: "Beli source code design",
+        budgetRange: template.price,
+        message: `Pembelian source code untuk design ${template.title}.`,
+      });
 
-        trackEvent("order_created", {
-          templateId: template.id,
-          templateSlug: template.slug,
-          checkout_flow: "direct",
-        });
+      trackEvent("order_created", {
+        templateId: template.id,
+        templateSlug: template.slug,
+        checkout_flow: "direct",
+      });
 
-        if (response.order?.id) {
-          navigate(`/checkout/${response.order.id}`);
-        } else {
-          setCheckoutStatus("Gagal memulai checkout.");
-        }
-      } catch {
+      if (response.order?.id) {
+        navigate(`/checkout/${response.order.id}`);
+      } else {
         setCheckoutStatus("Gagal memulai checkout.");
-      } finally {
-        setIsStartingCheckout(false);
       }
-    },
-    [userToken, template, userUsername, navigate],
-  );
+    } catch {
+      setCheckoutStatus("Gagal memulai checkout.");
+    } finally {
+      setIsStartingCheckout(false);
+    }
+  }, [userToken, template, userUsername, navigate]);
 
   // Derived values
   const relatedTemplates = template

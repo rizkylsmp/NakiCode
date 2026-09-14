@@ -45,6 +45,7 @@ import {
   normalizeCoverIndex,
   slugify,
   templateToForm,
+  updateTemplateFormField,
   type AdminOrderFilters,
   type AdminCategory,
   type AuthResponse,
@@ -434,14 +435,7 @@ export function AdminTemplatesPage({
     key: Key,
     value: TemplateFormState[Key],
   ) {
-    setForm((current) => ({
-      ...current,
-      [key]: value,
-      slug:
-        key === "title" && current.id === undefined
-          ? slugify(String(value))
-          : current.slug,
-    }));
+    setForm((current) => updateTemplateFormField(current, key, value));
   }
 
   function updatePortfolioField<Key extends keyof PortfolioFormState>(
@@ -693,8 +687,9 @@ export function AdminTemplatesPage({
     }
   }
 
-  async function submitTemplate(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitTemplate(
+    publicationStatus: "draft" | "published",
+  ) {
     if (!adminToken) {
       setStatus("Login admin diperlukan untuk menyimpan design.");
       return;
@@ -703,7 +698,7 @@ export function AdminTemplatesPage({
     setIsSaving(true);
     setLoadingMessage("Menyimpan design...");
 
-    const payload = formToPayload(form);
+    const payload = formToPayload({ ...form, publicationStatus });
     const editingId = form.id ?? selectedId;
     const isEditing = editingId !== null && editingId !== undefined;
 

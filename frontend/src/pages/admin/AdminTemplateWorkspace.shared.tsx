@@ -69,6 +69,30 @@ export const defaultFormState: TemplateFormState = {
   sourceAvailable: true,
 };
 
+export function updateTemplateFormField<
+  Key extends keyof TemplateFormState,
+>(
+  current: TemplateFormState,
+  key: Key,
+  value: TemplateFormState[Key],
+): TemplateFormState {
+  const next = { ...current, [key]: value };
+
+  if (key === "title" && current.id === undefined) {
+    next.slug = slugify(String(value));
+  }
+
+  return next;
+}
+
+export function normalizeDesignSlug(value: string) {
+  const normalized = value
+    .trim()
+    .replace(/^https?:\/\/[^/]+\/design\//i, "")
+    .replace(/^\/?design\//i, "");
+  return slugify(normalized);
+}
+
 export type TemplatesResponse = {
   templates: TemplateItem[];
 };

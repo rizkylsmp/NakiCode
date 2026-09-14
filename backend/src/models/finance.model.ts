@@ -162,7 +162,29 @@ export async function voidExpense(id: number) {
   return result.affectedRows > 0;
 }
 
-export async function recordPaidOrderTransaction(orderId: number) {
+export async function recordPaidOrderTransaction(
+  orderId: number,
+  paymentReference?: string | null,
+) {
+  if (paymentReference) {
+    await pool.query(
+      `INSERT INTO financial_transactions
+        (order_id, transaction_type, amount, gateway_fee, net_amount, payment_method, reference, occurred_at, notes)
+       SELECT payments.order_id, 'income', payments.amount,
+         payments.gateway_fee_amount, payments.net_amount, payments.method,
+         CONCAT('PAYMENT-', payments.reference), COALESCE(payments.paid_at, CURRENT_TIMESTAMP),
+         CONCAT(CASE payments.stage
+           WHEN 'deposit' THEN 'DP '
+           WHEN 'balance' THEN 'Pelunasan '
+           ELSE 'Pembayaran ' END, orders.design_title)
+       FROM order_payment_sessions AS payments
+       INNER JOIN orders ON orders.id = payments.order_id
+       WHERE payments.order_id = ? AND payments.reference = ? AND payments.status = 'paid'
+       ON DUPLICATE KEY UPDATE reference = reference`,
+      [orderId, paymentReference],
+    );
+    return;
+  }
   await pool.query(
     `INSERT INTO financial_transactions
       (order_id, transaction_type, amount, gateway_fee, net_amount, payment_method, reference, occurred_at, notes)
@@ -185,6 +207,24 @@ export async function recordPaidOrderTransaction(orderId: number) {
  * run repeatedly and prevents duplicate income rows.
  */
 export async function syncPaidOrderTransactions() {
+  await pool.query(`
+    INSERT INTO financial_transactions
+      (order_id, transaction_type, amount, gateway_fee, net_amount, payment_method, reference, occurred_at, notes)
+    SELECT payments.order_id, 'income', payments.amount,
+      payments.gateway_fee_amount, payments.net_amount, payments.method,
+      CONCAT('PAYMENT-', payments.reference), COALESCE(payments.paid_at, CURRENT_TIMESTAMP),
+      CONCAT(CASE payments.stage
+        WHEN 'deposit' THEN 'DP '
+        WHEN 'balance' THEN 'Pelunasan '
+        ELSE 'Pembayaran ' END, orders.design_title)
+    FROM order_payment_sessions AS payments
+    INNER JOIN orders ON orders.id = payments.order_id
+    LEFT JOIN financial_transactions AS transactions
+      ON transactions.reference = CONCAT('PAYMENT-', payments.reference)
+    WHERE payments.status = 'paid' AND orders.deleted_at IS NULL
+      AND transactions.id IS NULL
+    ON DUPLICATE KEY UPDATE reference = reference
+  `);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO financial_transactions
       (order_id, transaction_type, amount, gateway_fee, net_amount, payment_method, reference, occurred_at, notes)
@@ -196,10 +236,13 @@ export async function syncPaidOrderTransactions() {
      FROM orders
      LEFT JOIN financial_transactions AS transactions
        ON transactions.reference = CONCAT('ORDER-', orders.id, '-PAYMENT')
+     LEFT JOIN order_payment_sessions AS payment_sessions
+       ON payment_sessions.order_id = orders.id
      WHERE orders.payment_status IN ('paid', 'partial_refunded', 'refunded')
        AND orders.payment_amount IS NOT NULL
        AND orders.deleted_at IS NULL
        AND transactions.id IS NULL
+       AND payment_sessions.id IS NULL
      ON DUPLICATE KEY UPDATE reference = reference`,
   );
 
@@ -208,10 +251,13 @@ export async function syncPaidOrderTransactions() {
 
 export async function ensureOrderInvoice(orderId: number) {
   const [orders] = await pool.query<RowDataPacket[]>(
-    `SELECT id, design_title, customer_name, customer_contact, project_type,
+    `SELECT id, design_title, customer_name, customer_contact, project_type, order_type,
       COALESCE(subtotal_amount, quote_amount, payment_amount, 0) AS subtotal_amount,
-      discount_amount, gateway_fee_amount, COALESCE(payment_amount, quote_amount, 0) AS total_amount,
-      currency, payment_status, paid_at, created_at
+      discount_amount, gateway_fee_amount,
+      CASE WHEN order_type = 'custom_project'
+        THEN COALESCE(quote_amount, subtotal_amount, payment_amount, 0)
+        ELSE COALESCE(payment_amount, subtotal_amount, 0) END AS total_amount,
+      amount_paid, currency, payment_status, paid_at, created_at
      FROM orders WHERE id = ? LIMIT 1`,
     [orderId],
   );
@@ -229,7 +275,13 @@ export async function ensureOrderInvoice(orderId: number) {
     `INSERT INTO invoices
       (order_id, invoice_number, subtotal_amount, discount_amount, gateway_fee_amount, total_amount, currency, status, snapshot, issued_at, paid_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-     ON DUPLICATE KEY UPDATE invoice_number = invoice_number`,
+     ON DUPLICATE KEY UPDATE
+       subtotal_amount = VALUES(subtotal_amount),
+       discount_amount = VALUES(discount_amount),
+       gateway_fee_amount = VALUES(gateway_fee_amount),
+       total_amount = VALUES(total_amount),
+       status = VALUES(status),
+       paid_at = VALUES(paid_at)`,
     [
       orderId,
       invoiceNumber,
@@ -238,7 +290,7 @@ export async function ensureOrderInvoice(orderId: number) {
       Number(order.gateway_fee_amount ?? 0),
       Number(order.total_amount),
       order.currency ?? "IDR",
-      order.payment_status === "paid" ? "paid" : "issued",
+      order.payment_status === "paid" ? "paid" : "partial_paid",
       snapshot,
       order.paid_at ?? null,
     ],
@@ -260,8 +312,8 @@ export async function recordOrderRefund(
   try {
     await connection.beginTransaction();
     const [orders] = await connection.query<RowDataPacket[]>(
-      `SELECT id, payment_amount, payment_method FROM orders
-       WHERE id = ? AND payment_status IN ('paid', 'partial_refunded') AND deleted_at IS NULL
+      `SELECT id, COALESCE(amount_paid, payment_amount, 0) AS paid_amount, payment_method FROM orders
+       WHERE id = ? AND payment_status IN ('partial_paid', 'paid', 'partial_refunded') AND deleted_at IS NULL
        LIMIT 1 FOR UPDATE`,
       [orderId],
     );
@@ -275,7 +327,7 @@ export async function recordOrderRefund(
        WHERE order_id = ? AND transaction_type = 'refund' AND status = 'posted'`,
       [orderId],
     );
-    const paidAmount = Number(order.payment_amount ?? 0);
+    const paidAmount = Number(order.paid_amount ?? 0);
     const previousRefund = Number(refundRows[0]?.refunded ?? 0);
     if (amount > paidAmount - previousRefund) {
       await connection.rollback();

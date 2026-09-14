@@ -12,6 +12,7 @@ type OrderRow = RowDataPacket & {
   project_type: string;
   budget_range: string;
   message: string;
+  order_type?: string;
   status: string;
   payment_status?: string;
   payment_method?: string | null;
@@ -26,6 +27,11 @@ type OrderRow = RowDataPacket & {
   quote_amount?: number | null;
   quote_notes?: string | null;
   quote_sent_at?: string | null;
+  quote_status?: string | null;
+  quote_responded_at?: string | null;
+  deposit_percent?: number;
+  amount_paid?: number;
+  payment_stage?: string;
   invoice_number?: string | null;
   invoice_issued_at?: string | null;
   payment_failure_code?: string | null;
@@ -57,6 +63,7 @@ export type OrderItem = {
   projectType: string;
   budgetRange: string;
   message: string;
+  orderType: "source_purchase" | "custom_project";
   status: string;
   paymentStatus: string;
   paymentMethod: string | null;
@@ -71,6 +78,12 @@ export type OrderItem = {
   quoteAmount: number | null;
   quoteNotes: string | null;
   quoteSentAt: string | null;
+  quoteStatus: "pending" | "accepted" | "rejected" | null;
+  quoteRespondedAt: string | null;
+  depositPercent: number;
+  amountPaid: number;
+  paymentStage: "full" | "deposit" | "balance" | "complete" | "legacy_full";
+  remainingAmount: number;
   invoiceNumber: string | null;
   invoiceIssuedAt: string | null;
   paymentFailureCode: string | null;
@@ -90,6 +103,36 @@ export type OrderItem = {
   demoUrl: string | null;
   createdAt: string;
 };
+
+export class OrderPaymentBusyError extends Error {
+  constructor() {
+    super("Order sedang menyiapkan pembayaran lain. Coba beberapa saat lagi.");
+    this.name = "OrderPaymentBusyError";
+  }
+}
+
+export async function withOrderPaymentLock<T>(
+  orderId: number,
+  operation: () => Promise<T>,
+) {
+  const connection = await pool.getConnection();
+  const lockName = `naki-order-payment-${orderId}`;
+  try {
+    const [rows] = await connection.query<
+      Array<RowDataPacket & { acquired: number | null }>
+    >("SELECT GET_LOCK(?, 5) AS acquired", [lockName]);
+    if (Number(rows[0]?.acquired) !== 1) {
+      throw new OrderPaymentBusyError();
+    }
+    return await operation();
+  } finally {
+    try {
+      await connection.query("SELECT RELEASE_LOCK(?)", [lockName]);
+    } finally {
+      connection.release();
+    }
+  }
+}
 
 export type OrderPayload = Omit<OrderItem, "id" | "createdAt">;
 
@@ -151,6 +194,7 @@ const orderSelect = `SELECT
   orders.project_type,
   orders.budget_range,
   orders.message,
+  orders.order_type,
   orders.status,
   orders.payment_status,
   orders.payment_method,
@@ -165,6 +209,11 @@ const orderSelect = `SELECT
   orders.quote_amount,
   orders.quote_notes,
   orders.quote_sent_at,
+  orders.quote_status,
+  orders.quote_responded_at,
+  orders.deposit_percent,
+  orders.amount_paid,
+  orders.payment_stage,
   orders.invoice_number,
   orders.invoice_issued_at,
   orders.payment_failure_code,
@@ -244,7 +293,7 @@ export async function findOrdersPageByUser(
 
   if (paymentFilter === "unpaid") {
     filters.push(
-      "(orders.payment_status IS NULL OR orders.payment_status IN ('pending', 'failed'))",
+      "(orders.payment_status IS NULL OR orders.payment_status IN ('pending', 'failed', 'expired', 'cancelled', 'partial_paid'))",
     );
   }
 
@@ -268,6 +317,7 @@ export async function createOrder(payload: OrderPayload) {
       project_type,
       budget_range,
       message,
+      order_type,
       status,
       payment_status,
       payment_method,
@@ -278,8 +328,11 @@ export async function createOrder(payload: OrderPayload) {
       payment_failure_reason,
       payment_last_webhook_status,
       payment_last_webhook_at,
-      paid_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      paid_at,
+      deposit_percent,
+      amount_paid,
+      payment_stage
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.userId,
       payload.templateId,
@@ -290,6 +343,7 @@ export async function createOrder(payload: OrderPayload) {
       payload.projectType,
       payload.budgetRange,
       payload.message,
+      payload.orderType,
       payload.status,
       payload.paymentStatus,
       payload.paymentMethod,
@@ -301,6 +355,9 @@ export async function createOrder(payload: OrderPayload) {
       payload.paymentLastWebhookStatus,
       payload.paymentLastWebhookAt,
       payload.paidAt,
+      payload.depositPercent,
+      payload.amountPaid,
+      payload.paymentStage,
     ],
   );
 
@@ -327,29 +384,53 @@ export async function updateOrderStatus(id: number, status: string) {
   return result.affectedRows > 0;
 }
 
-export async function updateOrdersStatus(ids: number[], status: string) {
-  if (ids.length === 0) return 0;
-  const placeholders = ids.map(() => "?").join(", ");
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE orders SET status = ? WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
-    [status, ...ids],
-  );
-  return result.affectedRows;
-}
-
 export async function setOrderQuote(
   id: number,
   amount: number,
   notes: string | null,
+  depositPercent: number,
 ) {
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE orders SET quote_amount = ?, quote_notes = ?, quote_sent_at = CURRENT_TIMESTAMP,
+      quote_status = 'pending', quote_responded_at = NULL,
+      deposit_percent = ?, amount_paid = 0, payment_stage = 'deposit',
       subtotal_amount = ?, discount_amount = 0, payment_amount = ?, net_amount = ?,
+      payment_status = 'pending', payment_method = NULL, payment_reference = NULL,
+      payment_url = NULL,
       status = CASE WHEN status IN ('new', 'contacted') THEN 'quotation' ELSE status END
-     WHERE id = ? AND payment_status NOT IN ('paid', 'partial_refunded', 'refunded') AND deleted_at IS NULL`,
-    [amount, notes, amount, amount, amount, id],
+     WHERE id = ?
+       AND payment_status IN ('pending', 'failed', 'expired', 'cancelled')
+       AND order_type = 'custom_project'
+       AND status NOT IN ('completed', 'closed', 'cancelled')
+       AND deleted_at IS NULL`,
+    [amount, notes, depositPercent, amount, amount, amount, id],
   );
   return result.affectedRows > 0;
+}
+
+export async function respondToOrderQuote(
+  id: number,
+  userId: number,
+  decision: "accepted" | "rejected",
+) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE orders
+     SET quote_status = ?, quote_responded_at = CURRENT_TIMESTAMP,
+       status = CASE WHEN ? = 'accepted' THEN 'awaiting_dp' ELSE 'contacted' END
+     WHERE id = ? AND user_id = ?
+       AND quote_amount IS NOT NULL
+       AND order_type = 'custom_project'
+       AND (quote_status = 'pending' OR quote_status IS NULL)
+       AND payment_status IN ('pending', 'failed', 'expired', 'cancelled')
+       AND deleted_at IS NULL`,
+    [decision, decision, id, userId],
+  );
+
+  if (result.affectedRows === 0) {
+    return null;
+  }
+
+  return findOrderByIdForUser(id, userId);
 }
 
 export async function findOrderById(id: number) {
@@ -364,14 +445,17 @@ export async function findOrderById(id: number) {
 }
 
 export async function findOrderByPaymentReference(paymentReference: string) {
-  const [rows] = await pool.query<OrderRow[]>(
-    `${orderSelect}
-    WHERE orders.payment_reference = ? AND orders.deleted_at IS NULL
-    LIMIT 1`,
+  const [payments] = await pool.query<
+    Array<RowDataPacket & { order_id: number; amount: number }>
+  >(
+    `SELECT order_id, amount FROM order_payment_sessions
+     WHERE reference = ? LIMIT 1`,
     [paymentReference],
   );
-
-  return rows[0] ? normalizeOrderRow(rows[0]) : null;
+  const payment = payments[0];
+  if (!payment) return null;
+  const order = await findOrderById(payment.order_id);
+  return order ? { ...order, paymentAmount: Number(payment.amount) } : null;
 }
 
 export async function deleteOrder(id: number) {
@@ -389,6 +473,8 @@ export async function startOrderPayment(
   id: number,
   userId: number,
   payment: {
+    provider: "midtrans" | "lynk" | "dev";
+    stage: "full" | "deposit" | "balance";
     method: string;
     reference: string;
     url: string;
@@ -398,8 +484,11 @@ export async function startOrderPayment(
     gatewayFeeAmount?: number;
   },
 ) {
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE orders
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [result] = await connection.query<ResultSetHeader>(
+      `UPDATE orders
     SET payment_status = ?,
       payment_method = ?,
       payment_reference = ?,
@@ -412,69 +501,174 @@ export async function startOrderPayment(
       payment_failure_code = NULL,
       payment_failure_reason = NULL,
       payment_last_webhook_status = NULL,
-      payment_last_webhook_at = NULL
-    WHERE id = ? AND user_id = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
-    [
-      "waiting_payment",
-      payment.method,
-      payment.reference,
-      payment.url,
-      payment.amount,
-      payment.subtotalAmount,
-      payment.discountAmount,
-      payment.gatewayFeeAmount ?? 0,
-      payment.amount - (payment.gatewayFeeAmount ?? 0),
-      id,
-      userId,
-      "paid",
-      "partial_refunded",
-      "refunded",
-    ],
-  );
+      payment_last_webhook_at = NULL,
+      payment_stage = ?
+    WHERE id = ? AND user_id = ?
+      AND (
+        payment_status IN ('pending', 'failed', 'expired', 'cancelled')
+        OR (order_type = 'custom_project' AND payment_status = 'partial_paid')
+      )
+      AND status NOT IN ('completed', 'closed', 'cancelled')
+      AND (
+        order_type = 'source_purchase'
+        OR (quote_amount IS NOT NULL AND quote_status = 'accepted')
+      )
+      AND deleted_at IS NULL`,
+      [
+        "waiting_payment",
+        payment.method,
+        payment.reference,
+        payment.url,
+        payment.amount,
+        payment.subtotalAmount,
+        payment.discountAmount,
+        payment.gatewayFeeAmount ?? 0,
+        payment.amount - (payment.gatewayFeeAmount ?? 0),
+        payment.stage,
+        id,
+        userId,
+      ],
+    );
 
-  if (result.affectedRows === 0) {
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return findOrderByIdForUser(id, userId);
+    }
+
+    await connection.query(
+      `INSERT INTO order_payment_sessions (
+        order_id, stage, provider, status, method, reference, payment_url,
+        subtotal_amount, discount_amount, gateway_fee_amount, amount, net_amount
+      ) VALUES (?, ?, ?, 'waiting_payment', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        payment.stage,
+        payment.provider,
+        payment.method,
+        payment.reference,
+        payment.url,
+        payment.subtotalAmount,
+        payment.discountAmount,
+        payment.gatewayFeeAmount ?? 0,
+        payment.amount,
+        payment.amount - (payment.gatewayFeeAmount ?? 0),
+      ],
+    );
+    await connection.commit();
     return findOrderByIdForUser(id, userId);
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
+}
 
-  return findOrderByIdForUser(id, userId);
+export async function confirmOrderPaymentAsAdmin(id: number) {
+  const order = await findOrderById(id);
+  if (
+    !order ||
+    order.paymentStatus !== "waiting_payment" ||
+    order.paymentMethod?.toLowerCase() !== "lynk" ||
+    !order.paymentReference
+  ) {
+    return null;
+  }
+  await markOrderPaidByPaymentReference(order.paymentReference);
+  return findOrderById(id);
 }
 
 export async function confirmOrderPayment(id: number, userId: number) {
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE orders
-    SET payment_status = ?,
-      paid_at = CURRENT_TIMESTAMP,
-      settlement_at = CURRENT_TIMESTAMP,
-      status = CASE WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress' ELSE status END
-    WHERE id = ? AND user_id = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
-    ["paid", id, userId, "paid", "partial_refunded", "refunded"],
-  );
-
-  if (result.affectedRows === 0) {
-    return findOrderByIdForUser(id, userId);
-  }
-
+  const order = await findOrderByIdForUser(id, userId);
+  if (!order?.paymentReference) return order;
+  await markOrderPaidByPaymentReference(order.paymentReference);
   return findOrderByIdForUser(id, userId);
 }
 
 export async function markOrderPaidByPaymentReference(
   paymentReference: string,
 ) {
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE orders
-    SET payment_status = ?,
-      payment_failure_code = NULL,
-      payment_failure_reason = NULL,
-      payment_last_webhook_status = ?,
-      payment_last_webhook_at = CURRENT_TIMESTAMP,
-      paid_at = CURRENT_TIMESTAMP,
-      settlement_at = CURRENT_TIMESTAMP,
-      status = CASE WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress' ELSE status END
-    WHERE payment_reference = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
-    ["paid", "paid", paymentReference, "paid", "partial_refunded", "refunded"],
-  );
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.query<
+      Array<
+        RowDataPacket & {
+          id: number;
+          order_id: number;
+          stage: string;
+          status: string;
+          amount: number;
+          method: string;
+          order_type: string;
+          quote_amount: number | null;
+        }
+      >
+    >(
+      `SELECT payments.id, payments.order_id, payments.stage, payments.status,
+        payments.amount, payments.method, orders.order_type, orders.quote_amount
+       FROM order_payment_sessions AS payments
+       INNER JOIN orders ON orders.id = payments.order_id
+       WHERE payments.reference = ? AND orders.deleted_at IS NULL
+       LIMIT 1 FOR UPDATE`,
+      [paymentReference],
+    );
+    const payment = rows[0];
+    if (!payment || payment.status === "paid") {
+      await connection.rollback();
+      return false;
+    }
 
-  return result.affectedRows > 0;
+    await connection.query(
+      `UPDATE order_payment_sessions SET status = 'paid', paid_at = CURRENT_TIMESTAMP,
+        failure_code = NULL, failure_reason = NULL, last_webhook_status = 'paid',
+        last_webhook_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [payment.id],
+    );
+    const [totals] = await connection.query<
+      Array<RowDataPacket & { paid_total: number }>
+    >(
+      `SELECT COALESCE(SUM(amount), 0) AS paid_total
+       FROM order_payment_sessions WHERE order_id = ? AND status = 'paid'`,
+      [payment.order_id],
+    );
+    const paidTotal = Number(totals[0]?.paid_total ?? payment.amount);
+    const totalAmount = Number(payment.quote_amount ?? payment.amount);
+    const isComplete =
+      payment.order_type === "source_purchase" || paidTotal >= totalAmount;
+
+    await connection.query(
+      `UPDATE orders SET
+        payment_status = ?, amount_paid = ?, payment_stage = ?,
+        payment_method = ?, payment_reference = ?, payment_amount = ?,
+        payment_url = NULL, payment_failure_code = NULL,
+        payment_failure_reason = NULL, payment_last_webhook_status = 'paid',
+        payment_last_webhook_at = CURRENT_TIMESTAMP,
+        paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END,
+        settlement_at = CURRENT_TIMESTAMP,
+        status = CASE
+          WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress'
+          ELSE status END
+       WHERE id = ?`,
+      [
+        isComplete ? "paid" : "partial_paid",
+        paidTotal,
+        isComplete ? "complete" : "balance",
+        payment.method,
+        paymentReference,
+        payment.amount,
+        isComplete,
+        payment.order_id,
+      ],
+    );
+    await connection.commit();
+    return true;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function markOrderPaymentFailedByReference(
@@ -486,24 +680,34 @@ export async function markOrderPaymentFailedByReference(
   } = {},
 ) {
   const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE orders
-    SET payment_status = ?,
-      payment_failure_code = ?,
-      payment_failure_reason = ?,
-      payment_last_webhook_status = ?,
-      payment_last_webhook_at = CURRENT_TIMESTAMP
-    WHERE payment_reference = ? AND payment_status NOT IN (?, ?, ?) AND deleted_at IS NULL`,
+    `UPDATE order_payment_sessions
+     SET status = 'failed', failure_code = ?, failure_reason = ?,
+       last_webhook_status = ?, last_webhook_at = CURRENT_TIMESTAMP
+     WHERE reference = ? AND status <> 'paid'`,
     [
-      "failed",
       failure.code ?? null,
       failure.reason ?? null,
       failure.transactionStatus ?? "failed",
       paymentReference,
-      "paid",
-      "partial_refunded",
-      "refunded",
     ],
   );
+
+  if (result.affectedRows > 0) {
+    await pool.query(
+      `UPDATE orders SET payment_status = 'failed',
+        payment_failure_code = ?, payment_failure_reason = ?,
+        payment_last_webhook_status = ?, payment_last_webhook_at = CURRENT_TIMESTAMP,
+        payment_url = NULL
+       WHERE payment_reference = ? AND payment_status = 'waiting_payment'
+         AND deleted_at IS NULL`,
+      [
+        failure.code ?? null,
+        failure.reason ?? null,
+        failure.transactionStatus ?? "failed",
+        paymentReference,
+      ],
+    );
+  }
 
   return result.affectedRows > 0;
 }
@@ -513,10 +717,14 @@ export async function recordOrderPaymentWebhookStatus(
   transactionStatus: string,
 ) {
   await pool.query(
-    `UPDATE orders
-    SET payment_last_webhook_status = ?,
+    `UPDATE order_payment_sessions SET last_webhook_status = ?,
+      last_webhook_at = CURRENT_TIMESTAMP WHERE reference = ?`,
+    [transactionStatus, paymentReference],
+  );
+  await pool.query(
+    `UPDATE orders SET payment_last_webhook_status = ?,
       payment_last_webhook_at = CURRENT_TIMESTAMP
-    WHERE payment_reference = ? AND deleted_at IS NULL`,
+     WHERE payment_reference = ? AND deleted_at IS NULL`,
     [transactionStatus, paymentReference],
   );
 }
@@ -604,6 +812,10 @@ export function normalizeOrderPayload(
     projectType: String(body.projectType ?? "Konsultasi custom").trim(),
     budgetRange: String(body.budgetRange ?? "Belum ditentukan").trim(),
     message: String(body.message ?? "").trim(),
+    orderType:
+      body.orderType === "source_purchase"
+        ? "source_purchase"
+        : "custom_project",
     status: "new",
     paymentStatus: "pending",
     paymentMethod: null,
@@ -618,6 +830,12 @@ export function normalizeOrderPayload(
     quoteAmount: null,
     quoteNotes: null,
     quoteSentAt: null,
+    quoteStatus: null,
+    quoteRespondedAt: null,
+    depositPercent: 50,
+    amountPaid: 0,
+    paymentStage: body.orderType === "source_purchase" ? "full" : "deposit",
+    remainingAmount: 0,
     invoiceNumber: null,
     invoiceIssuedAt: null,
     paymentFailureCode: null,
@@ -639,11 +857,14 @@ export function normalizeOrderPayload(
 }
 
 function normalizeOrderRow(row: OrderRow): OrderItem {
+  const orderType =
+    row.order_type === "source_purchase" ? "source_purchase" : "custom_project";
   const isPaid =
     row.payment_status === "paid" || row.payment_status === "partial_refunded";
-  const sourceCodeItems = isPaid
-    ? parseStringArray(row.included_files ?? [])
-    : [];
+  const sourceCodeItems =
+    isPaid && orderType === "source_purchase"
+      ? parseStringArray(row.included_files ?? [])
+      : [];
   const guideParts = [row.license, row.support].filter(Boolean);
 
   return {
@@ -657,6 +878,7 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     projectType: row.project_type,
     budgetRange: row.budget_range,
     message: row.message,
+    orderType,
     status: row.status,
     paymentStatus: row.payment_status ?? "pending",
     paymentMethod: row.payment_method ?? null,
@@ -671,6 +893,21 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     quoteAmount: row.quote_amount ?? null,
     quoteNotes: row.quote_notes ?? null,
     quoteSentAt: row.quote_sent_at ?? null,
+    quoteStatus:
+      row.quote_status === "pending" ||
+      row.quote_status === "accepted" ||
+      row.quote_status === "rejected"
+        ? row.quote_status
+        : null,
+    quoteRespondedAt: row.quote_responded_at ?? null,
+    depositPercent: Number(row.deposit_percent ?? 50),
+    amountPaid: Number(row.amount_paid ?? 0),
+    paymentStage: normalizePaymentStage(row.payment_stage, orderType, isPaid),
+    remainingAmount: Math.max(
+      0,
+      Number(row.quote_amount ?? row.payment_amount ?? 0) -
+        Number(row.amount_paid ?? 0),
+    ),
     invoiceNumber: row.invoice_number ?? null,
     invoiceIssuedAt: row.invoice_issued_at ?? null,
     paymentFailureCode: row.payment_failure_code ?? null,
@@ -684,11 +921,15 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     templatePrice: row.template_price ?? null,
     templateLynkUrl: row.template_lynk_url ?? null,
     sourceAvailable: Boolean(row.source_available ?? true),
-    deliveryStatus: isPaid ? "available" : "locked",
+    deliveryStatus:
+      isPaid && orderType === "source_purchase" ? "available" : "locked",
     sourceCodeItems,
     setupGuide:
-      isPaid && guideParts.length > 0 ? guideParts.join("\n\n") : null,
-    demoUrl: isPaid ? (row.demo_url ?? null) : null,
+      isPaid && orderType === "source_purchase" && guideParts.length > 0
+        ? guideParts.join("\n\n")
+        : null,
+    demoUrl:
+      isPaid && orderType === "source_purchase" ? (row.demo_url ?? null) : null,
     createdAt: row.created_at ?? new Date().toISOString(),
   };
 }
@@ -707,4 +948,22 @@ function parseStringArray(value: string | string[]) {
       .map((item) => item.trim())
       .filter(Boolean);
   }
+}
+
+function normalizePaymentStage(
+  value: string | null | undefined,
+  orderType: OrderItem["orderType"],
+  isPaid: boolean,
+): OrderItem["paymentStage"] {
+  if (
+    value === "full" ||
+    value === "deposit" ||
+    value === "balance" ||
+    value === "complete" ||
+    value === "legacy_full"
+  ) {
+    return value;
+  }
+  if (isPaid) return "complete";
+  return orderType === "source_purchase" ? "full" : "deposit";
 }

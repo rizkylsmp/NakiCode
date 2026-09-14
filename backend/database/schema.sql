@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS orders (
   project_type VARCHAR(80) NOT NULL,
   budget_range VARCHAR(80) NOT NULL,
   message TEXT NOT NULL,
+  order_type VARCHAR(30) NOT NULL DEFAULT 'custom_project',
   status VARCHAR(40) NOT NULL DEFAULT 'new',
   payment_status VARCHAR(40) NOT NULL DEFAULT 'pending',
   payment_method VARCHAR(80) NULL,
@@ -89,6 +90,11 @@ CREATE TABLE IF NOT EXISTS orders (
   quote_amount BIGINT NULL,
   quote_notes TEXT NULL,
   quote_sent_at TIMESTAMP NULL,
+  quote_status VARCHAR(20) NULL,
+  quote_responded_at TIMESTAMP NULL,
+  deposit_percent INT NOT NULL DEFAULT 50,
+  amount_paid BIGINT NOT NULL DEFAULT 0,
+  payment_stage VARCHAR(20) NOT NULL DEFAULT 'deposit',
   invoice_number VARCHAR(40) NULL UNIQUE,
   invoice_issued_at TIMESTAMP NULL,
   payment_failure_code VARCHAR(80) NULL,
@@ -104,6 +110,32 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_orders_admin_filters (deleted_at, status, payment_status, created_at),
   KEY idx_orders_finance (payment_status, paid_at)
+);
+
+CREATE TABLE IF NOT EXISTS order_payment_sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  stage VARCHAR(20) NOT NULL,
+  provider VARCHAR(20) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'waiting_payment',
+  method VARCHAR(80) NOT NULL,
+  reference VARCHAR(120) NOT NULL,
+  payment_url VARCHAR(500) NULL,
+  subtotal_amount BIGINT NOT NULL,
+  discount_amount BIGINT NOT NULL DEFAULT 0,
+  gateway_fee_amount BIGINT NOT NULL DEFAULT 0,
+  amount BIGINT NOT NULL,
+  net_amount BIGINT NOT NULL,
+  failure_code VARCHAR(80) NULL,
+  failure_reason VARCHAR(255) NULL,
+  last_webhook_status VARCHAR(80) NULL,
+  last_webhook_at TIMESTAMP NULL,
+  paid_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_order_payment_reference (reference),
+  KEY idx_order_payment_order_stage (order_id, stage, status),
+  CONSTRAINT fk_order_payment_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS payment_webhook_events (
@@ -272,7 +304,11 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
   order_id INT NULL,
   user_id INT NULL,
   discount_amount INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  status VARCHAR(20) NOT NULL DEFAULT 'reserved',
+  reservation_expires_at TIMESTAMP NULL,
+  redeemed_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_coupon_redemption_order (order_id)
 );
 
 CREATE TABLE IF NOT EXISTS testimonials (

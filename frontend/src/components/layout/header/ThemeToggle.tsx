@@ -8,7 +8,7 @@ type ThemeToggleProps = {
 export function ThemeToggle({ isDarkMode, onToggle }: ThemeToggleProps) {
   return (
     <button
-      className="relative grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-frost hover:text-naki-primary"
+      className="relative grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:text-naki-secondary"
       type="button"
       aria-label={isDarkMode ? "Aktifkan light mode" : "Aktifkan dark mode"}
       aria-pressed={isDarkMode}

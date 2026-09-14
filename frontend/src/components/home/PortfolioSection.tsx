@@ -94,7 +94,7 @@ function PortfolioSkeletonGrid() {
 
 function PortfolioSkeletonCard() {
   return (
-    <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
+    <article className="overflow-hidden rounded-2xl border border-naki-steel/60 bg-white shadow-sm">
       <Skeleton height="10rem" radius="0" />
       <div className="p-5">
         <Skeleton width="55%" height="1rem" radius="0.25rem" />
@@ -123,20 +123,30 @@ function PortfolioCard({
   const showImage = coverImage && !imageError;
 
   return (
-    <article className="group h-fit overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-md">
+    <article className="group h-fit overflow-hidden rounded-2xl border border-naki-steel/60 bg-white shadow-sm transition duration-300 hover:border-blue-200 hover:shadow-md">
       <div className="relative aspect-[16/9] overflow-hidden bg-naki-frost">
         {showImage ? (
-          <img
-            className="h-full w-full object-cover transition duration-300"
-            src={coverImage}
-            alt={item.title}
-            loading="lazy"
-            onError={() => setImageError(true)}
-          />
+          <>
+            <img
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+              loading="lazy"
+              src={coverImage}
+            />
+            <span className="absolute inset-0 bg-white/10" />
+            <img
+              className="relative z-10 h-full w-full object-contain"
+              src={coverImage}
+              alt={item.title}
+              loading="lazy"
+              onError={() => setImageError(true)}
+            />
+          </>
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/5 to-naki-secondary/5" />
         )}
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+        <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-2">
           <span className="rounded-md bg-white/90 px-2 py-0.5 text-xs font-medium text-naki-primary backdrop-blur">
             {item.category}
           </span>

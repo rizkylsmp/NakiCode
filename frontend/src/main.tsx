@@ -10,7 +10,11 @@ import { initializeAnalytics } from './services/analytics';
 import { setUnauthorizedHandler } from './services/api-client';
 import { registerServiceWorker } from './services/pwa';
 import { userTokenKey, userUsernameKey, userRoleKey, userSessionEvent } from './utils/user-session';
+import { applyTheme, resolveInitialTheme } from './utils/theme';
 import './styles.css';
+
+// Apply the saved/system theme before a lazy route can show its loading fallback.
+applyTheme(resolveInitialTheme(), false);
 
 // Initialize Sentry (must be first)
 if (import.meta.env.VITE_SENTRY_DSN) {

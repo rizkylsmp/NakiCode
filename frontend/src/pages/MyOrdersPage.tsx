@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   BadgeCheck,
+  Check,
   Clock3,
   CreditCard,
   ExternalLink,
@@ -9,6 +10,7 @@ import {
   RefreshCw,
   Send,
   Star,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -26,6 +28,10 @@ import type { TemplateItem } from "../domain/content";
 import {
   canConfirmPaymentManually,
   canRateOrder,
+  canStartOrderCheckout,
+  getOrderPaymentActionLabel,
+  getOrderStatusLabel,
+  getOrderTypeLabel,
   getPaymentStatusLabel,
   getWaitingPaymentMessage,
   type OrderItem,
@@ -50,7 +56,7 @@ type RatingResponse = {
   template?: TemplateItem;
 };
 
-type OrdersPaymentMenu = "paid" | "waiting_payment" | "unpaid";
+type OrdersPaymentMenu = "all" | "paid" | "waiting_payment" | "unpaid";
 
 const defaultRatingForm: RatingFormState = {
   rating: "5",
@@ -63,9 +69,14 @@ const orderPaymentMenus: Array<{
   description: string;
 }> = [
   {
+    value: "all",
+    label: "Semua",
+    description: "Seluruh progres pesanan.",
+  },
+  {
     value: "unpaid",
-    label: "Belum bayar",
-    description: "Belum masuk proses pembayaran.",
+    label: "Belum lunas",
+    description: "Belum bayar, gagal, atau baru membayar DP.",
   },
   {
     value: "waiting_payment",
@@ -74,8 +85,8 @@ const orderPaymentMenus: Array<{
   },
   {
     value: "paid",
-    label: "Selesai",
-    description: "Source code sudah terbuka.",
+    label: "Sudah dibayar",
+    description: "Pembayaran telah diterima.",
   },
 ];
 
@@ -109,7 +120,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
     pageSize: ordersPageSize,
   });
   const [activePaymentMenu, setActivePaymentMenu] =
-    useState<OrdersPaymentMenu>("waiting_payment");
+    useState<OrdersPaymentMenu>("all");
   const [status, setStatus] = useState("Memuat pesanan...");
   const [isLoading, setIsLoading] = useState(false);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(
@@ -140,8 +151,10 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
         const params = new URLSearchParams({
           page: String(page),
           pageSize: String(ordersPageSize),
-          paymentStatus: activePaymentMenu,
         });
+        if (activePaymentMenu !== "all") {
+          params.set("paymentStatus", activePaymentMenu);
+        }
         const data = await apiGet<OrdersResponse>(
           `/api/orders/my?${params.toString()}`,
         );
@@ -222,6 +235,36 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
       setStatus(`Pembayaran order #${orderId} berhasil. Rating sudah terbuka.`);
     } catch {
       setStatus("Gagal konfirmasi pembayaran. Coba lagi sebentar.");
+    } finally {
+      setProcessingOrderId(null);
+    }
+  }
+
+  async function respondToQuote(
+    orderId: number,
+    decision: "accepted" | "rejected",
+  ) {
+    if (!userToken) return;
+    setProcessingOrderId(orderId);
+    setStatus(
+      decision === "accepted"
+        ? "Menyetujui penawaran..."
+        : "Menolak penawaran...",
+    );
+
+    try {
+      const data = await apiPost<{ order: OrderItem }>(
+        `/api/orders/${orderId}/quote/respond`,
+        { decision },
+      );
+      updateOrder(data.order);
+      setStatus(
+        decision === "accepted"
+          ? `Penawaran order #${orderId} disetujui. Checkout sudah tersedia.`
+          : `Penawaran order #${orderId} ditolak dan akan ditinjau kembali.`,
+      );
+    } catch (error) {
+      setStatus(getApiErrorMessage(error, "Gagal merespons penawaran harga."));
     } finally {
       setProcessingOrderId(null);
     }
@@ -327,7 +370,7 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
           </div>
         ) : (
           <>
-            <div className="mt-6 grid gap-2 rounded-2xl bg-white p-2 shadow-sm md:grid-cols-3">
+            <div className="mt-6 grid gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
               {orderPaymentMenus.map((menu) => {
                 const isActive = activePaymentMenu === menu.value;
 
@@ -385,6 +428,8 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                   const form = ratingForms[order.id] ?? defaultRatingForm;
                   const isProcessing = processingOrderId === order.id;
                   const isRated = ratedOrderIds.includes(order.id);
+                  const quoteStatus =
+                    order.quoteStatus ?? (order.quoteAmount ? "pending" : null);
 
                   return (
                     <article
@@ -411,14 +456,17 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                           </div>
 
                           <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                            <OrderInfo label="Tipe" value={order.projectType} />
+                            <OrderInfo
+                              label="Jenis transaksi"
+                              value={getOrderTypeLabel(order)}
+                            />
                             <OrderInfo
                               label="Budget"
                               value={order.budgetRange}
                             />
                             <OrderInfo
                               label="Status order"
-                              value={order.status}
+                              value={getOrderStatusLabel(order.status)}
                             />
                             <OrderInfo
                               label="Tanggal"
@@ -426,6 +474,79 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                             />
                           </div>
                         </div>
+
+                        {order.quoteAmount ? (
+                          <section className="rounded-xl border border-naki-steel bg-naki-frost p-4 md:col-span-2">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-naki-secondary">
+                                  Penawaran harga
+                                </p>
+                                <p className="mt-1 text-xl font-bold text-naki-primary">
+                                  {formatRupiah(order.quoteAmount)}
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-naki-smoke">
+                                  DP {order.depositPercent}% · Pembayaran awal{" "}
+                                  {formatRupiah(
+                                    Math.round(
+                                      order.quoteAmount *
+                                        (order.depositPercent / 100),
+                                    ),
+                                  )}
+                                </p>
+                                {order.quoteNotes ? (
+                                  <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-naki-smoke">
+                                    {order.quoteNotes}
+                                  </p>
+                                ) : null}
+                                {order.quoteSentAt ? (
+                                  <p className="mt-2 text-xs text-naki-smoke">
+                                    Dikirim {formatOrderDate(order.quoteSentAt)}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <QuoteStatus status={quoteStatus} />
+                            </div>
+                            {quoteStatus === "pending" ? (
+                              <div className="mt-4 flex flex-col gap-2 border-t border-naki-steel pt-4 sm:flex-row">
+                                <button
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white disabled:opacity-50"
+                                  disabled={processingOrderId === order.id}
+                                  onClick={() =>
+                                    void respondToQuote(order.id, "accepted")
+                                  }
+                                  type="button"
+                                >
+                                  <Check size={16} />
+                                  Setujui penawaran
+                                </button>
+                                <button
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 disabled:opacity-50"
+                                  disabled={processingOrderId === order.id}
+                                  onClick={() =>
+                                    void respondToQuote(order.id, "rejected")
+                                  }
+                                  type="button"
+                                >
+                                  <X size={16} />
+                                  Tolak
+                                </button>
+                              </div>
+                            ) : null}
+                            {order.amountPaid > 0 ? (
+                              <div className="mt-4 grid gap-2 border-t border-naki-steel pt-4 sm:grid-cols-2">
+                                <OrderInfo
+                                  label="Sudah dibayar"
+                                  value={formatRupiah(order.amountPaid)}
+                                />
+                                <OrderInfo
+                                  label="Sisa pelunasan"
+                                  value={formatRupiah(order.remainingAmount)}
+                                />
+                              </div>
+                            ) : null}
+                          </section>
+                        ) : null}
 
                         <div className="rounded-xl bg-naki-frost p-4 xl:w-[390px]">
                           <div className="flex items-center justify-between gap-2">
@@ -442,9 +563,15 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                           <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-naki-smoke">
                             {order.paymentStatus === "paid"
                               ? `Lunas${order.paidAt ? ` pada ${formatOrderDate(order.paidAt)}` : ""}.`
-                              : order.paymentStatus === "waiting_payment"
-                                ? getWaitingPaymentMessage(order)
-                                : "Klik bayar sekarang untuk membuat instruksi pembayaran."}
+                              : order.paymentStatus === "partial_paid"
+                                ? `DP ${formatRupiah(order.amountPaid)} sudah diterima. Pelunasan dapat dibayar sekarang.`
+                                : quoteStatus === "pending"
+                                  ? "Tinjau dan setujui penawaran sebelum membuka checkout."
+                                  : quoteStatus === "rejected"
+                                    ? "Penawaran ditolak. Tim NAKI Code akan mengirim revisi penawaran."
+                                    : order.paymentStatus === "waiting_payment"
+                                      ? getWaitingPaymentMessage(order)
+                                      : "Klik bayar sekarang untuk membuat instruksi pembayaran."}
                           </p>
                           {order.paymentReference ? (
                             <div className="mt-2 rounded-lg bg-white px-3 py-1.5">
@@ -454,14 +581,13 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                             </div>
                           ) : null}
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {order.paymentStatus === "pending" ||
-                            order.paymentStatus === "failed" ? (
+                            {canStartOrderCheckout(order) ? (
                               <Link
                                 className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-3 text-xs font-semibold text-white transition hover:bg-naki-primary"
                                 to={`/checkout/${order.id}`}
                               >
                                 <CreditCard size={14} />
-                                Bayar di checkout
+                                {getOrderPaymentActionLabel(order)}
                               </Link>
                             ) : null}
                             {order.paymentUrl ? (
@@ -683,12 +809,14 @@ function getPaymentMenuLabel(value: OrdersPaymentMenu) {
 
 function getEmptyOrdersTitle(value: OrdersPaymentMenu) {
   switch (value) {
+    case "all":
+      return "Belum ada pesanan.";
     case "paid":
-      return "Belum ada pesanan selesai.";
+      return "Belum ada pesanan yang sudah dibayar.";
     case "waiting_payment":
       return "Belum ada yang menunggu pembayaran.";
     case "unpaid":
-      return "Belum ada pesanan belum bayar.";
+      return "Tidak ada pesanan yang belum lunas.";
     default:
       return "Belum ada pesanan.";
   }
@@ -696,13 +824,46 @@ function getEmptyOrdersTitle(value: OrdersPaymentMenu) {
 
 function getEmptyOrdersMessage(value: OrdersPaymentMenu) {
   switch (value) {
+    case "all":
+      return "Pilih design atau layanan untuk membuat pesanan pertama.";
     case "paid":
-      return "Pesanan yang sudah lunas dan source code-nya terbuka akan tampil di sini.";
+      return "Pesanan yang seluruh pembayarannya sudah lunas akan tampil di sini.";
     case "waiting_payment":
       return "Pesanan yang sudah dibuatkan instruksi pembayaran akan tampil di sini.";
     case "unpaid":
-      return "Pesanan yang belum masuk proses pembayaran akan tampil di sini.";
+      return "Pesanan yang belum dibayar atau baru membayar DP akan tampil di sini.";
     default:
       return "Pilih design atau layanan, kirim konsultasi/order, lalu statusnya akan tampil di sini.";
   }
+}
+
+function formatRupiah(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function QuoteStatus({ status }: { status: OrderItem["quoteStatus"] }) {
+  const styles = {
+    pending: "bg-amber-100 text-amber-700",
+    accepted: "bg-emerald-100 text-emerald-700",
+    rejected: "bg-red-100 text-red-700",
+  } as const;
+  const labels = {
+    pending: "Menunggu respons",
+    accepted: "Disetujui",
+    rejected: "Ditolak",
+  } as const;
+
+  if (!status) return null;
+
+  return (
+    <span
+      className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${styles[status]}`}
+    >
+      {labels[status]}
+    </span>
+  );
 }

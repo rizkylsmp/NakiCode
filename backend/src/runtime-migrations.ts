@@ -496,6 +496,221 @@ const runtimeMigrations: Migration[] = [
       }
     },
   },
+  {
+    id: "018_release_soft_deleted_design_slugs",
+    async up(connection) {
+      await connection.query(
+        `UPDATE ${connection.escapeId("designs")}
+        SET ${connection.escapeId("slug")} = CONCAT('__deleted__', ${connection.escapeId("id")}, '__', LEFT(${connection.escapeId("slug")}, 140))
+        WHERE ${connection.escapeId("deleted_at")} IS NOT NULL
+          AND ${connection.escapeId("slug")} NOT REGEXP '^__deleted__[0-9]+__'`,
+      );
+    },
+  },
+  {
+    id: "019_order_quote_acceptance_and_coupon_reservations",
+    async up(connection) {
+      const orderColumns = [
+        ["quote_status", "VARCHAR(20) NULL AFTER quote_sent_at"],
+        ["quote_responded_at", "TIMESTAMP NULL AFTER quote_status"],
+      ] as const;
+
+      for (const [column, definition] of orderColumns) {
+        if (!(await hasColumn(connection, "orders", column))) {
+          await connection.query(
+            `ALTER TABLE ${connection.escapeId("orders")} ADD COLUMN ${connection.escapeId(column)} ${definition}`,
+          );
+        }
+      }
+
+      await connection.query(`
+        UPDATE orders
+        SET quote_status = CASE
+          WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 'accepted'
+          ELSE 'pending'
+        END
+        WHERE quote_amount IS NOT NULL AND quote_status IS NULL
+      `);
+
+      const redemptionColumns = [
+        [
+          "status",
+          "VARCHAR(20) NOT NULL DEFAULT 'redeemed' AFTER discount_amount",
+        ],
+        ["reservation_expires_at", "TIMESTAMP NULL AFTER status"],
+        ["redeemed_at", "TIMESTAMP NULL AFTER reservation_expires_at"],
+      ] as const;
+
+      for (const [column, definition] of redemptionColumns) {
+        if (!(await hasColumn(connection, "coupon_redemptions", column))) {
+          await connection.query(
+            `ALTER TABLE ${connection.escapeId("coupon_redemptions")} ADD COLUMN ${connection.escapeId(column)} ${definition}`,
+          );
+        }
+      }
+
+      await connection.query(`
+        UPDATE coupon_redemptions
+        SET status = 'redeemed', redeemed_at = COALESCE(redeemed_at, created_at)
+        WHERE status = 'redeemed'
+      `);
+      await connection.query(`
+        DELETE older
+        FROM coupon_redemptions AS older
+        INNER JOIN coupon_redemptions AS newer
+          ON newer.order_id = older.order_id
+          AND newer.id > older.id
+        WHERE older.order_id IS NOT NULL
+      `);
+
+      if (
+        !(await hasIndex(
+          connection,
+          "coupon_redemptions",
+          "uniq_coupon_redemption_order",
+        ))
+      ) {
+        await connection.query(
+          `ALTER TABLE ${connection.escapeId("coupon_redemptions")} ADD UNIQUE INDEX ${connection.escapeId("uniq_coupon_redemption_order")} (${connection.escapeId("order_id")})`,
+        );
+      }
+    },
+  },
+  {
+    id: "020_backfill_legacy_order_quote_status",
+    async up(connection) {
+      await connection.query(`
+        UPDATE orders
+        SET quote_status = CASE
+          WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 'accepted'
+          ELSE 'pending'
+        END
+        WHERE quote_amount IS NOT NULL AND quote_status IS NULL
+      `);
+    },
+  },
+  {
+    id: "021_split_source_and_custom_payments",
+    async up(connection) {
+      const orderColumns = [
+        [
+          "order_type",
+          "VARCHAR(30) NOT NULL DEFAULT 'custom_project' AFTER message",
+        ],
+        ["deposit_percent", "INT NOT NULL DEFAULT 50 AFTER quote_responded_at"],
+        ["amount_paid", "BIGINT NOT NULL DEFAULT 0 AFTER deposit_percent"],
+        [
+          "payment_stage",
+          "VARCHAR(20) NOT NULL DEFAULT 'deposit' AFTER amount_paid",
+        ],
+      ] as const;
+      for (const [column, definition] of orderColumns) {
+        if (!(await hasColumn(connection, "orders", column))) {
+          await connection.query(
+            `ALTER TABLE ${connection.escapeId("orders")} ADD COLUMN ${connection.escapeId(column)} ${definition}`,
+          );
+        }
+      }
+
+      await connection.query(`
+        UPDATE orders SET
+          order_type = CASE
+            WHEN LOWER(project_type) LIKE '%source code%' THEN 'source_purchase'
+            ELSE 'custom_project'
+          END,
+          amount_paid = CASE
+            WHEN payment_status IN ('paid', 'partial_refunded', 'refunded')
+              THEN COALESCE(payment_amount, quote_amount, 0)
+            ELSE 0
+          END,
+          payment_stage = CASE
+            WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 'complete'
+            WHEN LOWER(project_type) LIKE '%source code%' THEN 'full'
+            ELSE 'deposit'
+          END
+      `);
+
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS order_payment_sessions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          order_id INT NOT NULL,
+          stage VARCHAR(20) NOT NULL,
+          provider VARCHAR(20) NOT NULL,
+          status VARCHAR(40) NOT NULL DEFAULT 'waiting_payment',
+          method VARCHAR(80) NOT NULL,
+          reference VARCHAR(120) NOT NULL,
+          payment_url VARCHAR(500) NULL,
+          subtotal_amount BIGINT NOT NULL,
+          discount_amount BIGINT NOT NULL DEFAULT 0,
+          gateway_fee_amount BIGINT NOT NULL DEFAULT 0,
+          amount BIGINT NOT NULL,
+          net_amount BIGINT NOT NULL,
+          failure_code VARCHAR(80) NULL,
+          failure_reason VARCHAR(255) NULL,
+          last_webhook_status VARCHAR(80) NULL,
+          last_webhook_at TIMESTAMP NULL,
+          paid_at TIMESTAMP NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uniq_order_payment_reference (reference),
+          KEY idx_order_payment_order_stage (order_id, stage, status),
+          CONSTRAINT fk_order_payment_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT ON UPDATE RESTRICT
+        )
+      `);
+
+      await connection.query(`
+        INSERT IGNORE INTO order_payment_sessions (
+          order_id, stage, provider, status, method, reference, payment_url,
+          subtotal_amount, discount_amount, gateway_fee_amount, amount,
+          net_amount, failure_code, failure_reason, last_webhook_status,
+          last_webhook_at, paid_at, created_at
+        )
+        SELECT id,
+          CASE WHEN order_type = 'source_purchase' THEN 'full' ELSE 'legacy_full' END,
+          CASE WHEN LOWER(COALESCE(payment_method, '')) = 'lynk' THEN 'lynk' ELSE 'midtrans' END,
+          CASE
+            WHEN payment_status IN ('paid', 'partial_refunded', 'refunded') THEN 'paid'
+            ELSE payment_status
+          END,
+          COALESCE(payment_method, 'Legacy'), payment_reference,
+          payment_url, COALESCE(subtotal_amount, payment_amount, quote_amount, 0),
+          discount_amount, gateway_fee_amount, COALESCE(payment_amount, quote_amount, 0),
+          COALESCE(net_amount, payment_amount, quote_amount, 0),
+          payment_failure_code, payment_failure_reason,
+          payment_last_webhook_status, payment_last_webhook_at, paid_at, created_at
+        FROM orders
+        WHERE payment_reference IS NOT NULL
+      `);
+    },
+  },
+  {
+    id: "022_align_payment_reference_collation",
+    async up(connection) {
+      const [columns] = await connection.query<RowDataPacket[]>(
+        `SELECT CHARACTER_SET_NAME AS character_set_name,
+          COLLATION_NAME AS collation_name
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'orders'
+           AND COLUMN_NAME = 'payment_reference'
+         LIMIT 1`,
+      );
+      const characterSet = String(columns[0]?.character_set_name ?? "");
+      const collation = String(columns[0]?.collation_name ?? "");
+      const safeIdentifier = /^[a-zA-Z0-9_]+$/;
+      if (
+        safeIdentifier.test(characterSet) &&
+        safeIdentifier.test(collation)
+      ) {
+        await connection.query(
+          `ALTER TABLE order_payment_sessions
+           MODIFY reference VARCHAR(120)
+           CHARACTER SET ${connection.escapeId(characterSet)}
+           COLLATE ${connection.escapeId(collation)} NOT NULL`,
+        );
+      }
+    },
+  },
 ];
 
 export async function runRuntimeMigrations(connection: Connection) {

@@ -8,7 +8,9 @@ export function TemplateCardSkeleton() {
   return (
     <div className="rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card">
       {/* Preview image skeleton */}
-      <Skeleton height="12rem" radius="0.5rem" className="mb-4" />
+      <div className="mb-4 aspect-[4/3] overflow-hidden rounded-lg">
+        <Skeleton height="100%" radius="0" />
+      </div>
       
       {/* Category badge skeleton */}
       <Skeleton width="5rem" height="1.25rem" radius="0.25rem" className="mb-3" />

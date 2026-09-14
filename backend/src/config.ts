@@ -110,8 +110,19 @@ const isProductionDeployment =
   env.VERCEL_ENV === "production" ||
   (env.NODE_ENV === "production" && !env.VERCEL_ENV);
 
+if (
+  isProductionDeployment &&
+  (env.PAYMENT_PROVIDER !== "midtrans" || !env.MIDTRANS_SERVER_KEY)
+) {
+  throw new Error(
+    "Production payment requires PAYMENT_PROVIDER=midtrans and MIDTRANS_SERVER_KEY.",
+  );
+}
+
 // Export validated and typed configuration
 export const config = {
+  nodeEnv: env.NODE_ENV,
+  isProductionDeployment,
   port: env.PORT,
   clientOrigin: env.CLIENT_ORIGIN,
   clientOrigins: env.CLIENT_ORIGINS.split(",")

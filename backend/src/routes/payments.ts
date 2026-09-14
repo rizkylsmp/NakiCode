@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/node";
 import { z } from "zod";
 import { config } from "../config";
 import {
+  findOrderById,
   findOrderByPaymentReference,
   markOrderPaidByPaymentReference,
   markOrderPaymentFailedByReference,
@@ -22,6 +23,10 @@ import {
   ensureOrderInvoice,
   recordPaidOrderTransaction,
 } from "../models/finance.model";
+import {
+  redeemCouponReservation,
+  releaseCouponReservation,
+} from "../models/business.model";
 
 export const paymentsRouter = Router();
 
@@ -107,6 +112,12 @@ paymentsRouter.post("/midtrans/webhook", async (request, response) => {
           reason: failureReason,
           transactionStatus,
         });
+        if (
+          order.orderType === "source_purchase" &&
+          order.paymentReference === body.order_id
+        ) {
+          await releaseCouponReservation(order.id);
+        }
         await finishMidtransWebhookEvent(eventKey, {
           processingStatus: "rejected",
           processedAction: "rejected",
@@ -127,20 +138,32 @@ paymentsRouter.post("/midtrans/webhook", async (request, response) => {
       }
 
       const wasUpdated = await markOrderPaidByPaymentReference(body.order_id);
+      const updatedOrder = await findOrderById(order.id);
 
       // These writes are idempotent and must also run when the order was
       // already marked paid by a previous callback whose follow-up write
       // failed. This keeps invoices and bookkeeping self-healing.
       await Promise.all([
         ensureOrderInvoice(order.id),
-        recordPaidOrderTransaction(order.id),
+        recordPaidOrderTransaction(order.id, body.order_id),
+        order.orderType === "source_purchase"
+          ? redeemCouponReservation(order.id)
+          : Promise.resolve(false),
       ]);
 
       if (wasUpdated) {
         await createNotification({
           userId: order.userId,
-          title: "Pembayaran berhasil",
-          message: `Pembayaran untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima. Source code dan panduan sudah terbuka.`,
+          title:
+            updatedOrder?.paymentStatus === "partial_paid"
+              ? "DP berhasil"
+              : "Pembayaran berhasil",
+          message:
+            updatedOrder?.paymentStatus === "partial_paid"
+              ? `DP untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima. Pelunasan dapat dibayar dari Pesanan Saya.`
+              : order.orderType === "source_purchase"
+                ? `Pembayaran untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima. Source code dan panduan sudah terbuka.`
+                : `Pelunasan untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima.`,
           type: "payment",
           relatedOrderId: order.id,
         });
@@ -160,6 +183,12 @@ paymentsRouter.post("/midtrans/webhook", async (request, response) => {
           transactionStatus,
         },
       );
+      if (
+        order.orderType === "source_purchase" &&
+        order.paymentReference === body.order_id
+      ) {
+        await releaseCouponReservation(order.id);
+      }
 
       if (wasUpdated) {
         await createNotification({
@@ -204,7 +233,7 @@ function isValidMidtransSignature(body: {
   signature_key: string;
 }) {
   if (!config.payment.midtransServerKey) {
-    return config.payment.provider !== "midtrans";
+    return false;
   }
 
   const signaturePayload = `${body.order_id}${body.status_code}${body.gross_amount}${config.payment.midtransServerKey}`;

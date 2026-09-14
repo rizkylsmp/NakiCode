@@ -33,7 +33,7 @@ describe("TemplateCard", () => {
     const { container } = render(
       <MemoryRouter>
         <TemplateCard
-          isAuthenticated={false}
+          isAuthenticated
           isFavorite={false}
           isFavoriteLoading={false}
           onToggleFavorite={() => undefined}
@@ -47,7 +47,44 @@ describe("TemplateCard", () => {
     expect(video).toHaveAttribute("src", template.videoUrl);
     expect(video).toHaveAttribute("poster", template.preview[0].image);
     expect(video).toHaveProperty("muted", true);
-    expect(screen.getByText("Video preview")).toBeInTheDocument();
-    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(video).toHaveClass("object-contain");
+    expect(screen.getByTestId("design-card-media")).toHaveClass(
+      "aspect-[4/3]",
+    );
+    expect(screen.getByText("Video preview")).toHaveClass("z-20");
+    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveClass(
+      "z-20",
+    );
+    expect(
+      screen.getByRole("button", { name: /simpan studio preview/i })
+        .parentElement,
+    ).toHaveClass("z-20");
+    expect(container.querySelector('img[alt=""]')).toHaveClass(
+      "object-cover",
+      "blur-xl",
+    );
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+  });
+
+  it("uses a blurred cover behind a contained image preview", () => {
+    const imageTemplate = { ...template, videoUrl: null };
+    const { container } = render(
+      <MemoryRouter>
+        <TemplateCard
+          isAuthenticated={false}
+          isFavorite={false}
+          isFavoriteLoading={false}
+          onToggleFavorite={() => undefined}
+          template={imageTemplate}
+        />
+      </MemoryRouter>,
+    );
+
+    const images = container.querySelectorAll("img");
+
+    expect(images).toHaveLength(2);
+    expect(images[0]).toHaveClass("object-cover", "blur-xl");
+    expect(images[1]).toHaveClass("object-contain");
+    expect(images[1]).toHaveAttribute("alt", template.title);
   });
 });
