@@ -85,6 +85,7 @@ export function TemplateFormModal({
     message: "",
     status: "idle",
   });
+  const isEditing = form.id !== undefined;
   const complete = useMemo(
     () => ({
       info: Boolean(
@@ -117,13 +118,13 @@ export function TemplateFormModal({
     wasOpen.current = isOpen;
   }, [form, isOpen, selectedTemplate?.id]);
   useEffect(() => {
-    if (!isOpen || selectedTemplate) return;
+    if (!isOpen || isEditing) return;
     const timer = window.setTimeout(() => {
       window.localStorage.setItem(designDraftStorageKey, JSON.stringify(form));
       setSavedAt(new Date());
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [form, isOpen, selectedTemplate]);
+  }, [form, isEditing, isOpen]);
   useEffect(() => {
     if (!isOpen) return;
     const warn = (event: BeforeUnloadEvent) => {
@@ -186,7 +187,7 @@ export function TemplateFormModal({
             value={form.title}
             onChange={(value) => {
               onUpdateField("title", value);
-              if (!selectedTemplate) onUpdateField("slug", slugify(value));
+              if (!isEditing) onUpdateField("slug", slugify(value));
             }}
             required
           />
@@ -377,11 +378,11 @@ export function TemplateFormModal({
                 id="design-form-title"
                 className="text-xl font-bold text-naki-primary"
               >
-                {selectedTemplate ? "Edit design" : "Tambah design"}
+                {isEditing ? "Edit design" : "Tambah design"}
               </h2>
               <p className="mt-1 text-xs text-naki-smoke">
                 Langkah {activeIndex + 1} dari 4 · {completedCount}/4 lengkap
-                {savedAt && !selectedTemplate
+                {savedAt && !isEditing
                   ? ` · Draft tersimpan ${savedAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
                   : ""}
               </p>

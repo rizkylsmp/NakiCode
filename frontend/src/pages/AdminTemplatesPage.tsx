@@ -239,9 +239,11 @@ export function AdminTemplatesPage({
     }
 
     setActiveAdminView(routeAdminView);
-    setIsTemplateModalOpen(
-      routeAdminView === "design" && location.hash === "#new-design",
-    );
+    if (routeAdminView !== "design") {
+      setIsTemplateModalOpen(false);
+    } else if (location.hash === "#new-design") {
+      setIsTemplateModalOpen(true);
+    }
 
     if (routeAdminView === "orders" && isAdmin && adminToken) {
       void loadOrders(adminToken, ordersPage);
@@ -435,7 +437,10 @@ export function AdminTemplatesPage({
     setForm((current) => ({
       ...current,
       [key]: value,
-      slug: key === "title" ? slugify(String(value)) : current.slug,
+      slug:
+        key === "title" && current.id === undefined
+          ? slugify(String(value))
+          : current.slug,
     }));
   }
 
@@ -699,12 +704,13 @@ export function AdminTemplatesPage({
     setLoadingMessage("Menyimpan design...");
 
     const payload = formToPayload(form);
-    const isEditing = selectedTemplate !== undefined;
+    const editingId = form.id ?? selectedId;
+    const isEditing = editingId !== null && editingId !== undefined;
 
     try {
       const data = isEditing
         ? await apiPut<TemplateMutationResponse>(
-            `/api/designs/${selectedTemplate.id}`,
+            `/api/designs/${editingId}`,
             payload,
           )
         : await apiPost<TemplateMutationResponse>("/api/designs", payload);
@@ -719,6 +725,7 @@ export function AdminTemplatesPage({
       setSelectedId(data.template.id);
       setForm(templateToForm(data.template));
       setIsTemplateModalOpen(false);
+      navigate("/admin/design", { replace: true });
       setStatus(`Design ${data.template.title} tersimpan.`);
     } catch (error) {
       setStatus(getApiErrorMessage(error, "Gagal menyimpan design."));

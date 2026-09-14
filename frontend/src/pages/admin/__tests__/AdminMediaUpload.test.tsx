@@ -118,6 +118,40 @@ describe("PreviewDropZone", () => {
     expect(screen.getByText(/1 video berhasil diupload/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Simpan draft" })).toBeEnabled();
   });
+
+  it("keeps edit mode from the form id and does not regenerate its slug", () => {
+    const onUpdateField = vi.fn();
+
+    render(
+      <TemplateFormModal
+        categoryOptions={["Portfolio"]}
+        form={{
+          ...defaultFormState,
+          id: 8,
+          slug: "slug-tetap",
+          title: "Design Lama",
+        }}
+        isOpen
+        isSaving={false}
+        selectedTemplate={undefined}
+        adminToken="admin-token"
+        onClose={vi.fn()}
+        onStartCreate={vi.fn()}
+        onSubmitTemplate={vi.fn()}
+        onUpdateField={onUpdateField}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Edit design" }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Judul"), {
+      target: { value: "Design Baru" },
+    });
+
+    expect(onUpdateField).toHaveBeenCalledWith("title", "Design Baru");
+    expect(onUpdateField).not.toHaveBeenCalledWith("slug", expect.anything());
+  });
 });
 
 describe("SourceCodeUpload", () => {

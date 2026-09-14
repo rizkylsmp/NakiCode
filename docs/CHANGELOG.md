@@ -12,6 +12,7 @@ Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
 ## 2026-09-14
 
+- [x] 2026-09-14 - Perbaiki edit Design agar modal tidak ditutup oleh sinkronisasi route, mode update tetap memakai ID form meski daftar design berubah, dan slug lama tidak ikut berubah saat judul diedit - files: frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/pages/admin/TemplateFormModal.tsx, frontend/src/pages/admin/__tests__/AdminMediaUpload.test.tsx, docs/CHANGELOG.md
 - [x] 2026-09-14 - Permudah input Design dengan wizard empat langkah, auto-slug dan pengaturan lanjutan, progres serta validasi terarah, autosave draft dan peringatan unsaved changes, status draft/published, duplikasi sebagai draft, opsi source code dijual beserta proteksi checkout backend, filter draft dari katalog publik, dan upload ZIP/RAR nyata maksimal 100 MB ke storage - files: backend/database/schema.sql, backend/src/runtime-migrations.ts, backend/src/models/template.model.ts, backend/src/models/order.model.ts, backend/src/routes/templates.ts, backend/src/routes/orders.ts, backend/src/routes/uploads.ts, backend/src/storage/image-storage.ts, frontend/src/domain/content.ts, frontend/src/pages/AdminTemplatesPage.tsx, frontend/src/pages/admin/TemplatesPanel.tsx, frontend/src/pages/admin/TemplateFormModal.tsx, frontend/src/pages/admin/AdminTemplateWorkspace.shared.tsx, frontend/src/pages/TemplateDetailPage.tsx, frontend/src/components/catalog/TemplateCard.tsx, frontend/src/pages/admin/__tests__/AdminMediaUpload.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
 
 ## 2026-09-12
