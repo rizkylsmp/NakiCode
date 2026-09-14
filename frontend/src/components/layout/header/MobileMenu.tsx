@@ -111,28 +111,11 @@ function AuthenticatedMobileMenu({
 
 function AdminMobileLinks({ onClose }: { onClose: () => void }) {
   return (
-    <>
-      <MobileMenuLink
-        label="Dashboard admin"
-        to="/admin/dashboard"
-        onClose={onClose}
-      />
-      <MobileMenuLink
-        label="Kelola design"
-        to="/admin/design"
-        onClose={onClose}
-      />
-      <MobileMenuLink
-        label="Order masuk"
-        to="/admin/orders"
-        onClose={onClose}
-      />
-      <MobileMenuLink
-        label="Portofolio"
-        to="/admin/portfolio"
-        onClose={onClose}
-      />
-    </>
+    <MobileMenuLink
+      label="Dashboard admin"
+      to="/admin/dashboard"
+      onClose={onClose}
+    />
   );
 }
 
@@ -163,6 +146,7 @@ function MobileMenuLink({
     <Link
       className="rounded-lg px-3 py-3 text-sm text-naki-primary transition hover:bg-naki-frost"
       onClick={onClose}
+      role="menuitem"
       to={to}
     >
       {label}

@@ -93,6 +93,44 @@ describe("Header Component", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows only Dashboard admin in the mobile admin account menu", () => {
+    renderHeader({
+      token: "fake-admin-token",
+      username: "admin",
+      role: "admin",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Buka menu" }));
+
+    expect(
+      screen.getByRole("menuitem", { name: "Dashboard admin" }),
+    ).toHaveAttribute("href", "/admin/dashboard");
+    expect(screen.queryByText("Kelola design")).not.toBeInTheDocument();
+    expect(screen.queryByText("Order masuk")).not.toBeInTheDocument();
+  });
+
+  it("matches the regular user links in the mobile account menu", () => {
+    renderHeader({
+      token: "fake-user-token",
+      username: "user",
+      role: "user",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Buka menu" }));
+
+    expect(screen.getByRole("menuitem", { name: "Profil saya" })).toHaveAttribute(
+      "href",
+      "/akun-saya",
+    );
+    expect(
+      screen.getByRole("menuitem", { name: "Pesanan saya" }),
+    ).toHaveAttribute("href", "/pesanan-saya");
+    expect(screen.getByRole("menuitem", { name: "Wishlist" })).toHaveAttribute(
+      "href",
+      "/wishlist",
+    );
+  });
+
   it("renders navigation links", () => {
     renderHeader();
 
