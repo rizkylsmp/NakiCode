@@ -8,7 +8,7 @@ import {
   TextArea,
   normalizeCoverIndex,
   type PortfolioFormState,
-} from "./AdminTemplateWorkspace.shared";
+} from "./AdminDesignWorkspace.shared";
 
 type PortfolioFormModalProps = {
   adminToken: string | null;

@@ -3,13 +3,13 @@ import { Helmet } from "react-helmet-async";
 import type { TemplateCategory, TemplateItem } from "../domain/content";
 import { Header } from "../components/layout/Header";
 import { Footer } from "../components/layout/Footer";
-import { TemplateFilterBar } from "../components/catalog/TemplateFilterBar";
-import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
-import { getTemplateCategoryPath } from "../utils/template-url";
+import { DesignFilterBar } from "../components/catalog/DesignFilterBar";
+import { DesignCatalog } from "../components/catalog/DesignCatalog";
+import { getTemplateCategoryPath } from "../utils/design-url";
 import { absoluteSiteUrl } from "../utils/seo";
 import { CategorySeoContent, getCategorySeo } from "../components/catalog/CategorySeoContent";
 
-type TemplateCatalogPageProps = {
+type DesignCatalogPageProps = {
   templates: TemplateItem[];
   categories: TemplateCategory[];
   activeCategory: TemplateCategory;
@@ -19,7 +19,7 @@ type TemplateCatalogPageProps = {
   onQueryChange: (value: string) => void;
 };
 
-export function TemplateCatalogPage({
+export function DesignCatalogPage({
   templates,
   categories,
   activeCategory,
@@ -27,7 +27,7 @@ export function TemplateCatalogPage({
   isLoading,
   onCategoryChange,
   onQueryChange,
-}: TemplateCatalogPageProps) {
+}: DesignCatalogPageProps) {
   const [sortBy, setSortBy] = useState("popular");
   const isCategoryPage = activeCategory !== "Semua";
   const categorySeo = isCategoryPage ? getCategorySeo(activeCategory) : undefined;
@@ -180,7 +180,7 @@ export function TemplateCatalogPage({
 
       {/* Floating filter bar */}
       <section className="relative z-10 -mt-6">
-        <TemplateFilterBar
+        <DesignFilterBar
           categories={categories}
           activeCategory={activeCategory}
           query={query}
@@ -194,7 +194,7 @@ export function TemplateCatalogPage({
 
       {/* Design grid */}
       <section className="bg-naki-page-bg pb-8">
-        <TemplateCatalog
+        <DesignCatalog
           templates={filteredTemplates}
           activeCategory={activeCategory}
           isLoading={isLoading}

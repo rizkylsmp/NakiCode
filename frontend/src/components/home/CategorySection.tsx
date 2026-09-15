@@ -2,7 +2,7 @@ import { ArrowRight, Layout, BarChart3, ShoppingCart, Smartphone, Server, FileTe
 import type { TemplateCategory } from "../../domain/content";
 import { Link } from "react-router-dom";
 import { Skeleton } from "../ui/skeletons/Skeleton";
-import { getTemplateCategoryPath } from "../../utils/template-url";
+import { getTemplateCategoryPath } from "../../utils/design-url";
 
 type CategorySectionProps = {
   categories: TemplateCategory[];

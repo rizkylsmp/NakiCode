@@ -6,20 +6,20 @@ import { Link } from "react-router-dom";
 import type { TemplateCategory, TemplateItem } from "../../domain/content";
 import { useAuth } from "../../contexts/auth-context";
 import { useFavoriteTemplates } from "../../hooks/useFavorites";
-import { TemplateCard } from "./TemplateCard";
-import { TemplateCardSkeleton } from "../ui/skeletons/TemplateCardSkeleton";
+import { DesignCard } from "./DesignCard";
+import { DesignCardSkeleton } from "../ui/skeletons/DesignCardSkeleton";
 
-type TemplateCatalogProps = {
+type DesignCatalogProps = {
   templates: TemplateItem[];
   activeCategory: TemplateCategory;
   isLoading?: boolean;
 };
 
-export function TemplateCatalog({
+export function DesignCatalog({
   templates,
   activeCategory,
   isLoading,
-}: TemplateCatalogProps) {
+}: DesignCatalogProps) {
   const { isAuthenticated } = useAuth();
   const { favoriteIds, isFavoriteLoading, toggleFavorite } =
     useFavoriteTemplates();
@@ -57,7 +57,7 @@ export function TemplateCatalog({
         <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
           {isLoading ? (
             Array.from({ length: 8 }).map((_, index) => (
-              <TemplateCardSkeleton key={index} />
+              <DesignCardSkeleton key={index} />
             ))
           ) : templates.length === 0 ? (
             <div className="col-span-full py-16 text-center">
@@ -71,7 +71,7 @@ export function TemplateCatalog({
             </div>
           ) : (
             templates.map((template) => (
-              <TemplateCard
+              <DesignCard
                 key={template.id}
                 isAuthenticated={isAuthenticated}
                 isFavorite={favoriteIds.has(template.id)}

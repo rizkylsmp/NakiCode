@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { MasonryPhotoAlbum, type Photo } from "react-photo-album";
 import type { PortfolioItem } from "../../domain/content";
-import { normalizeCoverIndex } from "../../pages/admin/AdminTemplateWorkspace.shared";
+import { normalizeCoverIndex } from "../../pages/admin/AdminDesignWorkspace.shared";
 import { Skeleton, SkeletonText } from "../ui/skeletons/Skeleton";
 import "react-photo-album/masonry.css";
 

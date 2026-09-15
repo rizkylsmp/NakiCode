@@ -2,7 +2,7 @@ import { AlertTriangle, ClipboardList, Globe2, Inbox, Tag } from "lucide-react";
 import type React from "react";
 import { type PortfolioItem, type TemplateItem } from "../../domain/content";
 import { type OrderItem } from "../../domain/order-types";
-import { type DashboardView } from "./AdminTemplateWorkspace.shared";
+import { type DashboardView } from "./AdminDesignWorkspace.shared";
 
 type AdminDashboardHomeProps = {
   templates: TemplateItem[];

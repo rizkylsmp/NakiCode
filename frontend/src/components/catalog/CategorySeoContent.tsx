@@ -1,6 +1,7 @@
-import { BadgeCheck, MessageCircle } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
+import { WhatsAppBrandIcon } from "../ui/BrandIcons";
 import categorySeoItems from "../../domain/category-seo.json";
-import { slugifyTemplateCategory } from "../../utils/template-url";
+import { slugifyTemplateCategory } from "../../utils/design-url";
 
 type CategorySeoItem = (typeof categorySeoItems)[number];
 
@@ -29,7 +30,10 @@ export function CategorySeoContent({ category }: { category: string }) {
             {content.heading}
           </h2>
           {content.intro.map((paragraph) => (
-            <p key={paragraph} className="mt-4 max-w-3xl text-base leading-8 text-naki-smoke">
+            <p
+              key={paragraph}
+              className="mt-4 max-w-3xl text-base leading-8 text-naki-smoke"
+            >
               {paragraph}
             </p>
           ))}
@@ -39,8 +43,14 @@ export function CategorySeoContent({ category }: { category: string }) {
           </h3>
           <ul className="mt-4 grid gap-3 sm:grid-cols-3">
             {content.benefits.map((benefit) => (
-              <li key={benefit} className="flex items-start gap-2 rounded-xl bg-naki-frost p-4 text-sm text-naki-smoke">
-                <BadgeCheck className="mt-0.5 shrink-0 text-blue-500" size={17} />
+              <li
+                key={benefit}
+                className="flex items-start gap-2 rounded-xl bg-naki-frost p-4 text-sm text-naki-smoke"
+              >
+                <BadgeCheck
+                  className="mt-0.5 shrink-0 text-blue-500"
+                  size={17}
+                />
                 {benefit}
               </li>
             ))}
@@ -49,14 +59,20 @@ export function CategorySeoContent({ category }: { category: string }) {
 
         <aside className="h-fit rounded-2xl bg-naki-primary p-6 text-white shadow-naki-card">
           <h3 className="text-lg font-semibold">{content.question}</h3>
-          <p className="mt-3 text-sm leading-7 text-slate-300">{content.answer}</p>
+          <p className="mt-3 text-sm leading-7 text-slate-300">
+            {content.answer}
+          </p>
           <a
             className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
-            href={whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${message}` : "/#cara-kerja"}
+            href={
+              whatsappNumber
+                ? `https://wa.me/${whatsappNumber}?text=${message}`
+                : "/#cara-kerja"
+            }
             rel={whatsappNumber ? "noreferrer" : undefined}
             target={whatsappNumber ? "_blank" : undefined}
           >
-            <MessageCircle size={17} />
+            <WhatsAppBrandIcon className="size-[18px]" />
             Konsultasikan kebutuhan
           </a>
         </aside>

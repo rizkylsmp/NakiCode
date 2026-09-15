@@ -6,8 +6,8 @@ import {
   defaultFormState,
   normalizeDesignSlug,
   updateTemplateFormField,
-} from "../AdminTemplateWorkspace.shared";
-import { TemplateFormModal } from "../TemplateFormModal";
+} from "../AdminDesignWorkspace.shared";
+import { DesignFormModal } from "../DesignFormModal";
 
 const apiUploadMock = vi.hoisted(() => vi.fn());
 
@@ -59,7 +59,7 @@ describe("updateTemplateFormField", () => {
 describe("PreviewDropZone", () => {
   it("places Level below Judul on mobile and beside Slug on desktop", () => {
     render(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         form={{ ...defaultFormState }}
         isOpen
@@ -138,7 +138,7 @@ describe("PreviewDropZone", () => {
     const onUpdateField = vi.fn();
 
     render(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         form={{ ...defaultFormState }}
         isOpen
@@ -195,7 +195,7 @@ describe("PreviewDropZone", () => {
     const onSubmitTemplate = vi.fn();
 
     render(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         form={{
           ...defaultFormState,
@@ -234,7 +234,7 @@ describe("PreviewDropZone", () => {
     const onSubmitTemplate = vi.fn();
 
     render(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         existingSlugs={[
           { id: 8, slug: "design-sendiri" },
@@ -276,7 +276,7 @@ describe("PreviewDropZone", () => {
     const onSubmitTemplate = vi.fn();
 
     render(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         form={{
           ...defaultFormState,
@@ -336,7 +336,7 @@ describe("PreviewDropZone", () => {
   it("uses the Naki dialog for unsaved changes", () => {
     const onClose = vi.fn();
     const { rerender } = render(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         form={{ ...defaultFormState }}
         isOpen
@@ -351,7 +351,7 @@ describe("PreviewDropZone", () => {
     );
 
     rerender(
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={["Portfolio"]}
         form={{ ...defaultFormState, title: "Draft berubah" }}
         isOpen

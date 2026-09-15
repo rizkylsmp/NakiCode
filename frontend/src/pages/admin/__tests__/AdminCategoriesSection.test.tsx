@@ -39,6 +39,9 @@ describe("AdminCategoriesSection", () => {
 
     expect(screen.getByText("4 Design")).toHaveAttribute("tabindex", "0");
     expect(screen.getByText("0 Design")).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Pagination" }),
+    ).toHaveTextContent("Halaman 1 dari 1");
     expect(screen.getByRole("tooltip", { hidden: true })).toHaveTextContent(
       "Studio ArunikaVisual NusaKarya LegacyRuang Cerita",
     );

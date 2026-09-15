@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method VARCHAR(80) NULL,
   payment_reference VARCHAR(120) NULL,
   payment_url VARCHAR(500) NULL,
+  payment_expires_at TIMESTAMP NULL,
   payment_amount BIGINT NULL,
   subtotal_amount BIGINT NULL,
   discount_amount BIGINT NOT NULL DEFAULT 0,
@@ -95,6 +96,14 @@ CREATE TABLE IF NOT EXISTS orders (
   deposit_percent INT NOT NULL DEFAULT 50,
   amount_paid BIGINT NOT NULL DEFAULT 0,
   payment_stage VARCHAR(20) NOT NULL DEFAULT 'deposit',
+  delivery_demo_url VARCHAR(500) NULL,
+  delivery_source_url VARCHAR(500) NULL,
+  delivery_notes TEXT NULL,
+  delivery_review_status VARCHAR(30) NULL,
+  delivery_submitted_at TIMESTAMP NULL,
+  delivery_reviewed_at TIMESTAMP NULL,
+  revision_notes TEXT NULL,
+  revision_files JSON NULL,
   invoice_number VARCHAR(40) NULL UNIQUE,
   invoice_issued_at TIMESTAMP NULL,
   payment_failure_code VARCHAR(80) NULL,
@@ -109,7 +118,8 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_orders_admin_filters (deleted_at, status, payment_status, created_at),
-  KEY idx_orders_finance (payment_status, paid_at)
+  KEY idx_orders_finance (payment_status, paid_at),
+  KEY idx_orders_payment_expiry (payment_status, payment_expires_at)
 );
 
 CREATE TABLE IF NOT EXISTS order_payment_sessions (
@@ -121,6 +131,7 @@ CREATE TABLE IF NOT EXISTS order_payment_sessions (
   method VARCHAR(80) NOT NULL,
   reference VARCHAR(120) NOT NULL,
   payment_url VARCHAR(500) NULL,
+  expires_at TIMESTAMP NULL,
   subtotal_amount BIGINT NOT NULL,
   discount_amount BIGINT NOT NULL DEFAULT 0,
   gateway_fee_amount BIGINT NOT NULL DEFAULT 0,

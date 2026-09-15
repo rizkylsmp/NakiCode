@@ -3,7 +3,9 @@ import { useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut } from "../../services/api-client";
 import { getApiErrorMessage } from "../../services/api-client";
 import { useToast } from "../../components/ui/Toast";
-import type { AdminCategory } from "./AdminTemplateWorkspace.shared";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import type { AdminCategory } from "./AdminDesignWorkspace.shared";
 
 type CategoryMutationResponse = {
   categories?: string[];
@@ -40,6 +42,14 @@ export function AdminCategoriesSection({
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const {
+    page,
+    pageSize,
+    paginatedItems: paginatedCategories,
+    setPage,
+    setPageSize,
+    totalPages,
+  } = useClientPagination(categories);
 
   async function refreshAdminCategories() {
     const data = await apiGet<{ categories: AdminCategory[] }>(
@@ -287,7 +297,7 @@ export function AdminCategoriesSection({
         </div>
       ) : (
         <div className="grid gap-2">
-          {categories.map((category) => (
+          {paginatedCategories.map((category) => (
             <div
               key={category.id}
               draggable
@@ -384,6 +394,16 @@ export function AdminCategoriesSection({
           ))}
         </div>
       )}
+
+      <PaginationControls
+        alwaysVisible
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        page={page}
+        pageSize={pageSize}
+        total={categories.length}
+        totalPages={totalPages}
+      />
 
       {/* Create/Edit Modal */}
       {isModalOpen && (

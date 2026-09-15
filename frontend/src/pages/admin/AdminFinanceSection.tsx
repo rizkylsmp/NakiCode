@@ -20,6 +20,8 @@ import apiClient, {
   apiPut,
   getApiErrorMessage,
 } from "../../services/api-client";
+import { formatRupiahInputPreview } from "../../utils/currency";
+import { PaginationControls } from "../../components/ui/PaginationControls";
 
 type TransactionType = "income" | "expense" | "refund";
 type FinanceTransaction = {
@@ -86,6 +88,7 @@ export function AdminFinanceSection() {
   const [to, setTo] = useState(initialPeriod.to);
   const [type, setType] = useState<"all" | TransactionType>("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [data, setData] = useState<FinanceResponse | null>(null);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [form, setForm] = useState<ExpenseForm | null>(null);
@@ -100,7 +103,7 @@ export function AdminFinanceSection() {
         from,
         to,
         page: String(page),
-        pageSize: "20",
+        pageSize: String(pageSize),
       });
       if (type !== "all") query.set("type", type);
       const [finance, categoryResult] = await Promise.all([
@@ -115,7 +118,7 @@ export function AdminFinanceSection() {
     } finally {
       setLoading(false);
     }
-  }, [from, page, to, type]);
+  }, [from, page, pageSize, to, type]);
 
   useEffect(() => {
     void load();
@@ -205,10 +208,7 @@ export function AdminFinanceSection() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-naki-secondary">
-            Arus kas
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-naki-primary">
+          <h1 className="text-2xl font-bold text-naki-primary">
             Pembukuan
           </h1>
           <p className="mt-1 text-sm text-naki-smoke">
@@ -551,33 +551,22 @@ export function AdminFinanceSection() {
             </tbody>
           </table>
         </div>
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-naki-steel px-4 py-3 text-sm text-naki-smoke">
-            <span>{data.total} transaksi</span>
-            <div className="flex items-center gap-2">
-              <button
-                className="h-9 rounded-lg border border-naki-steel px-3 disabled:opacity-40"
-                disabled={page <= 1}
-                onClick={() => setPage((v) => v - 1)}
-                type="button"
-              >
-                Sebelumnya
-              </button>
-              <span className="min-w-12 text-center text-xs font-semibold">
-                {page}/{data.totalPages}
-              </span>
-              <button
-                className="h-9 rounded-lg border border-naki-steel px-3 disabled:opacity-40"
-                disabled={page >= data.totalPages}
-                onClick={() => setPage((v) => v + 1)}
-                type="button"
-              >
-                Berikutnya
-              </button>
-            </div>
-          </div>
-        )}
       </section>
+      {data ? (
+        <PaginationControls
+          alwaysVisible
+          isLoading={loading}
+          onPageChange={setPage}
+          page={page}
+          pageSize={pageSize}
+          total={data.total}
+          totalPages={data.totalPages}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
+        />
+      ) : null}
       {form && (
         <div
           className="fixed inset-0 z-[80] grid place-items-center bg-naki-primary/60 p-4"
@@ -642,6 +631,14 @@ export function AdminFinanceSection() {
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 />
+                {formatRupiahInputPreview(form.amount) ? (
+                  <span
+                    aria-live="polite"
+                    className="text-xs font-semibold text-naki-secondary"
+                  >
+                    {formatRupiahInputPreview(form.amount)}
+                  </span>
+                ) : null}
               </label>
               <label className="grid gap-1 text-xs text-naki-smoke">
                 Tanggal

@@ -3,7 +3,7 @@ import { pool } from "../db";
 import {
   findRecentTemplateReviews,
   type TemplateReviewItem,
-} from "./template-rating.model";
+} from "./design-rating.model";
 
 type TemplateRow = RowDataPacket & {
   id: number;

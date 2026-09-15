@@ -1,12 +1,13 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import * as Sentry from "@sentry/node";
 import multer from "multer";
 import sharp from "sharp";
-import { requireAdmin, type UserTokenPayload } from "../auth";
+import { requireAdmin, requireUser, type UserTokenPayload } from "../auth";
 import { createAdminAuditLog } from "../models/audit-log.model";
 import {
   storePreviewImage,
   storePreviewVideo,
+  storeRevisionAttachment,
   storeSourcePackage,
 } from "../storage/image-storage";
 
@@ -109,6 +110,50 @@ const sourceUpload = multer({
   },
 });
 
+const ALLOWED_REVISION_EXTENSIONS = new Set([
+  ".jpg", ".jpeg", ".png", ".webp", ".gif",
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+  ".txt", ".csv", ".json", ".md", ".zip", ".rar", ".7z",
+]);
+
+export function isAllowedRevisionAttachmentName(filename: string) {
+  const dotIndex = filename.lastIndexOf(".");
+  const extension = dotIndex >= 0 ? filename.slice(dotIndex).toLowerCase() : "";
+  return ALLOWED_REVISION_EXTENSIONS.has(extension);
+}
+
+const revisionUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024, files: 5 },
+  fileFilter(_request, file, callback) {
+    if (!isAllowedRevisionAttachmentName(file.originalname)) {
+      callback(
+        new Error(
+          "Format lampiran tidak didukung. Gunakan gambar, PDF, dokumen Office, teks/data, atau arsip.",
+        ),
+      );
+      return;
+    }
+    callback(null, true);
+  },
+});
+const acceptRevisionFiles: RequestHandler = (request, response, next) => {
+  revisionUpload.array("files", 5)(request, response, (error) => {
+    if (error) {
+      response.status(400).json({
+        message:
+          error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE"
+            ? "Ukuran setiap lampiran maksimal 20 MB"
+            : error instanceof Error
+              ? error.message
+              : "Lampiran revisi tidak valid",
+      });
+      return;
+    }
+    next();
+  });
+};
+
 uploadsRouter.post(
   "/images",
   requireAdmin,
@@ -155,6 +200,28 @@ uploadsRouter.post(
     } catch (error) {
       Sentry.captureException(error);
       response.status(500).json({ message: "Gagal upload gambar preview" });
+    }
+  },
+);
+
+uploadsRouter.post(
+  "/revisions",
+  requireUser,
+  acceptRevisionFiles,
+  async (request, response) => {
+    const files = (request.files ?? []) as Express.Multer.File[];
+    if (!files.length) {
+      response.status(400).json({ message: "Minimal satu file wajib diupload" });
+      return;
+    }
+    try {
+      const stored = await Promise.all(
+        files.map((file) => storeRevisionAttachment(file)),
+      );
+      response.status(201).json({ files: stored });
+    } catch (error) {
+      Sentry.captureException(error);
+      response.status(500).json({ message: "Gagal upload lampiran revisi" });
     }
   },
 );

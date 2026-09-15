@@ -35,6 +35,7 @@ describe("AdminFinanceSection", () => {
     await waitFor(() =>
       expect(screen.getByText(/5\.500\.000/)).toBeInTheDocument(),
     );
+    expect(screen.queryByText("Arus kas")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Statistik laba/rugi" }),
     ).toBeInTheDocument();
@@ -44,6 +45,9 @@ describe("AdminFinanceSection", () => {
     expect(screen.getByLabelText("Jenis transaksi pembukuan")).toHaveValue(
       "all",
     );
+    expect(
+      screen.getByRole("navigation", { name: "Pagination" }),
+    ).toHaveTextContent("Halaman 1 dari 1");
 
     fireEvent.change(screen.getByLabelText("Periode statistik pembukuan"), {
       target: { value: "custom" },

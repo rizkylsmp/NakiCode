@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { getTemplateCategoryPath } from "../../utils/template-url";
+import { getTemplateCategoryPath } from "../../utils/design-url";
 
 const productLinks = [
   { label: "Semua Design", href: "/design" },

@@ -138,7 +138,7 @@ export function Header() {
           Lewati ke konten utama
         </a>
       ) : null}
-      <div className="flex w-full items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
+      <div className="flex w-full items-center justify-between gap-2 px-3 py-3.5 sm:gap-3 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
         <SiteLogo />
 
         <nav className="hidden items-center gap-1 lg:flex">
@@ -201,11 +201,13 @@ export function Header() {
             </>
           ) : (
             <Link
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-4 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-sm font-medium text-naki-primary transition hover:border-naki-steel/80 hover:bg-naki-frost"
               to={loginNext}
             >
-              <LogIn size={16} />
-              Login
+              <span className="grid size-7 place-items-center rounded-md bg-blue-500/10 text-blue-500">
+                <LogIn size={14} />
+              </span>
+              <span>Login</span>
             </Link>
           )}
         </div>

@@ -13,7 +13,7 @@ import {
   type CaptchaState,
 } from "../utils/auth-captcha";
 import type { OrderItem } from "../domain/order-types";
-import { saveRecentlyViewedTemplate } from "../utils/template-activity";
+import { saveRecentlyViewedTemplate } from "../utils/design-activity";
 import { useFavoriteTemplates } from "../hooks/useFavorites";
 import {
   userRoleKey,
@@ -70,7 +70,7 @@ const defaultUserAuthForm: UserAuthFormState = {
   confirmPassword: "",
 };
 
-export function useTemplateDetailPage(template: TemplateItem | null) {
+export function useDesignDetailPage(template: TemplateItem | null) {
   const navigate = useNavigate();
 
   // Session state

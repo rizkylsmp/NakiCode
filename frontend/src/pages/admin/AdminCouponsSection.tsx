@@ -1,7 +1,10 @@
 import { CalendarClock, ImageIcon, Pencil, Plus, RefreshCw, Tag, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut, getApiErrorMessage } from "../../services/api-client";
-import { ImageUploadDropZone } from "./AdminTemplateWorkspace.shared";
+import { formatRupiahInputPreview } from "../../utils/currency";
+import { ImageUploadDropZone } from "./AdminDesignWorkspace.shared";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { useClientPagination } from "../../hooks/useClientPagination";
 
 type Coupon = {
   id: number;
@@ -54,6 +57,14 @@ export function AdminCouponsSection({ adminToken }: { adminToken: string | null 
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [status, setStatus] = useState("Memuat coupon...");
   const [uploadStatus, setUploadStatus] = useState("Belum ada gambar banner.");
+  const {
+    page,
+    pageSize,
+    paginatedItems: paginatedCoupons,
+    setPage,
+    setPageSize,
+    totalPages,
+  } = useClientPagination(coupons);
 
   const loadCoupons = useCallback(async () => {
     setIsLoading(true);
@@ -180,7 +191,7 @@ export function AdminCouponsSection({ adminToken }: { adminToken: string | null 
           <table className="w-full min-w-220 text-left">
             <thead className="bg-naki-frost text-xs uppercase text-naki-smoke"><tr><th className="p-4">Kode</th><th className="p-4">Diskon</th><th className="p-4">Batas</th><th className="p-4">Dipakai</th><th className="p-4">Banner</th><th className="p-4">Status</th><th className="p-4 text-right">Aksi</th></tr></thead>
             <tbody className="divide-y divide-naki-steel">
-              {coupons.map((coupon) => {
+              {paginatedCoupons.map((coupon) => {
                 const timeExpired = Boolean(coupon.expiresAt && new Date(coupon.expiresAt) <= new Date());
                 const usageExpired = coupon.maxRedemptions !== null && coupon.redemptionCount >= coupon.maxRedemptions;
                 const expired = timeExpired || usageExpired;
@@ -203,6 +214,17 @@ export function AdminCouponsSection({ adminToken }: { adminToken: string | null 
         </div>
       </div>
 
+      <PaginationControls
+        alwaysVisible
+        isLoading={isLoading}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        page={page}
+        pageSize={pageSize}
+        total={coupons.length}
+        totalPages={totalPages}
+      />
+
       {isOpen ? (
         <div className="fixed inset-0 z-70 grid place-items-center overflow-y-auto bg-black/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !isSaving) setIsOpen(false); }}>
           <form aria-modal="true" className="my-4 w-full max-w-2xl rounded-xl bg-white p-5 shadow-xl sm:p-6" onSubmit={saveCoupon} role="dialog">
@@ -216,7 +238,15 @@ export function AdminCouponsSection({ adminToken }: { adminToken: string | null 
               <label className="grid gap-1.5 text-sm font-medium text-naki-primary">Keterangan<input required maxLength={255} className="h-11 rounded-lg border border-naki-steel px-3 outline-none focus:border-blue-400" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-sm font-medium text-naki-primary">Jenis<select className="h-11 rounded-lg border border-naki-steel px-3" value={form.discountType} onChange={(event) => setForm({ ...form, discountType: event.target.value as CouponForm["discountType"] })}><option value="percent">Persen</option><option value="fixed">Nominal</option></select></label>
-                <label className="grid gap-1.5 text-sm font-medium text-naki-primary">Nilai<input required min={1} max={form.discountType === "percent" ? 100 : undefined} className="h-11 rounded-lg border border-naki-steel px-3" type="number" value={form.discountValue} onChange={(event) => setForm({ ...form, discountValue: Number(event.target.value) })} /></label>
+                <label className="grid gap-1.5 text-sm font-medium text-naki-primary">
+                  Nilai
+                  <input required min={1} max={form.discountType === "percent" ? 100 : undefined} className="h-11 rounded-lg border border-naki-steel px-3" type="number" value={form.discountValue} onChange={(event) => setForm({ ...form, discountValue: Number(event.target.value) })} />
+                  {form.discountType === "fixed" ? (
+                    <span aria-live="polite" className="text-xs font-semibold text-naki-secondary">
+                      {formatRupiahInputPreview(form.discountValue)}
+                    </span>
+                  ) : null}
+                </label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-sm font-medium text-naki-primary">Batas<select className="h-11 rounded-lg border border-naki-steel px-3" value={form.limitType} onChange={(event) => setForm((current) => event.target.value === "usage" ? { ...current, limitType: "usage", expiresAt: "" } : { ...current, limitType: "time" })}><option value="time">Waktu kedaluwarsa</option><option value="usage">Jumlah pemakaian</option></select></label>

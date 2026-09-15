@@ -2,18 +2,16 @@ import { Copy, Edit3, Plus, Search, Trash2, X } from "lucide-react";
 import type React from "react";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { type TemplateItem } from "../../domain/content";
-import {
-  adminTemplatesPageSize,
-  type TemplateFormState,
-} from "./AdminTemplateWorkspace.shared";
+import { type TemplateFormState } from "./AdminDesignWorkspace.shared";
 import { CategoryModal } from "./CategoryModal";
-import { TemplateFormModal } from "./TemplateFormModal";
+import { DesignFormModal } from "./DesignFormModal";
 
-type TemplatesPanelProps = {
+type DesignsPanelProps = {
   templates: TemplateItem[];
   paginatedTemplates: TemplateItem[];
   filteredTemplatesCount: number;
   templatesPage: number;
+  templatesPageSize?: number;
   templatesTotalPages: number;
   templateSearch: string;
   templateCategoryFilter: string;
@@ -33,6 +31,7 @@ type TemplatesPanelProps = {
   onTemplateSearchChange: (value: string) => void;
   onTemplateCategoryFilterChange: (value: string) => void;
   onTemplatesPageChange: (page: number) => void;
+  onTemplatesPageSizeChange?: (pageSize: number) => void;
   onStartCreate: () => void;
   onStartEdit: (template: TemplateItem) => void;
   onDuplicateTemplate?: (template: TemplateItem) => void;
@@ -55,11 +54,12 @@ type TemplatesPanelProps = {
   isDeletingCategory: boolean;
 };
 
-export function TemplatesPanel({
+export function DesignsPanel({
   templates,
   paginatedTemplates,
   filteredTemplatesCount,
   templatesPage,
+  templatesPageSize = 10,
   templatesTotalPages,
   templateSearch,
   templateCategoryFilter,
@@ -79,6 +79,7 @@ export function TemplatesPanel({
   onTemplateSearchChange,
   onTemplateCategoryFilterChange,
   onTemplatesPageChange,
+  onTemplatesPageSizeChange,
   onStartCreate,
   onStartEdit,
   onDuplicateTemplate,
@@ -96,7 +97,7 @@ export function TemplatesPanel({
   onCancelEditCategory,
   onDeleteCategory,
   isDeletingCategory,
-}: TemplatesPanelProps) {
+}: DesignsPanelProps) {
   const hasActiveTemplateTools =
     templateSearch.trim().length > 0 || templateCategoryFilter !== "all";
 
@@ -288,13 +289,15 @@ export function TemplatesPanel({
       </div>
 
       <PaginationControls
+        alwaysVisible
         page={templatesPage}
         total={filteredTemplatesCount}
         totalPages={templatesTotalPages}
-        pageSize={adminTemplatesPageSize}
+        pageSize={templatesPageSize}
         onPageChange={onTemplatesPageChange}
+        onPageSizeChange={onTemplatesPageSizeChange}
       />
-      <TemplateFormModal
+      <DesignFormModal
         categoryOptions={categoryOptions}
         existingSlugs={templates.map((template) => ({
           id: template.id,

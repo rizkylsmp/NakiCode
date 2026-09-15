@@ -16,12 +16,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiGet, apiPost, getApiErrorMessage } from "../services/api-client";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
+import { PaymentDeadline } from "../components/payment/PaymentDeadline";
 import {
   canStartOrderCheckout,
   canConfirmPaymentManually,
   getOrderPaymentActionLabel,
   getOrderPayableAmount,
   getOrderTypeLabel,
+  getPaymentMethodLabel,
   getPaymentStatusLabel,
   getWaitingPaymentMessage,
   type OrderItem,
@@ -30,6 +32,7 @@ import { userSessionEvent, userTokenKey } from "../utils/user-session";
 
 type CheckoutProvider = "midtrans" | "lynk";
 type PaymentMethod = "qris" | "dana";
+type InitialPaymentOption = "deposit" | "full";
 
 const paymentMethods: Array<{
   value: PaymentMethod;
@@ -62,45 +65,60 @@ export function CheckoutPage() {
   const [checkoutProvider, setCheckoutProvider] =
     useState<CheckoutProvider>("midtrans");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qris");
+  const [initialPaymentOption, setInitialPaymentOption] =
+    useState<InitialPaymentOption>("deposit");
   const [status, setStatus] = useState("Memuat checkout...");
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponStatus, setCouponStatus] = useState("Kupon opsional.");
 
-  const loadOrder = useCallback(async () => {
-    if (!userToken) {
-      setOrder(null);
-      setStatus("Login user diperlukan untuk checkout.");
-      return;
-    }
+  const loadOrder = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      if (!userToken) {
+        setOrder(null);
+        setStatus("Login user diperlukan untuk checkout.");
+        return;
+      }
 
-    if (!Number.isFinite(parsedOrderId)) {
-      setStatus("Order checkout tidak valid.");
-      return;
-    }
+      if (!Number.isFinite(parsedOrderId)) {
+        setStatus("Order checkout tidak valid.");
+        return;
+      }
 
-    setIsLoading(true);
-    setStatus("Memuat detail order...");
+      if (!options.silent) {
+        setIsLoading(true);
+        setStatus("Memuat detail order...");
+      }
 
-    try {
-      const data = await apiGet<{ order: OrderItem }>(
-        `/api/orders/my/${parsedOrderId}`,
-      );
-      const selectedOrder = data.order ?? null;
+      try {
+        const data = await apiGet<{ order: OrderItem }>(
+          `/api/orders/my/${parsedOrderId}`,
+        );
+        const selectedOrder = data.order ?? null;
 
-      setOrder(selectedOrder);
-      setStatus(
-        selectedOrder
-          ? "Pilih metode pembayaran untuk melanjutkan."
-          : "Order tidak ditemukan di akun ini.",
-      );
-    } catch {
-      setStatus("Gagal memuat checkout. Pastikan backend aktif.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [parsedOrderId, userToken]);
+        setOrder(selectedOrder);
+        if (
+          selectedOrder?.orderType !== "source_purchase" ||
+          !selectedOrder.templateLynkUrl
+        ) {
+          setCheckoutProvider("midtrans");
+        }
+        setStatus(
+          selectedOrder
+            ? "Pilih metode pembayaran untuk melanjutkan."
+            : "Order tidak ditemukan di akun ini.",
+        );
+      } catch {
+        if (!options.silent) {
+          setStatus("Gagal memuat checkout. Pastikan backend aktif.");
+        }
+      } finally {
+        if (!options.silent) setIsLoading(false);
+      }
+    },
+    [parsedOrderId, userToken],
+  );
 
   useEffect(() => {
     function syncUserSession() {
@@ -120,6 +138,15 @@ export function CheckoutPage() {
     void loadOrder();
   }, [loadOrder]);
 
+  useEffect(() => {
+    if (order?.paymentStatus !== "waiting_payment") return;
+
+    const intervalId = window.setInterval(() => {
+      void loadOrder({ silent: true });
+    }, 15_000);
+    return () => window.clearInterval(intervalId);
+  }, [loadOrder, order?.paymentStatus]);
+
   async function startPayment() {
     if (!userToken || !order) {
       setStatus("Order belum siap diproses.");
@@ -132,6 +159,11 @@ export function CheckoutPage() {
           ? "Setujui penawaran harga dari halaman Pesanan Saya terlebih dahulu."
           : "Pembayaran baru tidak dapat dimulai untuk status order ini.",
       );
+      return;
+    }
+
+    if (checkoutProvider === "lynk" && !order.templateLynkUrl) {
+      setStatus("Checkout Lynk belum tersedia untuk design ini.");
       return;
     }
 
@@ -150,6 +182,10 @@ export function CheckoutPage() {
             checkoutProvider === "midtrans"
               ? couponCode.trim() || undefined
               : undefined,
+          paymentOption:
+            order.orderType === "custom_project" && order.amountPaid === 0
+              ? initialPaymentOption
+              : undefined,
         },
       );
       setOrder(data.order);
@@ -158,7 +194,7 @@ export function CheckoutPage() {
         setStatus(
           checkoutProvider === "lynk"
             ? "Checkout Lynk sudah dibuka. Selesaikan transaksi di Lynk, lalu kembali ke Pesanan Saya untuk melihat statusnya."
-            : "Pembayaran Midtrans sudah dibuka. Status akan berubah otomatis setelah gateway mengirim webhook.",
+            : "Halaman pembayaran sudah dibuka. Status akan diperbarui otomatis setelah transaksi terverifikasi.",
         );
       } else {
         paymentWindow?.close();
@@ -171,7 +207,7 @@ export function CheckoutPage() {
           error,
           checkoutProvider === "lynk"
             ? "Checkout Lynk tidak tersedia atau URL belum dikonfigurasi."
-            : "Gagal membuat pembayaran Midtrans. Coba channel lain atau ulangi.",
+            : "Gagal membuat sesi pembayaran. Coba metode lain atau ulangi.",
         ),
       );
     } finally {
@@ -193,7 +229,11 @@ export function CheckoutPage() {
         `/api/orders/${order.id}/payment/confirm`,
       );
       setOrder(data.order);
-      setStatus("Pembayaran berhasil. Source code sudah terbuka.");
+      setStatus(
+        data.order.orderType === "source_purchase"
+          ? "Pembayaran berhasil. Source code sudah terbuka."
+          : "Pembayaran berhasil. Pesanan masuk ke tahap pengerjaan.",
+      );
     } catch {
       setStatus("Gagal konfirmasi pembayaran.");
     } finally {
@@ -235,6 +275,19 @@ export function CheckoutPage() {
     order?.orderType === "source_purchase" && order.templateLynkUrl,
   );
   const canStartPayment = order ? canStartOrderCheckout(order) : false;
+  const showInitialPaymentChoice = Boolean(
+    order?.orderType === "custom_project" && order.amountPaid === 0,
+  );
+  const payableAmount = order
+    ? getOrderPayableAmount(order, initialPaymentOption)
+    : 0;
+  const paymentActionLabel = order
+    ? showInitialPaymentChoice
+      ? initialPaymentOption === "full"
+        ? "Bayar lunas"
+        : "Bayar DP 50%"
+      : getOrderPaymentActionLabel(order)
+    : "Bayar";
 
   return (
     <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
@@ -242,7 +295,7 @@ export function CheckoutPage() {
 
       <section
         id="main-content"
-        className="w-full px-4 py-8 sm:px-5 md:px-8 md:py-10 xl:px-12 2xl:px-16"
+        className="w-full px-4 py-6 sm:px-5 md:px-8 md:py-8 xl:px-12 2xl:px-16"
         tabIndex={-1}
       >
         <button
@@ -255,7 +308,7 @@ export function CheckoutPage() {
         </button>
 
         <ol
-          className="mt-6 grid max-w-2xl grid-cols-3 gap-2"
+          className="mt-4 grid max-w-2xl grid-cols-3 gap-2"
           aria-label="Tahapan checkout"
         >
           {["Detail order", "Metode bayar", "Selesai"].map((step, index) => (
@@ -281,24 +334,24 @@ export function CheckoutPage() {
           ))}
         </ol>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Main checkout column */}
-          <div className="rounded-2xl border border-naki-steel bg-white p-5 shadow-sm sm:p-6 md:p-8">
+          <div className="rounded-2xl border border-naki-steel bg-white p-4 shadow-sm sm:p-5 md:p-6">
             <p className="text-xs font-medium uppercase text-naki-smoke tracking-wide">
               Checkout
             </p>
-            <h1 className="mt-2 text-2xl md:text-3xl font-bold leading-tight text-naki-primary">
+            <h1 className="mt-1 text-2xl font-bold leading-tight text-naki-primary md:text-3xl">
               {order?.orderType === "custom_project"
-                ? getOrderPaymentActionLabel(order)
+                ? paymentActionLabel
                 : "Pembayaran penuh source code"}
             </h1>
-            <p className="mt-3 text-sm text-naki-smoke leading-relaxed">
+            <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
               Pilih jalur pembayaran yang paling nyaman. Detail proses dan
               pembaruan status berbeda untuk setiap provider.
             </p>
 
             <p
-              className="mt-5 inline-flex rounded-lg bg-naki-frost px-4 py-3 text-sm font-medium text-naki-smoke"
+              className="mt-3 inline-flex rounded-lg bg-naki-frost px-3 py-2 text-sm font-medium text-naki-smoke"
               aria-live="polite"
               role="status"
             >
@@ -306,7 +359,7 @@ export function CheckoutPage() {
             </p>
 
             {!userToken ? (
-              <div className="mt-6 rounded-xl bg-naki-frost p-6">
+              <div className="mt-4 rounded-xl bg-naki-frost p-4">
                 <LockKeyhole className="text-naki-secondary" size={28} />
                 <h2 className="mt-3 text-xl font-bold text-naki-primary">
                   Login diperlukan.
@@ -324,14 +377,71 @@ export function CheckoutPage() {
                 </Link>
               </div>
             ) : order ? (
-              <div className="mt-6 grid gap-5">
+              <div className="mt-4 grid gap-4">
+                {showInitialPaymentChoice ? (
+                  <fieldset>
+                    <legend className="text-sm font-bold text-naki-primary">
+                      1. Pilih skema pembayaran
+                    </legend>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {[
+                        {
+                          value: "deposit" as const,
+                          title: "DP 50%",
+                          description: `Bayar ${formatRupiah((order.quoteAmount ?? 0) * 0.5)} sekarang, sisanya setelah hasil disetujui.`,
+                          icon: WalletCards,
+                        },
+                        {
+                          value: "full" as const,
+                          title: "Langsung lunas",
+                          description: `Bayar penuh ${formatRupiah(order.quoteAmount ?? 0)}. Tetap melalui pengerjaan dan review.`,
+                          icon: BadgeCheck,
+                        },
+                      ].map((option) => {
+                        const OptionIcon = option.icon;
+                        const isActive = initialPaymentOption === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            aria-pressed={isActive}
+                            className={`flex items-start gap-3 rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary focus-visible:ring-offset-2 ${
+                              isActive
+                                ? "border-naki-primary bg-naki-primary text-white shadow-sm"
+                                : "border-naki-steel bg-naki-frost text-naki-primary hover:border-naki-secondary"
+                            }`}
+                            onClick={() =>
+                              setInitialPaymentOption(option.value)
+                            }
+                            type="button"
+                          >
+                            <OptionIcon
+                              className={`mt-0.5 shrink-0 ${isActive ? "text-white" : "text-naki-secondary"}`}
+                              size={20}
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-sm font-bold">
+                                {option.title}
+                              </span>
+                              <span
+                                className={`mt-0.5 block text-xs leading-relaxed ${isActive ? "text-white/80" : "text-naki-smoke"}`}
+                              >
+                                {option.description}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ) : null}
                 <fieldset>
                   <legend className="text-sm font-bold text-naki-primary">
-                    1. Pilih provider checkout
+                    {showInitialPaymentChoice ? "2" : "1"}. Pilih jalur
+                    pembayaran
                   </legend>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="mt-2 grid grid-cols-2 gap-2">
                     <button
-                      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition ${
+                      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition ${
                         checkoutProvider === "midtrans"
                           ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                           : "border-blue-200 bg-white text-blue-600 hover:border-blue-400"
@@ -345,7 +455,7 @@ export function CheckoutPage() {
                     </button>
 
                     <button
-                      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:border-naki-steel disabled:bg-naki-frost disabled:text-naki-smoke disabled:opacity-60 ${
                         checkoutProvider === "lynk"
                           ? "border-green-600 bg-green-600 text-white shadow-sm"
                           : "border-green-200 bg-white text-green-700 hover:border-green-400"
@@ -354,6 +464,7 @@ export function CheckoutPage() {
                       onClick={() => setCheckoutProvider("lynk")}
                       type="button"
                       aria-pressed={checkoutProvider === "lynk"}
+                      aria-disabled={!hasLynkCheckout}
                     >
                       <Link2 size={18} />
                       via Lynk
@@ -362,7 +473,7 @@ export function CheckoutPage() {
                   {!hasLynkCheckout ? (
                     <p className="mt-2 text-xs text-naki-smoke">
                       {order.orderType === "custom_project"
-                        ? "Proyek custom memakai Midtrans agar nominal DP dan pelunasan tervalidasi otomatis."
+                        ? "Proyek custom memakai payment gateway agar nominal DP dan pelunasan tervalidasi otomatis."
                         : "Checkout Lynk belum tersedia untuk design ini."}
                     </p>
                   ) : null}
@@ -371,9 +482,10 @@ export function CheckoutPage() {
                 {checkoutProvider === "midtrans" ? (
                   <fieldset>
                     <legend className="text-sm font-bold text-naki-primary">
-                      2. Pilih channel Midtrans
+                      {showInitialPaymentChoice ? "3" : "2"}. Pilih metode
+                      pembayaran
                     </legend>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       {paymentMethods.map((method) => {
                         const Icon = method.icon;
                         const isActive = paymentMethod === method.value;
@@ -381,7 +493,7 @@ export function CheckoutPage() {
                         return (
                           <button
                             key={method.value}
-                            className={`rounded-xl border p-4 text-left transition ${
+                            className={`flex items-start gap-3 rounded-xl border p-3 text-left transition ${
                               isActive
                                 ? "border-naki-primary bg-naki-primary text-white shadow-sm"
                                 : "border-naki-steel bg-naki-frost text-naki-primary hover:border-blue-300"
@@ -391,20 +503,20 @@ export function CheckoutPage() {
                             aria-pressed={isActive}
                           >
                             <Icon
-                              className={
-                                isActive ? "text-white" : "text-naki-secondary"
-                              }
-                              size={24}
+                              className={`mt-0.5 shrink-0 ${isActive ? "text-white" : "text-naki-secondary"}`}
+                              size={20}
                             />
-                            <span className="mt-3 block text-base font-bold">
-                              {method.title}
-                            </span>
-                            <span
-                              className={`mt-1.5 block text-sm leading-relaxed ${
-                                isActive ? "text-white/80" : "text-naki-smoke"
-                              }`}
-                            >
-                              {method.description}
+                            <span className="min-w-0">
+                              <span className="block text-sm font-bold">
+                                {method.title}
+                              </span>
+                              <span
+                                className={`mt-0.5 block text-xs leading-relaxed ${
+                                  isActive ? "text-white/80" : "text-naki-smoke"
+                                }`}
+                              >
+                                {method.description}
+                              </span>
                             </span>
                           </button>
                         );
@@ -412,18 +524,18 @@ export function CheckoutPage() {
                     </div>
                   </fieldset>
                 ) : (
-                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-naki-smoke">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-relaxed text-naki-smoke">
                     Kamu akan diarahkan ke Lynk pada tab baru. Setelah transaksi
                     selesai, akses pembelian mengikuti halaman dan akun Lynk.
                   </div>
                 )}
 
                 {/* Coupon and payment details */}
-                <div className="rounded-xl bg-naki-frost p-6">
+                <div className="rounded-xl bg-naki-frost p-4">
                   {checkoutProvider === "midtrans" &&
                   order.orderType === "source_purchase" ? (
                     <>
-                      <div className="mb-5 grid gap-3 md:grid-cols-[1fr_auto]">
+                      <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto]">
                         <label className="grid gap-1.5">
                           <span className="text-xs font-medium text-naki-smoke">
                             Kode kupon
@@ -447,7 +559,7 @@ export function CheckoutPage() {
                         </button>
                       </div>
                       <p
-                        className="mb-5 text-sm text-naki-smoke leading-relaxed"
+                        className="mb-3 text-sm leading-relaxed text-naki-smoke"
                         aria-live="polite"
                         role="status"
                       >
@@ -470,25 +582,54 @@ export function CheckoutPage() {
                       {getWaitingPaymentMessage(order)}
                     </p>
                   ) : null}
+                  {["waiting_payment", "expired"].includes(
+                    order.paymentStatus,
+                  ) ? (
+                    <PaymentDeadline
+                      expiresAt={order.paymentExpiresAt}
+                      onExpire={() => {
+                        setOrder((current) =>
+                          current
+                            ? {
+                                ...current,
+                                paymentStatus: "expired",
+                                paymentUrl: null,
+                                paymentFailureReason:
+                                  "Waktu pembayaran kedaluwarsa",
+                              }
+                            : current,
+                        );
+                        setStatus(
+                          "Batas pembayaran telah berakhir. Buat pembayaran baru untuk mendapatkan batas waktu baru.",
+                        );
+                      }}
+                    />
+                  ) : null}
                   {order.paymentMethod ? (
                     <p className="mt-2 text-sm font-medium text-naki-smoke">
-                      Metode aktif: {order.paymentMethod}
+                      Metode aktif: {getPaymentMethodLabel(order.paymentMethod)}
                     </p>
                   ) : null}
 
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     {order.paymentStatus === "paid" ? (
                       <Link
                         className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-medium text-white transition hover:bg-opacity-90"
                         to="/pesanan-saya"
                       >
                         <BadgeCheck size={16} />
-                        Buka source code
+                        {order.orderType === "source_purchase"
+                          ? "Buka source code"
+                          : "Lihat progres pesanan"}
                       </Link>
                     ) : canStartPayment ? (
                       <button
                         className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-4 text-sm font-medium text-white transition hover:bg-opacity-90 disabled:cursor-not-allowed disabled:bg-naki-steel disabled:text-naki-smoke"
-                        disabled={isProcessing || isLoading}
+                        disabled={
+                          isProcessing ||
+                          isLoading ||
+                          (checkoutProvider === "lynk" && !hasLynkCheckout)
+                        }
                         onClick={() => void startPayment()}
                         type="button"
                       >
@@ -499,7 +640,9 @@ export function CheckoutPage() {
                         )}
                         {isProcessing
                           ? "Memproses..."
-                          : `${getOrderPaymentActionLabel(order)} via ${checkoutProvider === "lynk" ? "Lynk" : "Midtrans"}`}
+                          : checkoutProvider === "lynk"
+                            ? `${paymentActionLabel} via Lynk`
+                            : paymentActionLabel}
                       </button>
                     ) : null}
                     {order.paymentUrl ? (
@@ -541,7 +684,7 @@ export function CheckoutPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-6 rounded-xl bg-naki-frost p-6">
+              <div className="mt-4 rounded-xl bg-naki-frost p-4">
                 <RefreshCw className="text-naki-secondary" size={28} />
                 <h2 className="mt-3 text-xl font-bold text-naki-primary">
                   Order belum ketemu.
@@ -560,16 +703,16 @@ export function CheckoutPage() {
           </div>
 
           {/* Order summary sidebar */}
-          <aside className="h-fit rounded-2xl border border-naki-steel bg-white p-6 shadow-sm lg:sticky lg:top-24">
+          <aside className="h-fit rounded-2xl border border-naki-steel bg-white p-4 shadow-sm lg:sticky lg:top-20">
             <p className="text-xs font-medium text-naki-smoke uppercase tracking-wide">
               Ringkasan order
             </p>
             {order ? (
               <>
-                <h2 className="mt-2 text-lg font-bold text-naki-primary leading-tight">
+                <h2 className="mt-1 text-lg font-bold leading-tight text-naki-primary">
                   {order.templateTitle}
                 </h2>
-                <div className="mt-5 grid gap-3">
+                <div className="mt-3 divide-y divide-naki-steel rounded-xl bg-naki-frost px-3">
                   <CheckoutInfo label="Order" value={`#${order.id}`} />
                   <CheckoutInfo
                     label="Jenis transaksi"
@@ -583,7 +726,7 @@ export function CheckoutPage() {
                   ) : null}
                   <CheckoutInfo
                     label="Tagihan saat ini"
-                    value={formatRupiah(getOrderPayableAmount(order))}
+                    value={formatRupiah(payableAmount)}
                   />
                   <CheckoutInfo
                     label="Tipe"
@@ -594,7 +737,7 @@ export function CheckoutPage() {
                     value={getPaymentStatusLabel(order.paymentStatus)}
                   />
                 </div>
-                <div className="mt-5 border-t border-naki-steel pt-5">
+                <div className="mt-3 border-t border-naki-steel pt-3">
                   <div className="flex items-start gap-3 text-sm text-naki-smoke">
                     <ShieldCheck
                       className="mt-0.5 shrink-0 text-green-600"
@@ -628,9 +771,11 @@ type CheckoutInfoProps = {
 
 function CheckoutInfo({ label, value }: CheckoutInfoProps) {
   return (
-    <div className="rounded-xl bg-naki-frost p-4">
+    <div className="flex items-start justify-between gap-3 py-2.5">
       <p className="text-xs font-medium uppercase text-naki-smoke">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-naki-primary">{value}</p>
+      <p className="max-w-[60%] text-right text-sm font-semibold text-naki-primary">
+        {value}
+      </p>
     </div>
   );
 }

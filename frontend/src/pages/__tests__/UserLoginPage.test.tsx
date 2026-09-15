@@ -23,9 +23,14 @@ describe("UserLoginPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Username \/ email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Lanjutkan dengan Google/i }),
-    ).toBeInTheDocument();
+    const googleButton = screen.getByRole("button", {
+      name: /Lanjutkan dengan Google/i,
+    });
+    expect(googleButton).toBeInTheDocument();
+    expect(googleButton.querySelector("img")).toHaveAttribute(
+      "src",
+      "/images/brand/google.png",
+    );
     expect(
       screen.getByRole("button", { name: /^Kembali$/i }),
     ).toBeInTheDocument();

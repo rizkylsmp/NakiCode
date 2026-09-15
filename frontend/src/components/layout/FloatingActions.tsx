@@ -1,6 +1,7 @@
-import { ArrowUp, MessageCircle } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { WhatsAppBrandIcon } from "../ui/BrandIcons";
 
 const whatsappUrl = `https://wa.me/6285794801890?text=${encodeURIComponent(
   "Halo Naki Code, saya ingin konsultasi pembuatan website.",
@@ -46,7 +47,7 @@ export function FloatingActions() {
           target="_blank"
           title="Chat WhatsApp"
         >
-          <MessageCircle aria-hidden="true" size={27} strokeWidth={2.25} />
+          <WhatsAppBrandIcon className="size-8 brightness-0 invert" />
         </a>
       ) : null}
     </div>

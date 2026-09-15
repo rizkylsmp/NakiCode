@@ -1,4 +1,5 @@
 import { ArrowRight, MessageCircle } from "lucide-react";
+import { WhatsAppBrandIcon } from "../ui/BrandIcons";
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
@@ -59,6 +60,7 @@ export function CTASection() {
                     rel="noreferrer"
                     target="_blank"
                   >
+                    <WhatsAppBrandIcon className="size-[18px]" />
                     Konsultasi Gratis
                   </a>
                 </div>

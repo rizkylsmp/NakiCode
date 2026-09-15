@@ -26,7 +26,7 @@ import {
 } from "recharts";
 import type { PortfolioItem, TemplateItem } from "../../domain/content";
 import type { OrderItem } from "../../domain/order-types";
-import type { DashboardView } from "./AdminTemplateWorkspace.shared";
+import type { DashboardView } from "./AdminDesignWorkspace.shared";
 
 // Naki Code theme colors for charts
 const CHART_COLORS = {

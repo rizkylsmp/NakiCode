@@ -698,16 +698,122 @@ const runtimeMigrations: Migration[] = [
       const characterSet = String(columns[0]?.character_set_name ?? "");
       const collation = String(columns[0]?.collation_name ?? "");
       const safeIdentifier = /^[a-zA-Z0-9_]+$/;
-      if (
-        safeIdentifier.test(characterSet) &&
-        safeIdentifier.test(collation)
-      ) {
+      if (safeIdentifier.test(characterSet) && safeIdentifier.test(collation)) {
         await connection.query(
           `ALTER TABLE order_payment_sessions
            MODIFY reference VARCHAR(120)
            CHARACTER SET ${connection.escapeId(characterSet)}
            COLLATE ${connection.escapeId(collation)} NOT NULL`,
         );
+      }
+    },
+  },
+  {
+    id: "023_add_payment_expiry_deadline",
+    async up(connection) {
+      if (!(await hasColumn(connection, "orders", "payment_expires_at"))) {
+        await connection.query(
+          "ALTER TABLE orders ADD COLUMN payment_expires_at TIMESTAMP NULL AFTER payment_url",
+        );
+      }
+      if (
+        !(await hasColumn(connection, "order_payment_sessions", "expires_at"))
+      ) {
+        await connection.query(
+          "ALTER TABLE order_payment_sessions ADD COLUMN expires_at TIMESTAMP NULL AFTER payment_url",
+        );
+      }
+      await connection.query(`
+        UPDATE order_payment_sessions
+        SET expires_at = DATE_ADD(created_at, INTERVAL 24 HOUR)
+        WHERE expires_at IS NULL AND status = 'waiting_payment'
+          AND provider IN ('midtrans', 'dev')
+      `);
+      await connection.query(`
+        UPDATE orders AS order_rows
+        INNER JOIN order_payment_sessions AS sessions
+          ON sessions.reference = order_rows.payment_reference
+        SET order_rows.payment_expires_at = sessions.expires_at
+        WHERE order_rows.payment_expires_at IS NULL
+          AND order_rows.payment_status = 'waiting_payment'
+          AND sessions.expires_at IS NOT NULL
+      `);
+    },
+  },
+  {
+    id: "024_backfill_existing_payment_deadlines",
+    async up(connection) {
+      await connection.query(`
+        UPDATE order_payment_sessions
+        SET expires_at = DATE_ADD(created_at, INTERVAL 24 HOUR)
+        WHERE expires_at IS NULL AND status = 'waiting_payment'
+          AND provider IN ('midtrans', 'dev')
+      `);
+      await connection.query(`
+        UPDATE orders AS order_rows
+        INNER JOIN order_payment_sessions AS sessions
+          ON sessions.reference = order_rows.payment_reference
+        SET order_rows.payment_expires_at = sessions.expires_at
+        WHERE order_rows.payment_expires_at IS NULL
+          AND order_rows.payment_status = 'waiting_payment'
+          AND sessions.expires_at IS NOT NULL
+      `);
+    },
+  },
+  {
+    id: "025_reconcile_expired_payment_deadlines",
+    async up(connection) {
+      if (
+        !(await hasIndex(connection, "orders", "idx_orders_payment_expiry"))
+      ) {
+        await connection.query(
+          "ALTER TABLE orders ADD INDEX idx_orders_payment_expiry (payment_status, payment_expires_at)",
+        );
+      }
+      await connection.query(`
+        UPDATE orders AS order_rows
+        INNER JOIN order_payment_sessions AS sessions
+          ON sessions.reference = order_rows.payment_reference
+        SET order_rows.payment_status = 'expired',
+          order_rows.payment_url = NULL,
+          order_rows.payment_failure_reason = COALESCE(order_rows.payment_failure_reason, 'Waktu pembayaran kedaluwarsa'),
+          sessions.status = 'expired',
+          sessions.failure_reason = COALESCE(sessions.failure_reason, 'Waktu pembayaran kedaluwarsa')
+        WHERE order_rows.payment_status = 'waiting_payment'
+          AND order_rows.payment_expires_at IS NOT NULL
+          AND order_rows.payment_expires_at <= CURRENT_TIMESTAMP
+          AND sessions.status = 'waiting_payment'
+      `);
+    },
+  },
+  {
+    id: "026_add_custom_order_delivery_review",
+    async up(connection) {
+      const columns: Array<[string, string]> = [
+        ["delivery_demo_url", "VARCHAR(500) NULL AFTER payment_stage"],
+        ["delivery_source_url", "VARCHAR(500) NULL AFTER delivery_demo_url"],
+        ["delivery_notes", "TEXT NULL AFTER delivery_source_url"],
+        [
+          "delivery_review_status",
+          "VARCHAR(30) NULL AFTER delivery_notes",
+        ],
+        [
+          "delivery_submitted_at",
+          "TIMESTAMP NULL AFTER delivery_review_status",
+        ],
+        [
+          "delivery_reviewed_at",
+          "TIMESTAMP NULL AFTER delivery_submitted_at",
+        ],
+        ["revision_notes", "TEXT NULL AFTER delivery_reviewed_at"],
+        ["revision_files", "JSON NULL AFTER revision_notes"],
+      ];
+      for (const [name, definition] of columns) {
+        if (!(await hasColumn(connection, "orders", name))) {
+          await connection.query(
+            `ALTER TABLE orders ADD COLUMN ${connection.escapeId(name)} ${definition}`,
+          );
+        }
       }
     },
   },

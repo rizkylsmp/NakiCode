@@ -33,17 +33,13 @@ export function ProfileMenu({
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition hover:bg-naki-frost ${isAdmin ? "bg-naki-frost" : "border border-naki-steel bg-white hover:border-naki-steel/80"}`}
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-sm font-medium transition hover:border-naki-steel/80 hover:bg-naki-frost"
         aria-expanded={isOpen}
         aria-haspopup="menu"
         onClick={onToggle}
         type="button"
       >
-        <span
-          className={`grid size-7 place-items-center rounded-md text-xs ${
-            isAdmin ? "bg-naki-primary text-white" : "bg-blue-500/10 text-blue-500"
-          }`}
-        >
+        <span className="grid size-7 place-items-center rounded-md bg-blue-500/10 text-xs text-blue-500">
           {isAdmin ? <ShieldCheck size={14} /> : <UserRound size={14} />}
         </span>
         <span className="text-naki-primary">{activeProfile.username}</span>
@@ -81,11 +77,15 @@ export function ProfileMenu({
   );
 }
 
-function ProfileMenuHeader({ activeProfile }: { activeProfile: HeaderProfile }) {
+function ProfileMenuHeader({
+  activeProfile,
+}: {
+  activeProfile: HeaderProfile;
+}) {
   const isAdmin = activeProfile.type === "admin";
 
   return (
-    <div className={`p-3 ${isAdmin ? "bg-naki-primary" : "bg-blue-500"} text-white`}>
+    <div className="bg-blue-500 p-3 text-white">
       <div className="flex items-start gap-2.5">
         <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white/20 text-white">
           {isAdmin ? <ShieldCheck size={18} /> : <UserRound size={18} />}

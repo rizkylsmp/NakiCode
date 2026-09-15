@@ -42,11 +42,12 @@ import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import { getTemplateBySlug, type TemplateItem } from "../domain/content";
 import type { OrderItem } from "../domain/order-types";
-import { saveRecentlyViewedTemplate } from "../utils/template-activity";
-import { getTemplateCategoryPath } from "../utils/template-url";
+import { saveRecentlyViewedTemplate } from "../utils/design-activity";
+import { getTemplateCategoryPath } from "../utils/design-url";
 import { absoluteSiteUrl } from "../utils/seo";
 import { useFavoriteTemplates } from "../hooks/useFavorites";
 import { TechStackBadge } from "../components/ui/TechStackBadge";
+import { WhatsAppBrandIcon } from "../components/ui/BrandIcons";
 import {
   userRoleKey,
   userSessionEvent,
@@ -54,7 +55,7 @@ import {
   userUsernameKey,
 } from "../utils/user-session";
 
-type TemplateDetailPageProps = {
+type DesignDetailPageProps = {
   templates: TemplateItem[];
   isLoading?: boolean;
 };
@@ -119,10 +120,10 @@ const defaultUserAuthForm: UserAuthFormState = {
   confirmPassword: "",
 };
 
-export function TemplateDetailPage({
+export function DesignDetailPage({
   templates,
   isLoading = false,
-}: TemplateDetailPageProps) {
+}: DesignDetailPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -899,6 +900,7 @@ export function TemplateDetailPage({
                     rel="noreferrer"
                     target="_blank"
                   >
+                    <WhatsAppBrandIcon className="size-4" />
                     WhatsApp
                   </a>
                   <button
@@ -1057,7 +1059,8 @@ export function TemplateDetailPage({
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Konsultasi pembuatan website <ArrowRight size={16} />
+                  <WhatsAppBrandIcon className="size-[18px]" />
+                  Konsultasi pembuatan website
                 </a>
               </div>
 

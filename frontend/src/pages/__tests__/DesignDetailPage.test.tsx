@@ -4,7 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { TemplateItem } from "../../domain/content";
 import { renderWithProviders } from "../../test/render";
-import { TemplateDetailPage } from "../TemplateDetailPage";
+import { DesignDetailPage } from "../DesignDetailPage";
 
 const design: TemplateItem = {
   id: 7,
@@ -33,7 +33,7 @@ const design: TemplateItem = {
   reviews: [],
 };
 
-describe("TemplateDetailPage", () => {
+describe("DesignDetailPage", () => {
   it("menampilkan video di galeri preview dan membuka detail dari paling atas", () => {
     const scrollTo = vi.fn();
     Object.defineProperty(window, "scrollTo", {
@@ -46,7 +46,7 @@ describe("TemplateDetailPage", () => {
         <Routes>
           <Route
             path="/design/:slug"
-            element={<TemplateDetailPage templates={[design]} />}
+            element={<DesignDetailPage templates={[design]} />}
           />
         </Routes>
       </HelmetProvider>,

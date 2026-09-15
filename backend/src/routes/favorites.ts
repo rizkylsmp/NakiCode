@@ -7,7 +7,7 @@ import {
   findFavoriteTemplateIds,
   removeFavoriteTemplate,
 } from '../models/favorite.model';
-import { findTemplateBySlugOrId } from '../models/template.model';
+import { findTemplateBySlugOrId } from '../models/design.model';
 import { parseParams } from '../validation';
 
 export const favoritesRouter = Router();

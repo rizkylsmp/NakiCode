@@ -1,4 +1,5 @@
-import { ArrowRight, Check, Code2, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Code2, Sparkles } from "lucide-react";
+import { WhatsAppBrandIcon } from "../ui/BrandIcons";
 
 type HeroProps = {
   totalTemplates: number;
@@ -68,7 +69,7 @@ export function Hero({
             </p>
 
             {/* CTA Buttons */}
-            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:justify-start">
+            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
               <a
                 className="naki-inverse-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
                 href="/design"
@@ -86,7 +87,7 @@ export function Hero({
                 rel={WHATSAPP_NUMBER ? "noreferrer" : undefined}
                 target={WHATSAPP_NUMBER ? "_blank" : undefined}
               >
-                <MessageCircle size={17} />
+                <WhatsAppBrandIcon className="size-[18px]" />
                 Konsultasi Gratis
               </a>
             </div>
@@ -95,28 +96,24 @@ export function Hero({
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm text-naki-smoke md:justify-start">
               <span className="max-w-[260px] font-medium sm:max-w-none">
                 Dibangun dari pengalaman mengerjakan{" "}
-                <strong className="text-naki-primary">
-                  {totalProjects}
-                </strong>{" "}
+                <strong className="text-naki-primary">{totalProjects}</strong>{" "}
                 project portofolio
               </span>
             </div>
 
             {/* Feature checks */}
             <div className="mx-auto mt-7 grid max-w-sm gap-3 text-left sm:max-w-none sm:grid-cols-3 md:mx-0">
-              {[
-                "Design siap edit",
-                "Revisi terarah",
-                "Website responsif",
-              ].map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-naki-smoke"
-                >
-                  <Check size={16} className="text-blue-500" />
-                  {item}
-                </span>
-              ))}
+              {["Design siap edit", "Revisi terarah", "Website responsif"].map(
+                (item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-naki-smoke"
+                  >
+                    <Check size={16} className="text-blue-500" />
+                    {item}
+                  </span>
+                ),
+              )}
             </div>
           </div>
 
@@ -125,7 +122,7 @@ export function Hero({
             <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible sm:top-8 lg:left-8 lg:right-0">
               <HeroAbstractShape />
               <img
-                className="absolute bottom-[-1.75rem] left-1/2 z-10 h-[350px] max-w-none -translate-x-1/2 object-contain object-bottom sm:h-[420px] md:-bottom-10 md:h-[500px] lg:-bottom-12 lg:h-[540px]"
+                className="absolute bottom-[-2.5rem] left-1/2 z-10 h-[350px] max-w-none -translate-x-1/2 object-contain object-bottom sm:bottom-[-3rem] sm:h-[420px] md:-bottom-14 md:h-[500px] lg:-bottom-16 lg:h-[540px]"
                 src="/images/hero-naki-character.png"
                 alt="Karakter Naki Code sebagai visual hero"
                 width="1122"
@@ -173,7 +170,6 @@ export function Hero({
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -202,9 +198,7 @@ export function Hero({
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">
                 {totalTransactions}+
               </div>
-              <div className="mt-1 text-sm text-naki-smoke">
-                Pesanan Design
-              </div>
+              <div className="mt-1 text-sm text-naki-smoke">Pesanan Design</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-naki-primary md:text-3xl">

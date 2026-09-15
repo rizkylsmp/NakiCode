@@ -2,7 +2,7 @@ import { Check, Edit3, Plus, Trash2, X } from "lucide-react";
 import type React from "react";
 import { createPortal } from "react-dom";
 import { type TemplateCategory } from "../../domain/content";
-import { Field } from "./AdminTemplateWorkspace.shared";
+import { Field } from "./AdminDesignWorkspace.shared";
 
 type CategoryModalProps = {
   isOpen: boolean;

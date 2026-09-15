@@ -216,6 +216,7 @@ export type OrderStatus =
   | "contacted"
   | "quotation"
   | "awaiting_dp"
+  | "awaiting_balance"
   | "in_progress"
   | "revision"
   | "delivered"
@@ -308,6 +309,7 @@ export const orderStatusFilters: Array<{
   { label: "Contacted", value: "contacted" },
   { label: "Penawaran", value: "quotation" },
   { label: "Menunggu DP", value: "awaiting_dp" },
+  { label: "Menunggu pelunasan", value: "awaiting_balance" },
   { label: "Dikerjakan", value: "in_progress" },
   { label: "Revisi", value: "revision" },
   { label: "Diserahkan", value: "delivered" },
@@ -331,8 +333,8 @@ export const paymentStatusFilters: Array<{
   { label: "Refund", value: "refunded" },
   { label: "Dibatalkan", value: "cancelled" },
 ];
-export const adminOrdersPageSize = 8;
-export const adminTemplatesPageSize = 8;
+export const adminOrdersPageSize = 10;
+export const adminTemplatesPageSize = 10;
 export const adminBlogPostsPageSize = 10;
 export const levelOptions = ["Pemula", "Menengah", "Lanjut"];
 

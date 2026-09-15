@@ -185,6 +185,8 @@ Orders/payment:
 - `POST /api/orders/:id/quote/respond`
 - `POST /api/orders/:id/payment`
 - `POST /api/orders/:id/payment/confirm`
+- `PATCH /api/orders/:id/delivery` (admin mengirim demo/source hasil custom)
+- `POST /api/orders/:id/delivery/respond` (user approve atau meminta revisi)
 - `POST /api/payments/midtrans/webhook`
 
 Wishlist/notifications:
@@ -207,6 +209,7 @@ Admin:
 - `POST /api/uploads/images` (admin)
 - `POST /api/uploads/video` (admin, satu video MP4/WebM/MOV maksimal 50 MB)
 - `POST /api/uploads/source` (admin, satu arsip ZIP/RAR valid maksimal 100 MB)
+- `POST /api/uploads/revisions` (pengguna login, maksimal lima lampiran masing-masing 20 MB untuk catatan revisi; mendukung gambar, PDF, dokumen Office, teks/data, dan arsip aman)
 
 Business:
 
@@ -253,6 +256,8 @@ Status pembayaran dasar:
 - `partial_paid`
 - `paid`
 - `failed`
+- `expired`
+- `cancelled`
 
 Kolom order terkait:
 
@@ -260,6 +265,7 @@ Kolom order terkait:
 - `payment_method`
 - `payment_reference`
 - `payment_url`
+- `payment_expires_at`
 - `order_type`
 - `deposit_percent`
 - `amount_paid`
@@ -276,11 +282,17 @@ Mode:
 - Deployment Vercel production (`VERCEL_ENV=production`) selalu memakai endpoint Midtrans live; preview dan development tetap sandbox kecuali `MIDTRANS_IS_PRODUCTION=true` diaktifkan eksplisit.
 - Checkout menyediakan dua provider: Midtrans dan Lynk.
 - Midtrans mendukung QRIS/DANA, kupon khusus pembelian source code, serta pembaruan status otomatis melalui webhook.
+- Sesi Midtrans dan pembayaran development memakai batas waktu eksplisit 24 jam yang disimpan pada `orders.payment_expires_at` serta `order_payment_sessions.expires_at`. Checkout dan Pesanan Saya menampilkan tanggal WIB dan countdown; setelah waktunya lewat, URL lama ditutup dan pengguna dapat membuat reference baru.
+- Pesanan Saya dan Checkout memeriksa ulang transaksi `waiting_payment` ke Midtrans Get Status API ketika halaman dimuat serta setiap 15 detik selama masih menunggu. Rekonsiliasi ini menghentikan countdown dan memperbarui status paid/expired/cancelled/failed meskipun webhook Sandbox tidak dapat menjangkau localhost; webhook tetap menjadi mekanisme utama di production.
+- Untuk DANA Sandbox yang tidak dapat dicari melalui `order_id`, rekonsiliasi lokal memakai token dari URL Snap tepercaya sebagai fallback status, lalu tetap memvalidasi `order_id` dan nominal sebelum mencatat settlement. Fallback token ini dibatasi ke host Sandbox dan tidak menggantikan webhook production.
 - Satu order hanya boleh memiliki satu sesi pembayaran aktif; pembuatan sesi diserialisasi dengan database advisory lock agar reference lama tidak tertimpa oleh request paralel.
 - Order dipisahkan menjadi `source_purchase` dan `custom_project`; tipe ini menentukan harga, tahap pembayaran, penggunaan kupon, dan hak akses delivery.
 - Pembelian source code memakai harga katalog, dibayar penuh dalam satu tahap, dan baru membuka source/panduan setelah lunas.
-- Proyek website custom wajib memiliki penawaran admin yang diterima pengguna. Admin memilih DP awal 10–90%; pembayaran pertama mencatat `partial_paid`, sisa nominal otomatis menjadi tagihan pelunasan, dan order menjadi `paid` setelah total penerimaan mencapai nilai penawaran.
+- Proyek website custom wajib memiliki penawaran admin yang diterima pengguna. Pada pembayaran awal, pengguna memilih DP tetap 50% atau langsung lunas; nominal dihitung backend dari penawaran. Kedua pilihan memindahkan order ke Pengerjaan. Saat mengirim hasil ke Review, admin wajib menyertakan source code final melalui upload ZIP/RAR atau URL dan dapat menambahkan URL demo. Pengguna dapat approve atau meminta revisi dengan catatan dan maksimal lima lampiran (gambar, PDF, dokumen Office, teks/data, atau arsip). Approve menentukan status dari total settlement aktual, bukan label pembayaran: skema DP selalu membuka tahap Pelunasan, sedangkan order yang sudah dibayar penuh langsung Selesai. Source final disimpan selama Review tetapi URL-nya tidak dikirim melalui API pelanggan dan baru terbuka di Selesai; revisi mengembalikan order ke Pengerjaan tanpa mengubah ledger pembayaran.
+- Pembelian source code memakai satu pembayaran penuh dan otomatis masuk status Selesai setelah settlement; paket source dan panduan langsung terbuka.
 - Setiap percobaan pembayaran tersimpan di `order_payment_sessions` dengan reference unik, tahap `full`/`deposit`/`balance`, nominal, status, dan metadata webhook. Kolom pembayaran di `orders` tetap menjadi snapshot sesi terbaru untuk kompatibilitas.
+- Webhook `expire` dan `cancel` dipertahankan sebagai status `expired` dan `cancelled`, bukan digabung menjadi gagal. Ketiganya dapat membuat sesi pembayaran baru; untuk proyek yang DP-nya sudah diterima, retry hanya menagih sisa pelunasan.
+- Pesanan Saya menyediakan status bar ringkas berikon untuk menu workflow Pengerjaan, Review, Pelunasan, dan Selesai selain filter pembayaran; deskripsi kontekstual hanya ditampilkan untuk menu aktif, dan navigasi dapat digeser horizontal pada mobile. Pengerjaan memuat proyek custom aktif termasuk revisi, Review memuat hasil yang menunggu approve/revisi pengguna, Pelunasan memuat hasil yang sudah disetujui dan siap dibayar sisanya, sedangkan Selesai hanya memuat order berstatus completed. Menu Dibatalkan tetap memuat order maupun transaksi pembayaran yang dibatalkan. Transaksi gagal, kedaluwarsa, atau dibatalkan pada order yang masih aktif menampilkan aksi pembayaran ulang; order yang dibatalkan admin harus diaktifkan kembali oleh admin sebelum dapat dibayar.
 - Penawaran tidak dapat diubah saat pembayaran aktif atau setelah DP tercatat.
 - Kupon direservasi saat sesi pembayaran dibuat, dihitung terhadap kuota selama masih aktif, menjadi redeemed setelah paid, dan dilepas saat gagal, kedaluwarsa, ditolak, atau order dibatalkan.
 - Lynk hanya tersedia untuk pembelian penuh source code, memakai `templates.lynk_url` per design, hanya menerima URL HTTPS pada domain `lynk.id`, dan mencatat sesi checkout eksternal pada order. DP/pelunasan custom wajib memakai Midtrans agar nominal dinamisnya tervalidasi gateway.
@@ -292,7 +304,7 @@ Mode:
 - Manual confirm hanya menerima sesi berlabel dev dan ditolak pada production.
 - Perubahan status order mengikuti transition map; lompatan status berbahaya dan pembatalan saat pembayaran aktif/lunas ditolak backend.
 - Source code/panduan hanya tersedia untuk order `source_purchase` dengan `payment_status = paid`; pembayaran proyek custom tidak pernah membuka paket source.
-- Rating design hanya diterima jika user punya order paid untuk design itu.
+- Rating design baru ditampilkan dan diterima API jika user memiliki order design berstatus paid serta workflow-nya sudah Selesai (`completed`/`closed`); tahap Review dan Pelunasan belum dapat mengirim rating.
 
 ---
 
@@ -315,7 +327,7 @@ Mode:
 - Gambar admin diupload via `POST /api/uploads/images`.
 - Design dapat memiliki satu `video_url` opsional. Admin menguploadnya melalui `POST /api/uploads/video`; card katalog memprioritaskan video muted/autoplay/loop dan memakai gambar pertama sebagai poster serta fallback.
 - Jika `CLOUDINARY_URL` tersedia, gambar dan video masuk Cloudinary (video sebagai resource video); jika tidak, semua media fallback ke local `/uploads`.
-- Source ZIP/RAR diupload nyata maksimal 100 MB ke Cloudinary raw atau `/uploads/source`; ekstensi dan signature arsip divalidasi sebelum disimpan.
+- Source ZIP/RAR diupload nyata maksimal 100 MB ke Cloudinary raw atau `/uploads/source`; ekstensi dan signature arsip divalidasi sebelum disimpan. Pengiriman hasil proyek custom memakai uploader yang sama untuk source final, lalu menahan URL unduhan dari pelanggan sampai order lunas dan berstatus Selesai.
 - Frontend pakai `ResponsiveImage` untuk lazy loading, responsive sizes, dan Cloudinary srcset otomatis.
 
 ---

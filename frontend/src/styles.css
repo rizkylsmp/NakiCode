@@ -38,7 +38,7 @@
 
 html[data-theme="dark"] {
   --color-naki-page-bg: #0b1120;
-  --color-naki-frost: #111827;
+  --color-naki-frost: #182235;
   --color-naki-steel: #334155;
   --color-naki-smoke: #94a3b8;
   color-scheme: dark;
@@ -488,6 +488,73 @@ html[data-theme="dark"]
 
 html[data-theme="dark"] .group:hover .group-hover\:bg-naki-primary {
   background-color: var(--color-naki-secondary) !important;
+}
+
+/* Keep secondary order actions distinct from navy cards in dark mode. */
+html[data-theme="dark"] .naki-orders-secondary-action {
+  border-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 48%,
+    var(--color-naki-steel)
+  ) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 16%,
+    var(--color-naki-frost)
+  ) !important;
+  color: #dbeafe !important;
+}
+
+html[data-theme="dark"] .naki-orders-secondary-action:hover {
+  border-color: #60a5fa !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 28%,
+    var(--color-naki-frost)
+  ) !important;
+}
+
+html[data-theme="dark"] .naki-orders-filter-action {
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 10%,
+    var(--color-naki-frost)
+  ) !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme="dark"] .naki-orders-filter-action:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 22%,
+    var(--color-naki-frost)
+  ) !important;
+}
+
+html[data-theme="dark"] .naki-orders-detail-surface {
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 8%,
+    #1e293b
+  ) !important;
+}
+
+html[data-theme="dark"] .naki-orders-detail-inset {
+  background-color: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 12%,
+    #0f172a
+  ) !important;
+}
+
+html[data-theme="dark"] .naki-orders-danger-action {
+  border-color: #b91c1c !important;
+  background-color: #450a0a !important;
+  color: #fecaca !important;
+}
+
+html[data-theme="dark"] .naki-orders-danger-action:hover {
+  background-color: #7f1d1d !important;
 }
 
 /* Auth actions stay visually distinct from the dark form surface. */

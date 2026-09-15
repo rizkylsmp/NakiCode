@@ -49,7 +49,17 @@ describe("order payment ledger", () => {
     expect(connection.query).toHaveBeenNthCalledWith(
       4,
       expect.stringContaining("payment_status = ?"),
-      ["partial_paid", 500_000, "balance", "QRIS", "DP-21", 500_000, false, 21],
+      [
+        "partial_paid",
+        500_000,
+        "balance",
+        "QRIS",
+        "DP-21",
+        500_000,
+        false,
+        "in_progress",
+        21,
+      ],
     );
     expect(connection.commit).toHaveBeenCalledOnce();
   });
@@ -83,7 +93,60 @@ describe("order payment ledger", () => {
     expect(connection.query).toHaveBeenNthCalledWith(
       4,
       expect.stringContaining("payment_status = ?"),
-      ["paid", 750_000, "complete", "QRIS", "FULL-22", 750_000, true, 22],
+      [
+        "paid",
+        750_000,
+        "complete",
+        "QRIS",
+        "FULL-22",
+        750_000,
+        true,
+        "completed",
+        22,
+      ],
+    );
+  });
+
+  it("keeps an upfront-paid custom project in progress until review approval", async () => {
+    connection.query
+      .mockResolvedValueOnce([
+        [
+          {
+            id: 11,
+            order_id: 23,
+            stage: "full",
+            status: "waiting_payment",
+            amount: 1_000_000,
+            method: "QRIS",
+            order_type: "custom_project",
+            quote_amount: 1_000_000,
+          },
+        ],
+      ])
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[{ paid_total: 1_000_000 }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const { markOrderPaidByPaymentReference } =
+      await import("../models/order.model");
+
+    await expect(markOrderPaidByPaymentReference("FULL-23")).resolves.toBe(
+      true,
+    );
+    expect(connection.query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining("payment_status = ?"),
+      [
+        "paid",
+        1_000_000,
+        "complete",
+        "QRIS",
+        "FULL-23",
+        1_000_000,
+        true,
+        "in_progress",
+        23,
+      ],
     );
   });
 

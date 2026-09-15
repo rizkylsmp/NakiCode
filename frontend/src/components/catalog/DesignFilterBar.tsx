@@ -1,9 +1,9 @@
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TemplateCategory } from "../../domain/content";
-import { getTemplateCategoryPath } from "../../utils/template-url";
+import { getTemplateCategoryPath } from "../../utils/design-url";
 
-type TemplateFilterBarProps = {
+type DesignFilterBarProps = {
   categories: TemplateCategory[];
   activeCategory: TemplateCategory;
   query: string;
@@ -21,7 +21,7 @@ const sortOptions = [
   { value: "price-high", label: "Harga Tertinggi" },
 ];
 
-export function TemplateFilterBar({
+export function DesignFilterBar({
   categories,
   activeCategory,
   query,
@@ -30,7 +30,7 @@ export function TemplateFilterBar({
   onQueryChange,
   onSortChange,
   resultCount,
-}: TemplateFilterBarProps) {
+}: DesignFilterBarProps) {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-8 xl:px-12 2xl:px-16">
       <div className="rounded-xl border border-naki-steel bg-white px-4 py-3 shadow-sm md:px-6 md:py-4">

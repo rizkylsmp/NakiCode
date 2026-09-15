@@ -160,7 +160,7 @@ paymentsRouter.post("/midtrans/webhook", async (request, response) => {
               : "Pembayaran berhasil",
           message:
             updatedOrder?.paymentStatus === "partial_paid"
-              ? `DP untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima. Pelunasan dapat dibayar dari Pesanan Saya.`
+              ? `DP untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima. Proyek masuk tahap pengerjaan; pelunasan dibuka setelah hasil disetujui.`
               : order.orderType === "source_purchase"
                 ? `Pembayaran untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima. Source code dan panduan sudah terbuka.`
                 : `Pelunasan untuk ${order.templateTitle ?? "pesanan kamu"} sudah diterima.`,
@@ -191,10 +191,16 @@ paymentsRouter.post("/midtrans/webhook", async (request, response) => {
       }
 
       if (wasUpdated) {
+        const isExpired = transactionStatus === "expire";
+        const isCancelled = transactionStatus === "cancel";
         await createNotification({
           userId: order.userId,
-          title: "Pembayaran gagal",
-          message: `Pembayaran untuk ${order.templateTitle ?? "pesanan kamu"} gagal atau kedaluwarsa. Kamu bisa membuat sesi pembayaran baru.`,
+          title: isExpired
+            ? "Pembayaran kedaluwarsa"
+            : isCancelled
+              ? "Pembayaran dibatalkan"
+              : "Pembayaran gagal",
+          message: `${isExpired ? "Waktu pembayaran" : "Pembayaran"} untuk ${order.templateTitle ?? "pesanan kamu"} ${isExpired ? "telah kedaluwarsa" : isCancelled ? "dibatalkan" : "gagal"}. Kamu bisa membuat pembayaran baru dari Pesanan Saya.`,
           type: "payment",
           relatedOrderId: order.id,
         });

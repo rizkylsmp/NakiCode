@@ -1,6 +1,6 @@
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import type { BlogPostItem } from "./AdminTemplateWorkspace.shared";
+import type { BlogPostItem } from "./AdminDesignWorkspace.shared";
 
 type DeleteBlogDialogProps = {
   blog: BlogPostItem | null;

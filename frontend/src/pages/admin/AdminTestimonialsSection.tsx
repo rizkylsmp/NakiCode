@@ -1,8 +1,10 @@
 import { Star, Trash2, Edit2, Plus, MessageSquareQuote, X, Save, PenLine, StarIcon, MessageCircle, Eye, GripVertical, RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut, getApiErrorMessage } from "../../services/api-client";
-import type { TestimonialItem } from "../admin/AdminTemplateWorkspace.shared";
+import type { TestimonialItem } from "../admin/AdminDesignWorkspace.shared";
 import { useToast } from "../../components/ui/Toast";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { useClientPagination } from "../../hooks/useClientPagination";
 
 type AvailableRating = {
   id: number;
@@ -100,11 +102,20 @@ export function AdminTestimonialsSection({
     featuredFilter !== "all" ||
     sourceFilter !== "all";
   const canReorder = !hasActiveFilters;
+  const {
+    page,
+    pageSize,
+    paginatedItems: paginatedTestimonials,
+    setPage,
+    setPageSize,
+    totalPages,
+  } = useClientPagination(filteredTestimonials);
 
   function resetFilters() {
     setSearchQuery("");
     setFeaturedFilter("all");
     setSourceFilter("all");
+    setPage(1);
   }
 
   const handleOpenSourceDialog = () => {
@@ -440,7 +451,10 @@ export function AdminTestimonialsSection({
             <input
               className="h-10 w-full rounded-lg border border-naki-steel bg-naki-page-bg pl-10 pr-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setPage(1);
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Escape") setSearchQuery("");
               }}
@@ -451,9 +465,10 @@ export function AdminTestimonialsSection({
           <select
             className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
             value={featuredFilter}
-            onChange={(event) =>
-              setFeaturedFilter(event.target.value as typeof featuredFilter)
-            }
+            onChange={(event) => {
+              setFeaturedFilter(event.target.value as typeof featuredFilter);
+              setPage(1);
+            }}
           >
             <option value="all">Semua status</option>
             <option value="featured">Tampil di homepage</option>
@@ -462,9 +477,10 @@ export function AdminTestimonialsSection({
           <select
             className="h-10 rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-naki-primary"
             value={sourceFilter}
-            onChange={(event) =>
-              setSourceFilter(event.target.value as typeof sourceFilter)
-            }
+            onChange={(event) => {
+              setSourceFilter(event.target.value as typeof sourceFilter);
+              setPage(1);
+            }}
           >
             <option value="all">Semua sumber</option>
             <option value="rating">Dari review</option>
@@ -517,7 +533,7 @@ export function AdminTestimonialsSection({
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredTestimonials.map((testimonial) => (
+          {paginatedTestimonials.map((testimonial) => (
             <div
               key={testimonial.id}
               className={`rounded-lg border bg-naki-page-bg p-6 space-y-3 transition-all ${
@@ -629,6 +645,17 @@ export function AdminTestimonialsSection({
           ))}
         </div>
       )}
+
+      <PaginationControls
+        alwaysVisible
+        isLoading={isRefreshing}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        page={page}
+        pageSize={pageSize}
+        total={filteredTestimonials.length}
+        totalPages={totalPages}
+      />
 
       {isSourceDialogOpen && (
         <div

@@ -12,17 +12,17 @@ import {
   type PortfolioFormState,
   type TemplateFormState,
   type TestimonialItem,
-} from "./AdminTemplateWorkspace.shared";
+} from "./AdminDesignWorkspace.shared";
 
 // Lazy-loaded admin panels
 const AdminDashboardHome = lazy(() => import("./AdminDashboardHome").then((m) => ({ default: m.AdminDashboardHome })));
 const BlogAdminPanel = lazy(() => import("./BlogAdminPanel").then((m) => ({ default: m.BlogAdminPanel })));
 const OrdersPanel = lazy(() => import("./OrdersPanel").then((m) => ({ default: m.OrdersPanel })));
 const PortfolioAdminPanel = lazy(() => import("./PortfolioAdminPanel").then((m) => ({ default: m.PortfolioAdminPanel })));
-const TemplatesPanel = lazy(() => import("./TemplatesPanel").then((m) => ({ default: m.TemplatesPanel })));
+const DesignsPanel = lazy(() => import("./DesignsPanel").then((m) => ({ default: m.DesignsPanel })));
 const AdminTestimonialsSection = lazy(() => import("./AdminTestimonialsSection").then((m) => ({ default: m.AdminTestimonialsSection })));
 
-type AdminTemplateWorkspaceProps = {
+type AdminDesignWorkspaceProps = {
   templates: TemplateItem[];
   paginatedTemplates: TemplateItem[];
   filteredTemplatesCount: number;
@@ -132,7 +132,7 @@ function PanelLoader() {
   );
 }
 
-export function AdminTemplateWorkspace({
+export function AdminDesignWorkspace({
   templates,
   paginatedTemplates,
   filteredTemplatesCount,
@@ -225,7 +225,7 @@ export function AdminTemplateWorkspace({
   onCancelDeleteBlog,
   testimonials,
   onTestimonialsChange,
-}: AdminTemplateWorkspaceProps) {
+}: AdminDesignWorkspaceProps) {
   return (
     <section className="min-h-screen bg-naki-page-bg">
       {/* Header */}
@@ -329,7 +329,7 @@ export function AdminTemplateWorkspace({
           </Suspense>
         ) : (
           <Suspense fallback={<PanelLoader />}>
-            <TemplatesPanel templates={templates} paginatedTemplates={paginatedTemplates} filteredTemplatesCount={filteredTemplatesCount} templatesPage={templatesPage} templatesTotalPages={templatesTotalPages} templateSearch={templateSearch} templateCategoryFilter={templateCategoryFilter} categoryOptions={categoryOptions} selectedId={selectedId} selectedTemplate={selectedTemplate} form={form} status={status} isSaving={isSaving} isTemplateModalOpen={isTemplateModalOpen} adminToken={adminToken} categoryName={categoryName} isSavingCategory={isSavingCategory} isCategoryModalOpen={isCategoryModalOpen} editingCategory={editingCategory} editingCategoryName={editingCategoryName} onTemplateSearchChange={onTemplateSearchChange} onTemplateCategoryFilterChange={onTemplateCategoryFilterChange} onTemplatesPageChange={onTemplatesPageChange} onStartCreate={onStartCreate} onStartEdit={onStartEdit} onCloseTemplateModal={onCloseTemplateModal} onDeleteTemplate={onDeleteTemplate} onSubmitTemplate={onSubmitTemplate} onUpdateField={onUpdateField} onOpenCategoryModal={onOpenCategoryModal} onCloseCategoryModal={onCloseCategoryModal} onSubmitCategory={onSubmitCategory} onCategoryNameChange={onCategoryNameChange} onEditCategoryNameChange={onEditCategoryNameChange} onEditCategory={onEditCategory} onSaveEditCategory={onSaveEditCategory} onCancelEditCategory={onCancelEditCategory} onDeleteCategory={onDeleteCategory} isDeletingCategory={isDeletingCategory} />
+            <DesignsPanel templates={templates} paginatedTemplates={paginatedTemplates} filteredTemplatesCount={filteredTemplatesCount} templatesPage={templatesPage} templatesTotalPages={templatesTotalPages} templateSearch={templateSearch} templateCategoryFilter={templateCategoryFilter} categoryOptions={categoryOptions} selectedId={selectedId} selectedTemplate={selectedTemplate} form={form} status={status} isSaving={isSaving} isTemplateModalOpen={isTemplateModalOpen} adminToken={adminToken} categoryName={categoryName} isSavingCategory={isSavingCategory} isCategoryModalOpen={isCategoryModalOpen} editingCategory={editingCategory} editingCategoryName={editingCategoryName} onTemplateSearchChange={onTemplateSearchChange} onTemplateCategoryFilterChange={onTemplateCategoryFilterChange} onTemplatesPageChange={onTemplatesPageChange} onStartCreate={onStartCreate} onStartEdit={onStartEdit} onCloseTemplateModal={onCloseTemplateModal} onDeleteTemplate={onDeleteTemplate} onSubmitTemplate={onSubmitTemplate} onUpdateField={onUpdateField} onOpenCategoryModal={onOpenCategoryModal} onCloseCategoryModal={onCloseCategoryModal} onSubmitCategory={onSubmitCategory} onCategoryNameChange={onCategoryNameChange} onEditCategoryNameChange={onEditCategoryNameChange} onEditCategory={onEditCategory} onSaveEditCategory={onSaveEditCategory} onCancelEditCategory={onCancelEditCategory} onDeleteCategory={onDeleteCategory} isDeletingCategory={isDeletingCategory} />
           </Suspense>
         )}
       </div>

@@ -11,7 +11,7 @@ import {
   validateCoupon,
 } from "../models/business.model";
 import { createNotification } from "../models/notification.model";
-import { findTemplateBySlugOrId } from "../models/template.model";
+import { findTemplateBySlugOrId } from "../models/design.model";
 import {
   confirmOrderPayment,
   confirmOrderPaymentAsAdmin,
@@ -23,11 +23,14 @@ import {
   findOrdersPageByUser,
   normalizeOrderPayload,
   OrderPaymentBusyError,
+  respondToOrderDelivery,
   respondToOrderQuote,
   setOrderQuote,
   startOrderPayment,
+  submitOrderDelivery,
   type AdminOrderStatusFilter,
   type AdminPaymentStatusFilter,
+  type OrderItem,
   type UserOrderPaymentFilter,
   updateOrderStatus,
   withOrderPaymentLock,
@@ -48,6 +51,7 @@ import {
   normalizePaymentMethod,
   parseCurrencyAmount,
 } from "../payments/payment.service";
+import { reconcileWaitingMidtransOrder } from "../payments/midtrans-reconciliation.service";
 import { parseBody, parseParams } from "../validation";
 
 export const ordersRouter = Router();
@@ -81,6 +85,7 @@ const paymentBodySchema = z.object({
   provider: z.enum(["midtrans", "lynk"]).optional().default("midtrans"),
   method: z.enum(["qris", "dana", "manual"]).optional(),
   couponCode: z.string().trim().max(60).optional(),
+  paymentOption: z.enum(["deposit", "full"]).optional().default("deposit"),
 });
 
 const orderStatusBodySchema = z.object({
@@ -89,6 +94,7 @@ const orderStatusBodySchema = z.object({
     "contacted",
     "quotation",
     "awaiting_dp",
+    "awaiting_balance",
     "in_progress",
     "revision",
     "delivered",
@@ -101,11 +107,33 @@ const orderStatusBodySchema = z.object({
 const quoteBodySchema = z.object({
   amount: z.coerce.number().int().positive(),
   notes: z.string().trim().max(2000).nullable().default(null),
-  depositPercent: z.coerce.number().int().min(10).max(90).default(50),
+  depositPercent: z.coerce.number().int().optional(),
 });
 const quoteResponseBodySchema = z.object({
   decision: z.enum(["accepted", "rejected"]),
 });
+const deliverySourceUrlSchema = z
+  .string()
+  .trim()
+  .min(1, "Source code final wajib diisi")
+  .max(500)
+  .refine(
+    (value) => /^https?:\/\//i.test(value) || value.startsWith("/uploads/"),
+    "URL source code final tidak valid",
+  );
+const deliveryBodySchema = z.object({
+  demoUrl: z.string().trim().url().max(500).nullable().optional(),
+  sourceUrl: deliverySourceUrlSchema,
+  notes: z.string().trim().min(3).max(2000),
+});
+const deliveryResponseBodySchema = z.discriminatedUnion("decision", [
+  z.object({ decision: z.literal("approved") }),
+  z.object({
+    decision: z.literal("revision_requested"),
+    notes: z.string().trim().min(3).max(2000),
+    files: z.array(z.string().trim().min(1).max(500)).max(5).default([]),
+  }),
+]);
 const bulkStatusBodySchema = z.object({
   ids: z.array(z.coerce.number().int().positive()).min(1).max(100),
   status: orderStatusBodySchema.shape.status,
@@ -135,7 +163,18 @@ const adminOrdersQuerySchema = paginationQuerySchema.extend({
 });
 
 const userOrdersQuerySchema = paginationQuerySchema.extend({
-  paymentStatus: z.enum(["paid", "waiting_payment", "unpaid"]).optional(),
+  paymentStatus: z
+    .enum([
+      "paid",
+      "waiting_payment",
+      "unpaid",
+      "cancelled",
+      "work",
+      "review",
+      "balance",
+      "completed",
+    ])
+    .optional(),
 });
 
 ordersRouter.get("/", requireAdmin, async (request, response) => {
@@ -182,14 +221,23 @@ ordersRouter.get("/my", requireUser, async (request, response) => {
   }
 
   try {
-    response.json({
-      source: "mysql",
-      ...(await findOrdersPageByUser(
+    let pageData = await findOrdersPageByUser(
+      user.userId,
+      query.data.page,
+      query.data.pageSize,
+      query.data.paymentStatus as UserOrderPaymentFilter | undefined,
+    );
+    if (await reconcileWaitingPayments(pageData.orders)) {
+      pageData = await findOrdersPageByUser(
         user.userId,
         query.data.page,
         query.data.pageSize,
         query.data.paymentStatus as UserOrderPaymentFilter | undefined,
-      )),
+      );
+    }
+    response.json({
+      source: "mysql",
+      ...pageData,
     });
   } catch (error) {
     Sentry.captureException(error);
@@ -209,11 +257,15 @@ ordersRouter.get("/my/:id", requireUser, async (request, response) => {
   }
 
   try {
-    const order = await findOrderByIdForUser(params.id, user.userId);
+    let order = await findOrderByIdForUser(params.id, user.userId);
 
     if (!order) {
       response.status(404).json({ message: "Order not found" });
       return;
+    }
+
+    if (await reconcileWaitingMidtransOrder(order)) {
+      order = await findOrderByIdForUser(params.id, user.userId);
     }
 
     response.json({
@@ -225,6 +277,13 @@ ordersRouter.get("/my/:id", requireUser, async (request, response) => {
     response.status(503).json({ message: "Database orders belum tersedia" });
   }
 });
+
+async function reconcileWaitingPayments(orders: OrderItem[]) {
+  const results = await Promise.all(
+    orders.map((order) => reconcileWaitingMidtransOrder(order)),
+  );
+  return results.some(Boolean);
+}
 
 ordersRouter.post("/", requireUser, async (request, response) => {
   const user = response.locals.user as UserTokenPayload;
@@ -340,6 +399,13 @@ ordersRouter.post("/:id/payment", requireUser, async (request, response) => {
         return;
       }
 
+      if (
+        existingOrder.orderType === "source_purchase" &&
+        existingOrder.paymentStatus === "expired"
+      ) {
+        await releaseCouponReservation(existingOrder.id);
+      }
+
       // SECURITY: the payable amount must come from a server-trusted source
       // (designs.price), never from user-supplied fields like budget_range.
       // Custom orders without a template price are consultation-only and cannot
@@ -361,15 +427,14 @@ ordersRouter.post("/:id/payment", requireUser, async (request, response) => {
           ? "full"
           : existingOrder.amountPaid > 0
             ? "balance"
-            : "deposit";
+            : body.paymentOption === "full"
+              ? "full"
+              : "deposit";
       const stageAmount =
         paymentStage === "deposit"
           ? Math.min(
               baseAmount,
-              Math.max(
-                1_000,
-                Math.round(baseAmount * (existingOrder.depositPercent / 100)),
-              ),
+              Math.max(1_000, Math.round(baseAmount * 0.5)),
             )
           : paymentStage === "balance"
             ? baseAmount - existingOrder.amountPaid
@@ -451,6 +516,7 @@ ordersRouter.post("/:id/payment", requireUser, async (request, response) => {
               ? "midtrans"
               : "dev",
         stage: paymentStage,
+        depositPercent: paymentStage === "deposit" ? 50 : undefined,
         subtotalAmount: stageAmount,
         discountAmount: coupon?.discountAmount ?? 0,
       });
@@ -552,7 +618,7 @@ ordersRouter.post(
             : "Pembayaran berhasil",
         message:
           order.paymentStatus === "partial_paid"
-            ? `DP untuk ${order.templateTitle} sudah dikonfirmasi. Proyek dapat mulai dikerjakan dan pelunasan tersedia.`
+            ? `DP untuk ${order.templateTitle} sudah dikonfirmasi. Proyek masuk tahap pengerjaan; pelunasan tersedia setelah hasil disetujui.`
             : order.orderType === "source_purchase"
               ? `Pembayaran untuk ${order.templateTitle} sudah dikonfirmasi. Source code dan panduan sudah terbuka di Pesanan Saya.`
               : `Pelunasan untuk ${order.templateTitle} sudah dikonfirmasi.`,
@@ -567,6 +633,85 @@ ordersRouter.post(
     } catch (error) {
       Sentry.captureException(error);
       response.status(500).json({ message: "Gagal mengonfirmasi pembayaran" });
+    }
+  },
+);
+
+ordersRouter.patch("/:id/delivery", requireAdmin, async (request, response) => {
+  const params = parseParams(idParamsSchema, request, response);
+  const body = parseBody(deliveryBodySchema, request, response);
+  if (!params || !body) return;
+
+  try {
+    const updated = await submitOrderDelivery(params.id, {
+      demoUrl: body.demoUrl ?? null,
+      sourceUrl: body.sourceUrl,
+      notes: body.notes,
+    });
+    if (!updated) {
+      response.status(409).json({
+        message:
+          "Hasil dan source final hanya dapat dikirim untuk proyek custom yang sudah dibayar dan sedang dikerjakan/revisi.",
+      });
+      return;
+    }
+    const order = await findOrderById(params.id);
+    await createNotification({
+      userId: order?.userId ?? null,
+      title: "Hasil website siap direview",
+      message: `Hasil ${order?.templateTitle ?? `order #${params.id}`} sudah dikirim. Silakan approve atau ajukan revisi dari Pesanan Saya.`,
+      type: "order",
+      relatedOrderId: params.id,
+    });
+    response.json({ source: "mysql", order });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: "Gagal mengirim hasil pekerjaan" });
+  }
+});
+
+ordersRouter.post(
+  "/:id/delivery/respond",
+  requireUser,
+  async (request, response) => {
+    const params = parseParams(idParamsSchema, request, response);
+    const body = parseBody(deliveryResponseBodySchema, request, response);
+    const user = response.locals.user as UserTokenPayload;
+    if (!params || !body) return;
+
+    try {
+      const updated = await respondToOrderDelivery(
+        params.id,
+        user.userId,
+        body,
+      );
+      if (!updated) {
+        response.status(409).json({
+          message:
+            "Hasil sudah direspons, belum siap direview, atau source code final belum tersedia.",
+        });
+        return;
+      }
+      const order = await findOrderByIdForUser(params.id, user.userId);
+      await createNotification({
+        userId: null,
+        title:
+          body.decision === "approved"
+            ? "Hasil disetujui pelanggan"
+            : "Pelanggan meminta revisi",
+        message:
+          body.decision === "approved"
+            ? order?.status === "completed"
+              ? `Order #${params.id} disetujui, sudah lunas, dan masuk tahap selesai.`
+              : `Order #${params.id} disetujui dan masuk tahap pelunasan.`
+            : `Order #${params.id} memiliki catatan revisi baru.`,
+        type: "order",
+        relatedOrderId: params.id,
+      });
+      response.json({ source: "mysql", order });
+    } catch (error) {
+      Sentry.captureException(error);
+      response.status(500).json({ message: "Gagal menyimpan respons hasil" });
     }
   },
 );
@@ -690,12 +835,13 @@ ordersRouter.patch("/:id/quote", requireAdmin, async (request, response) => {
         });
         return;
       }
+      const depositPercent = 50;
       if (
         !(await setOrderQuote(
           params.id,
           body.amount,
           body.notes,
-          body.depositPercent,
+          depositPercent,
         ))
       ) {
         response.status(409).json({
@@ -713,13 +859,13 @@ ordersRouter.patch("/:id/quote", requireAdmin, async (request, response) => {
         entityId: params.id,
         metadata: {
           amount: body.amount,
-          depositPercent: body.depositPercent,
+          depositPercent,
         },
       });
       await createNotification({
         userId: order?.userId ?? previousOrder.userId,
         title: "Penawaran harga tersedia",
-        message: `Penawaran untuk ${previousOrder.templateTitle} sebesar Rp${body.amount.toLocaleString("id-ID")} tersedia dengan DP ${body.depositPercent}%.`,
+        message: `Penawaran untuk ${previousOrder.templateTitle} sebesar Rp${body.amount.toLocaleString("id-ID")} tersedia. Kamu dapat memilih DP 50% atau langsung lunas.`,
         type: "order",
         relatedOrderId: params.id,
       });
@@ -748,6 +894,10 @@ ordersRouter.patch("/bulk/status", requireAdmin, async (request, response) => {
       const order = await findOrderById(id);
       if (
         !order ||
+        (order.orderType === "custom_project" &&
+          ["delivered", "awaiting_balance", "completed"].includes(
+            body.status,
+          )) ||
         !canTransitionOrderStatus(
           order.status,
           body.status as OrderWorkflowStatus,
@@ -804,6 +954,10 @@ ordersRouter.patch("/:id/status", requireAdmin, async (request, response) => {
       return;
     }
     if (
+      (previousOrder.orderType === "custom_project" &&
+        ["delivered", "awaiting_balance", "completed"].includes(
+          body.status,
+        )) ||
       !canTransitionOrderStatus(
         previousOrder.status,
         body.status as OrderWorkflowStatus,
@@ -811,7 +965,10 @@ ordersRouter.patch("/:id/status", requireAdmin, async (request, response) => {
       )
     ) {
       response.status(409).json({
-        message: `Transisi status ${previousOrder.status} ke ${body.status} tidak diizinkan.`,
+        message:
+          body.status === "delivered"
+            ? "Kirim hasil melalui aksi Kirim hasil review."
+            : `Transisi status ${previousOrder.status} ke ${body.status} tidak diizinkan.`,
       });
       return;
     }

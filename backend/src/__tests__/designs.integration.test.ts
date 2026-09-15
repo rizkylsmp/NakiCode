@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createUserToken } from '../auth';
-import { templatesRouter } from '../routes/templates';
+import { templatesRouter } from '../routes/designs';
 
 vi.mock('../redis-cache', () => ({
   getJsonCache: vi.fn(async () => null),
@@ -10,9 +10,9 @@ vi.mock('../redis-cache', () => ({
   deleteCacheKeys: vi.fn(async () => undefined),
 }));
 
-vi.mock('../models/template.model', async () => {
-  const actual = await vi.importActual<typeof import('../models/template.model')>(
-    '../models/template.model',
+vi.mock('../models/design.model', async () => {
+  const actual = await vi.importActual<typeof import('../models/design.model')>(
+    '../models/design.model',
   );
 
   const template = {
@@ -64,10 +64,10 @@ vi.mock('../models/order.model', async () => {
   };
 });
 
-vi.mock('../models/template-rating.model', async () => {
+vi.mock('../models/design-rating.model', async () => {
   const actual = await vi.importActual<
-    typeof import('../models/template-rating.model')
-  >('../models/template-rating.model');
+    typeof import('../models/design-rating.model')
+  >('../models/design-rating.model');
 
   return {
     ...actual,

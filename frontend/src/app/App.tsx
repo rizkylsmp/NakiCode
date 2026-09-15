@@ -13,7 +13,7 @@ import {
 } from "../domain/content";
 import { RequireAdmin, RequireAuth } from "./route-guards";
 import { ToastProvider } from "../components/ui/Toast";
-import { getTemplateCategoryFromSlug } from "../utils/template-url";
+import { getTemplateCategoryFromSlug } from "../utils/design-url";
 import { FloatingActions } from "../components/layout/FloatingActions";
 import { absoluteSiteUrl, getSiteOrigin } from "../utils/seo";
 
@@ -81,19 +81,19 @@ const HomePage = lazyWithReload(() =>
     default: module.HomePage,
   })),
 );
-const TemplateDetailPage = lazyWithReload(() =>
-  import("../pages/TemplateDetailPage").then((module) => ({
-    default: module.TemplateDetailPage,
+const DesignDetailPage = lazyWithReload(() =>
+  import("../pages/DesignDetailPage").then((module) => ({
+    default: module.DesignDetailPage,
   })),
 );
-const TemplateCatalogPage = lazyWithReload(() =>
-  import("../pages/TemplateCatalogPage").then((module) => ({
-    default: module.TemplateCatalogPage,
+const DesignCatalogPage = lazyWithReload(() =>
+  import("../pages/DesignCatalogPage").then((module) => ({
+    default: module.DesignCatalogPage,
   })),
 );
-const AdminTemplatesPage = lazyWithReload(() =>
-  import("../pages/AdminTemplatesPage").then((module) => ({
-    default: module.AdminTemplatesPage,
+const AdminDesignsPage = lazyWithReload(() =>
+  import("../pages/AdminDesignsPage").then((module) => ({
+    default: module.AdminDesignsPage,
   })),
 );
 const CheckoutPage = lazyWithReload(() =>
@@ -399,7 +399,7 @@ function App() {
         <Route
           path="/design"
           element={
-            <TemplateCatalogPage
+            <DesignCatalogPage
               templates={templates}
               categories={categories}
               activeCategory={activeCategory}
@@ -413,7 +413,7 @@ function App() {
         <Route
           path="/design/kategori/:categorySlug"
           element={
-            <TemplateCatalogPage
+            <DesignCatalogPage
               templates={templates}
               categories={categories}
               activeCategory={activeCategory}
@@ -427,7 +427,7 @@ function App() {
         <Route
           path="/design/:slug"
           element={(
-            <TemplateDetailPage
+            <DesignDetailPage
               templates={templates}
               isLoading={templatesQuery.isPending}
             />
@@ -491,7 +491,7 @@ function App() {
           path="/admin/:adminSection"
           element={
             <RequireAdmin>
-              <AdminTemplatesPage
+              <AdminDesignsPage
                 templates={templates}
                 categories={categories}
                 projects={portfolioItems}

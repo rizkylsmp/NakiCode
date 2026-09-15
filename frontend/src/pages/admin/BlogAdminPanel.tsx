@@ -13,16 +13,16 @@ import { useState } from "react";
 import {
   type BlogPostFormState,
   type BlogPostItem,
-  adminBlogPostsPageSize,
-} from "./AdminTemplateWorkspace.shared";
+} from "./AdminDesignWorkspace.shared";
 import { DeleteBlogDialog } from "./DeleteBlogDialog";
-import { ImageUploadDropZone } from "./AdminTemplateWorkspace.shared";
+import { ImageUploadDropZone } from "./AdminDesignWorkspace.shared";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 
 type BlogAdminPanelProps = {
   paginatedPosts: BlogPostItem[];
   totalPosts: number;
   page: number;
+  pageSize?: number;
   totalPages: number;
   search: string;
   selectedId: number | null;
@@ -35,6 +35,7 @@ type BlogAdminPanelProps = {
   adminToken: string | null;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   onStartCreate: () => void;
   onStartEdit: (post: BlogPostItem) => void;
   onDelete: (post: BlogPostItem) => void;
@@ -50,6 +51,7 @@ export function BlogAdminPanel({
   paginatedPosts,
   totalPosts,
   page,
+  pageSize = 10,
   totalPages,
   search,
   selectedId,
@@ -62,6 +64,7 @@ export function BlogAdminPanel({
   adminToken,
   onSearchChange,
   onPageChange,
+  onPageSizeChange,
   onStartCreate,
   onStartEdit,
   onDelete,
@@ -204,17 +207,18 @@ export function BlogAdminPanel({
               </article>
             ))}
           </div>
-
-          {/* Pagination */}
-          <PaginationControls
-            page={page}
-            total={totalPosts}
-            totalPages={totalPages}
-            pageSize={adminBlogPostsPageSize}
-            onPageChange={onPageChange}
-          />
         </>
       )}
+
+      <PaginationControls
+        alwaysVisible
+        page={page}
+        total={totalPosts}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
 
       {isModalOpen
         ? createPortal(

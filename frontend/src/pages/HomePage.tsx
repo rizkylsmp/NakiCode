@@ -9,7 +9,7 @@ import { Hero } from "../components/home/Hero";
 import { HowItWorksSection } from "../components/home/HowItWorksSection";
 import { LearningSection } from "../components/home/LearningSection";
 import { PortfolioSection } from "../components/home/PortfolioSection";
-import { TemplateCatalog } from "../components/catalog/TemplateCatalog";
+import { DesignCatalog } from "../components/catalog/DesignCatalog";
 import { TestimonialSection } from "../components/home/TestimonialSection";
 import { apiGet } from "../services/api-client";
 import {
@@ -104,7 +104,7 @@ export function HomePage({
         <div id="cara-kerja">
           <HowItWorksSection />
         </div>
-        <TemplateCatalog
+        <DesignCatalog
           templates={filteredTemplates}
           activeCategory={activeCategory}
           isLoading={isLoadingTemplates}

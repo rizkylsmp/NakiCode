@@ -26,6 +26,7 @@ export type OrderItem = {
   paymentMethod: string | null;
   paymentReference: string | null;
   paymentUrl: string | null;
+  paymentExpiresAt: string | null;
   paymentAmount: number | null;
   subtotalAmount: number | null;
   discountAmount: number;
@@ -40,6 +41,15 @@ export type OrderItem = {
   depositPercent: number;
   amountPaid: number;
   paymentStage: "full" | "deposit" | "balance" | "complete" | "legacy_full";
+  deliveryDemoUrl: string | null;
+  deliverySourceUrl: string | null;
+  finalSourceReady: boolean;
+  deliveryNotes: string | null;
+  deliveryReviewStatus: "pending" | "approved" | "revision_requested" | null;
+  deliverySubmittedAt: string | null;
+  deliveryReviewedAt: string | null;
+  revisionNotes: string | null;
+  revisionFiles: string[];
   remainingAmount: number;
   invoiceNumber: string | null;
   invoiceIssuedAt: string | null;
@@ -91,8 +101,17 @@ export function getPaymentStatusLabel(status: string) {
   }
 }
 
+export function getPaymentMethodLabel(method: string | null | undefined) {
+  if (!method) return "";
+  return method.toLowerCase().includes("midtrans") ? "Payment gateway" : method;
+}
+
 export function canRateOrder(order: OrderItem) {
-  return order.paymentStatus === "paid" && order.templateId !== null;
+  return (
+    order.paymentStatus === "paid" &&
+    ["completed", "closed"].includes(order.status) &&
+    order.templateId !== null
+  );
 }
 
 export function getOrderStatusLabel(status: string) {
@@ -101,6 +120,7 @@ export function getOrderStatusLabel(status: string) {
     contacted: "Sudah dihubungi",
     quotation: "Menunggu respons penawaran",
     awaiting_dp: "Menunggu pembayaran",
+    awaiting_balance: "Menunggu pelunasan",
     in_progress: "Sedang dikerjakan",
     revision: "Dalam revisi",
     delivered: "Sudah diserahkan",
@@ -119,7 +139,8 @@ export function canStartOrderCheckout(order: OrderItem) {
   );
   const awaitingBalance =
     order.orderType === "custom_project" &&
-    order.paymentStatus === "partial_paid";
+    order.paymentStatus === "partial_paid" &&
+    order.status === "awaiting_balance";
   return (
     (restartable || awaitingBalance) &&
     !["completed", "closed", "cancelled"].includes(order.status) &&
@@ -128,18 +149,32 @@ export function canStartOrderCheckout(order: OrderItem) {
   );
 }
 
-export function getOrderPayableAmount(order: OrderItem) {
+export function getOrderPayableAmount(
+  order: OrderItem,
+  initialPaymentOption: "deposit" | "full" = "deposit",
+) {
   if (order.orderType === "custom_project" && order.quoteAmount) {
     if (order.amountPaid > 0) {
       return Math.max(0, order.quoteAmount - order.amountPaid);
     }
-    return Math.round(order.quoteAmount * (order.depositPercent / 100));
+    return initialPaymentOption === "full"
+      ? order.quoteAmount
+      : Math.round(order.quoteAmount * 0.5);
   }
 
   return parseCurrencyAmount(order.templatePrice);
 }
 
 export function getOrderPaymentActionLabel(order: OrderItem) {
+  const isRetry = ["failed", "expired", "cancelled"].includes(
+    order.paymentStatus,
+  );
+  if (isRetry) {
+    if (order.orderType === "source_purchase") return "Bayar ulang";
+    return order.amountPaid > 0
+      ? "Ulangi pelunasan"
+      : `Ulangi pembayaran DP ${order.depositPercent}%`;
+  }
   if (order.orderType === "source_purchase") return "Bayar penuh";
   if (order.amountPaid > 0 || order.paymentStage === "balance") {
     return "Bayar pelunasan";

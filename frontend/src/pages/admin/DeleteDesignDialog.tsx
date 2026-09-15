@@ -2,19 +2,19 @@ import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { type TemplateItem } from "../../domain/content";
 
-type DeleteTemplateDialogProps = {
+type DeleteDesignDialogProps = {
   template: TemplateItem | null;
   isDeleting: boolean;
   onClose: () => void;
   onConfirm: (template: TemplateItem) => void;
 };
 
-export function DeleteTemplateDialog({
+export function DeleteDesignDialog({
   template,
   isDeleting,
   onClose,
   onConfirm,
-}: DeleteTemplateDialogProps) {
+}: DeleteDesignDialogProps) {
   if (!template || typeof document === "undefined") {
     return null;
   }

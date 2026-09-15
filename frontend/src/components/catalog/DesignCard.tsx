@@ -2,11 +2,11 @@ import { ArrowRight, Code2, Film, Heart, Star } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { TemplateItem } from "../../domain/content";
-import { getTemplateCategoryPath } from "../../utils/template-url";
+import { getTemplateCategoryPath } from "../../utils/design-url";
 import { TechStackBadge } from "../ui/TechStackBadge";
 import { ResponsiveImage } from "../ui/ResponsiveImage";
 
-type TemplateCardProps = {
+type DesignCardProps = {
   isAuthenticated: boolean;
   isFavorite: boolean;
   isFavoriteLoading: boolean;
@@ -14,13 +14,13 @@ type TemplateCardProps = {
   onToggleFavorite: (templateId: number) => void;
 };
 
-export function TemplateCard({
+export function DesignCard({
   isAuthenticated,
   isFavorite,
   isFavoriteLoading,
   template,
   onToggleFavorite,
-}: TemplateCardProps) {
+}: DesignCardProps) {
   const [failedVideoUrl, setFailedVideoUrl] = useState<string | null>(null);
   const hasVideoPreview =
     Boolean(template.videoUrl) && failedVideoUrl !== template.videoUrl;

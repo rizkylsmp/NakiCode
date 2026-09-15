@@ -18,6 +18,7 @@ type OrderRow = RowDataPacket & {
   payment_method?: string | null;
   payment_reference?: string | null;
   payment_url?: string | null;
+  payment_expires_at?: string | Date | null;
   payment_amount?: number | null;
   subtotal_amount?: number | null;
   discount_amount?: number;
@@ -32,6 +33,14 @@ type OrderRow = RowDataPacket & {
   deposit_percent?: number;
   amount_paid?: number;
   payment_stage?: string;
+  delivery_demo_url?: string | null;
+  delivery_source_url?: string | null;
+  delivery_notes?: string | null;
+  delivery_review_status?: string | null;
+  delivery_submitted_at?: string | null;
+  delivery_reviewed_at?: string | null;
+  revision_notes?: string | null;
+  revision_files?: string | string[] | null;
   invoice_number?: string | null;
   invoice_issued_at?: string | null;
   payment_failure_code?: string | null;
@@ -69,6 +78,7 @@ export type OrderItem = {
   paymentMethod: string | null;
   paymentReference: string | null;
   paymentUrl: string | null;
+  paymentExpiresAt: string | null;
   paymentAmount: number | null;
   subtotalAmount: number | null;
   discountAmount: number;
@@ -83,6 +93,15 @@ export type OrderItem = {
   depositPercent: number;
   amountPaid: number;
   paymentStage: "full" | "deposit" | "balance" | "complete" | "legacy_full";
+  deliveryDemoUrl: string | null;
+  deliverySourceUrl: string | null;
+  finalSourceReady: boolean;
+  deliveryNotes: string | null;
+  deliveryReviewStatus: "pending" | "approved" | "revision_requested" | null;
+  deliverySubmittedAt: string | null;
+  deliveryReviewedAt: string | null;
+  revisionNotes: string | null;
+  revisionFiles: string[];
   remainingAmount: number;
   invoiceNumber: string | null;
   invoiceIssuedAt: string | null;
@@ -149,6 +168,7 @@ export type AdminOrderStatusFilter =
   | "contacted"
   | "quotation"
   | "awaiting_dp"
+  | "awaiting_balance"
   | "in_progress"
   | "revision"
   | "delivered"
@@ -166,13 +186,22 @@ export type AdminPaymentStatusFilter =
   | "partial_refunded"
   | "refunded"
   | "cancelled";
-export type UserOrderPaymentFilter = "paid" | "waiting_payment" | "unpaid";
+export type UserOrderPaymentFilter =
+  | "paid"
+  | "waiting_payment"
+  | "unpaid"
+  | "cancelled"
+  | "work"
+  | "review"
+  | "balance"
+  | "completed";
 
 export const allowedOrderStatuses = new Set([
   "new",
   "contacted",
   "quotation",
   "awaiting_dp",
+  "awaiting_balance",
   "in_progress",
   "revision",
   "delivered",
@@ -200,6 +229,7 @@ const orderSelect = `SELECT
   orders.payment_method,
   orders.payment_reference,
   orders.payment_url,
+  orders.payment_expires_at,
   orders.payment_amount,
   orders.subtotal_amount,
   orders.discount_amount,
@@ -214,6 +244,14 @@ const orderSelect = `SELECT
   orders.deposit_percent,
   orders.amount_paid,
   orders.payment_stage,
+  orders.delivery_demo_url,
+  orders.delivery_source_url,
+  orders.delivery_notes,
+  orders.delivery_review_status,
+  orders.delivery_submitted_at,
+  orders.delivery_reviewed_at,
+  orders.revision_notes,
+  orders.revision_files,
   orders.invoice_number,
   orders.invoice_issued_at,
   orders.payment_failure_code,
@@ -244,6 +282,7 @@ export async function findOrdersPage(
     search?: string;
   } = {},
 ) {
+  await reconcileExpiredPaymentDeadlines();
   const conditions = ["orders.deleted_at IS NULL"];
   const params: Array<number | string> = [];
 
@@ -278,6 +317,7 @@ export async function findOrdersPageByUser(
   pageSize = 10,
   paymentFilter?: UserOrderPaymentFilter,
 ) {
+  await reconcileExpiredPaymentDeadlines(userId);
   const filters = ["orders.user_id = ?", "orders.deleted_at IS NULL"];
   const params: Array<number | string> = [userId];
 
@@ -293,16 +333,69 @@ export async function findOrdersPageByUser(
 
   if (paymentFilter === "unpaid") {
     filters.push(
-      "(orders.payment_status IS NULL OR orders.payment_status IN ('pending', 'failed', 'expired', 'cancelled', 'partial_paid'))",
+      "orders.status <> 'cancelled' AND (orders.payment_status IS NULL OR orders.payment_status IN ('pending', 'failed', 'expired', 'partial_paid'))",
     );
   }
 
-  return findOrdersPageInternal({
+  if (paymentFilter === "cancelled") {
+    filters.push(
+      "(orders.payment_status = 'cancelled' OR orders.status = 'cancelled')",
+    );
+  }
+
+  if (paymentFilter === "work") {
+    filters.push(
+      "orders.order_type = 'custom_project' AND orders.status IN ('in_progress', 'revision')",
+    );
+  }
+
+  if (paymentFilter === "review") {
+    filters.push(
+      "orders.order_type = 'custom_project' AND orders.status = 'delivered' AND orders.delivery_review_status = 'pending'",
+    );
+  }
+
+  if (paymentFilter === "balance") {
+    filters.push(
+      "orders.order_type = 'custom_project' AND orders.status = 'awaiting_balance'",
+    );
+  }
+
+  if (paymentFilter === "completed") {
+    filters.push("orders.status = 'completed'");
+  }
+
+  const result = await findOrdersPageInternal({
     page,
     pageSize,
     whereClause: `WHERE ${filters.join(" AND ")}`,
     params,
   });
+
+  return {
+    ...result,
+    orders: result.orders.map(redactLockedFinalSource),
+  };
+}
+
+async function reconcileExpiredPaymentDeadlines(userId?: number) {
+  const userFilter = userId ? "AND order_rows.user_id = ?" : "";
+  await pool.query(
+    `UPDATE orders AS order_rows
+     INNER JOIN order_payment_sessions AS sessions
+       ON sessions.reference = order_rows.payment_reference
+     SET order_rows.payment_status = 'expired',
+       order_rows.payment_url = NULL,
+       order_rows.payment_failure_reason = COALESCE(order_rows.payment_failure_reason, 'Waktu pembayaran kedaluwarsa'),
+       sessions.status = 'expired',
+       sessions.failure_reason = COALESCE(sessions.failure_reason, 'Waktu pembayaran kedaluwarsa')
+     WHERE order_rows.payment_status = 'waiting_payment'
+       AND order_rows.payment_expires_at IS NOT NULL
+       AND order_rows.payment_expires_at <= CURRENT_TIMESTAMP
+       AND sessions.status = 'waiting_payment'
+       ${userFilter}`,
+    userId ? [userId] : [],
+  );
 }
 
 export async function createOrder(payload: OrderPayload) {
@@ -384,6 +477,90 @@ export async function updateOrderStatus(id: number, status: string) {
   return result.affectedRows > 0;
 }
 
+export async function submitOrderDelivery(
+  id: number,
+  payload: { demoUrl: string | null; sourceUrl: string; notes: string },
+) {
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE orders SET delivery_demo_url = ?, delivery_source_url = ?,
+      delivery_notes = ?, delivery_review_status = 'pending',
+      delivery_submitted_at = CURRENT_TIMESTAMP, delivery_reviewed_at = NULL,
+      revision_notes = NULL, revision_files = JSON_ARRAY(), status = 'delivered'
+     WHERE id = ? AND deleted_at IS NULL AND order_type = 'custom_project'
+       AND payment_status IN ('partial_paid', 'paid')
+       AND (
+         status IN ('in_progress', 'revision')
+         OR (status = 'delivered' AND delivery_review_status = 'pending'
+           AND delivery_source_url IS NULL)
+       )`,
+    [payload.demoUrl, payload.sourceUrl, payload.notes, id],
+  );
+  return result.affectedRows > 0;
+}
+
+export async function respondToOrderDelivery(
+  id: number,
+  userId: number,
+  payload:
+    | { decision: "approved" }
+    | { decision: "revision_requested"; notes: string; files: string[] },
+) {
+  const approved = payload.decision === "approved";
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE orders SET status = CASE
+        WHEN ? = 'revision_requested' THEN 'in_progress'
+        WHEN COALESCE(
+          (SELECT SUM(payment.amount) FROM order_payment_sessions payment
+            WHERE payment.order_id = orders.id AND payment.status = 'paid'),
+          amount_paid,
+          0
+        ) >= COALESCE(quote_amount, payment_amount, 0)
+          THEN 'completed'
+        ELSE 'awaiting_balance'
+      END,
+      payment_status = CASE
+        WHEN ? = 'approved' AND COALESCE(
+          (SELECT SUM(payment.amount) FROM order_payment_sessions payment
+            WHERE payment.order_id = orders.id AND payment.status = 'paid'),
+          amount_paid,
+          0
+        ) < COALESCE(quote_amount, payment_amount, 0)
+          THEN 'partial_paid'
+        ELSE payment_status
+      END,
+      payment_stage = CASE
+        WHEN ? = 'approved' AND COALESCE(
+          (SELECT SUM(payment.amount) FROM order_payment_sessions payment
+            WHERE payment.order_id = orders.id AND payment.status = 'paid'),
+          amount_paid,
+          0
+        ) < COALESCE(quote_amount, payment_amount, 0)
+          THEN 'balance'
+        ELSE payment_stage
+      END,
+      delivery_review_status = ?,
+      delivery_reviewed_at = CURRENT_TIMESTAMP, revision_notes = ?,
+      revision_files = ?
+     WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+       AND order_type = 'custom_project'
+       AND payment_status IN ('partial_paid', 'paid')
+       AND status = 'delivered' AND delivery_review_status = 'pending'
+       AND (? = 'revision_requested' OR delivery_source_url IS NOT NULL)`,
+    [
+      payload.decision,
+      payload.decision,
+      payload.decision,
+      payload.decision,
+      approved ? null : payload.notes,
+      JSON.stringify(approved ? [] : payload.files),
+      id,
+      userId,
+      payload.decision,
+    ],
+  );
+  return result.affectedRows > 0;
+}
+
 export async function setOrderQuote(
   id: number,
   amount: number,
@@ -397,6 +574,7 @@ export async function setOrderQuote(
       subtotal_amount = ?, discount_amount = 0, payment_amount = ?, net_amount = ?,
       payment_status = 'pending', payment_method = NULL, payment_reference = NULL,
       payment_url = NULL,
+      payment_expires_at = NULL,
       status = CASE WHEN status IN ('new', 'contacted') THEN 'quotation' ELSE status END
      WHERE id = ?
        AND payment_status IN ('pending', 'failed', 'expired', 'cancelled')
@@ -478,21 +656,33 @@ export async function startOrderPayment(
     method: string;
     reference: string;
     url: string;
+    expiresAt: string | null;
     amount: number;
     subtotalAmount: number;
     discountAmount: number;
     gatewayFeeAmount?: number;
+    depositPercent?: number;
   },
 ) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+    await connection.query(
+      `UPDATE order_payment_sessions
+       SET status = 'expired', failure_reason = COALESCE(failure_reason, 'Waktu pembayaran kedaluwarsa'),
+         last_webhook_status = COALESCE(last_webhook_status, 'expire'),
+         last_webhook_at = COALESCE(last_webhook_at, CURRENT_TIMESTAMP)
+       WHERE order_id = ? AND status = 'waiting_payment'
+         AND expires_at IS NOT NULL AND expires_at <= CURRENT_TIMESTAMP`,
+      [id],
+    );
     const [result] = await connection.query<ResultSetHeader>(
       `UPDATE orders
     SET payment_status = ?,
       payment_method = ?,
       payment_reference = ?,
       payment_url = ?,
+      payment_expires_at = FROM_UNIXTIME(?),
       payment_amount = ?,
       subtotal_amount = ?,
       discount_amount = ?,
@@ -502,11 +692,14 @@ export async function startOrderPayment(
       payment_failure_reason = NULL,
       payment_last_webhook_status = NULL,
       payment_last_webhook_at = NULL,
-      payment_stage = ?
+      payment_stage = ?,
+      deposit_percent = COALESCE(?, deposit_percent)
     WHERE id = ? AND user_id = ?
       AND (
         payment_status IN ('pending', 'failed', 'expired', 'cancelled')
         OR (order_type = 'custom_project' AND payment_status = 'partial_paid')
+        OR (payment_status = 'waiting_payment' AND payment_expires_at IS NOT NULL
+          AND payment_expires_at <= CURRENT_TIMESTAMP)
       )
       AND status NOT IN ('completed', 'closed', 'cancelled')
       AND (
@@ -519,12 +712,16 @@ export async function startOrderPayment(
         payment.method,
         payment.reference,
         payment.url,
+        payment.expiresAt
+          ? Math.floor(Date.parse(payment.expiresAt) / 1000)
+          : null,
         payment.amount,
         payment.subtotalAmount,
         payment.discountAmount,
         payment.gatewayFeeAmount ?? 0,
         payment.amount - (payment.gatewayFeeAmount ?? 0),
         payment.stage,
+        payment.depositPercent ?? null,
         id,
         userId,
       ],
@@ -537,9 +734,9 @@ export async function startOrderPayment(
 
     await connection.query(
       `INSERT INTO order_payment_sessions (
-        order_id, stage, provider, status, method, reference, payment_url,
+        order_id, stage, provider, status, method, reference, payment_url, expires_at,
         subtotal_amount, discount_amount, gateway_fee_amount, amount, net_amount
-      ) VALUES (?, ?, ?, 'waiting_payment', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, 'waiting_payment', ?, ?, ?, FROM_UNIXTIME(?), ?, ?, ?, ?, ?)`,
       [
         id,
         payment.stage,
@@ -547,6 +744,9 @@ export async function startOrderPayment(
         payment.method,
         payment.reference,
         payment.url,
+        payment.expiresAt
+          ? Math.floor(Date.parse(payment.expiresAt) / 1000)
+          : null,
         payment.subtotalAmount,
         payment.discountAmount,
         payment.gatewayFeeAmount ?? 0,
@@ -636,6 +836,10 @@ export async function markOrderPaidByPaymentReference(
     const totalAmount = Number(payment.quote_amount ?? payment.amount);
     const isComplete =
       payment.order_type === "source_purchase" || paidTotal >= totalAmount;
+    const nextOrderStatus =
+      payment.order_type === "source_purchase" || payment.stage === "balance"
+        ? "completed"
+        : "in_progress";
 
     await connection.query(
       `UPDATE orders SET
@@ -646,9 +850,7 @@ export async function markOrderPaidByPaymentReference(
         payment_last_webhook_at = CURRENT_TIMESTAMP,
         paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END,
         settlement_at = CURRENT_TIMESTAMP,
-        status = CASE
-          WHEN status IN ('new', 'contacted', 'quotation', 'awaiting_dp') THEN 'in_progress'
-          ELSE status END
+        status = ?
        WHERE id = ?`,
       [
         isComplete ? "paid" : "partial_paid",
@@ -658,6 +860,7 @@ export async function markOrderPaidByPaymentReference(
         paymentReference,
         payment.amount,
         isComplete,
+        nextOrderStatus,
         payment.order_id,
       ],
     );
@@ -679,12 +882,19 @@ export async function markOrderPaymentFailedByReference(
     transactionStatus?: string | null;
   } = {},
 ) {
+  const paymentStatus =
+    failure.transactionStatus === "expire"
+      ? "expired"
+      : failure.transactionStatus === "cancel"
+        ? "cancelled"
+        : "failed";
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE order_payment_sessions
-     SET status = 'failed', failure_code = ?, failure_reason = ?,
+     SET status = ?, failure_code = ?, failure_reason = ?,
        last_webhook_status = ?, last_webhook_at = CURRENT_TIMESTAMP
-     WHERE reference = ? AND status <> 'paid'`,
+     WHERE reference = ? AND status = 'waiting_payment'`,
     [
+      paymentStatus,
       failure.code ?? null,
       failure.reason ?? null,
       failure.transactionStatus ?? "failed",
@@ -694,13 +904,14 @@ export async function markOrderPaymentFailedByReference(
 
   if (result.affectedRows > 0) {
     await pool.query(
-      `UPDATE orders SET payment_status = 'failed',
+      `UPDATE orders SET payment_status = ?,
         payment_failure_code = ?, payment_failure_reason = ?,
         payment_last_webhook_status = ?, payment_last_webhook_at = CURRENT_TIMESTAMP,
         payment_url = NULL
        WHERE payment_reference = ? AND payment_status = 'waiting_payment'
          AND deleted_at IS NULL`,
       [
+        paymentStatus,
         failure.code ?? null,
         failure.reason ?? null,
         failure.transactionStatus ?? "failed",
@@ -739,6 +950,7 @@ export async function hasSuccessfulTemplateOrder(
     WHERE user_id = ?
       AND design_id = ?
       AND payment_status IN ('paid', 'partial_refunded')
+      AND status IN ('completed', 'closed')
       AND deleted_at IS NULL
     LIMIT 1`,
     [userId, templateId],
@@ -755,7 +967,7 @@ export async function findOrderByIdForUser(id: number, userId: number) {
     [id, userId],
   );
 
-  return rows[0] ? normalizeOrderRow(rows[0]) : null;
+  return rows[0] ? redactLockedFinalSource(normalizeOrderRow(rows[0])) : null;
 }
 
 async function findOrdersPageInternal({
@@ -821,6 +1033,7 @@ export function normalizeOrderPayload(
     paymentMethod: null,
     paymentReference: null,
     paymentUrl: null,
+    paymentExpiresAt: null,
     paymentAmount: null,
     subtotalAmount: null,
     discountAmount: 0,
@@ -835,6 +1048,15 @@ export function normalizeOrderPayload(
     depositPercent: 50,
     amountPaid: 0,
     paymentStage: body.orderType === "source_purchase" ? "full" : "deposit",
+    deliveryDemoUrl: null,
+    deliverySourceUrl: null,
+    finalSourceReady: false,
+    deliveryNotes: null,
+    deliveryReviewStatus: null,
+    deliverySubmittedAt: null,
+    deliveryReviewedAt: null,
+    revisionNotes: null,
+    revisionFiles: [],
     remainingAmount: 0,
     invoiceNumber: null,
     invoiceIssuedAt: null,
@@ -861,6 +1083,11 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     row.order_type === "source_purchase" ? "source_purchase" : "custom_project";
   const isPaid =
     row.payment_status === "paid" || row.payment_status === "partial_refunded";
+  const paymentExpiresAt = normalizeTimestamp(row.payment_expires_at);
+  const isPastDue =
+    row.payment_status === "waiting_payment" &&
+    paymentExpiresAt !== null &&
+    Date.parse(paymentExpiresAt) <= Date.now();
   const sourceCodeItems =
     isPaid && orderType === "source_purchase"
       ? parseStringArray(row.included_files ?? [])
@@ -880,10 +1107,11 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     message: row.message,
     orderType,
     status: row.status,
-    paymentStatus: row.payment_status ?? "pending",
+    paymentStatus: isPastDue ? "expired" : (row.payment_status ?? "pending"),
     paymentMethod: row.payment_method ?? null,
     paymentReference: row.payment_reference ?? null,
-    paymentUrl: row.payment_url ?? null,
+    paymentUrl: isPastDue ? null : (row.payment_url ?? null),
+    paymentExpiresAt,
     paymentAmount: row.payment_amount ?? null,
     subtotalAmount: row.subtotal_amount ?? null,
     discountAmount: Number(row.discount_amount ?? 0),
@@ -903,6 +1131,20 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     depositPercent: Number(row.deposit_percent ?? 50),
     amountPaid: Number(row.amount_paid ?? 0),
     paymentStage: normalizePaymentStage(row.payment_stage, orderType, isPaid),
+    deliveryDemoUrl: row.delivery_demo_url ?? null,
+    deliverySourceUrl: row.delivery_source_url ?? null,
+    finalSourceReady: Boolean(row.delivery_source_url),
+    deliveryNotes: row.delivery_notes ?? null,
+    deliveryReviewStatus:
+      row.delivery_review_status === "pending" ||
+      row.delivery_review_status === "approved" ||
+      row.delivery_review_status === "revision_requested"
+        ? row.delivery_review_status
+        : null,
+    deliverySubmittedAt: row.delivery_submitted_at ?? null,
+    deliveryReviewedAt: row.delivery_reviewed_at ?? null,
+    revisionNotes: row.revision_notes ?? null,
+    revisionFiles: parseStringArray(row.revision_files ?? []),
     remainingAmount: Math.max(
       0,
       Number(row.quote_amount ?? row.payment_amount ?? 0) -
@@ -911,7 +1153,9 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     invoiceNumber: row.invoice_number ?? null,
     invoiceIssuedAt: row.invoice_issued_at ?? null,
     paymentFailureCode: row.payment_failure_code ?? null,
-    paymentFailureReason: row.payment_failure_reason ?? null,
+    paymentFailureReason: isPastDue
+      ? "Waktu pembayaran kedaluwarsa"
+      : (row.payment_failure_reason ?? null),
     paymentLastWebhookStatus: row.payment_last_webhook_status ?? null,
     paymentLastWebhookAt: row.payment_last_webhook_at ?? null,
     paidAt: row.paid_at ?? null,
@@ -932,6 +1176,17 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
       isPaid && orderType === "source_purchase" ? (row.demo_url ?? null) : null,
     createdAt: row.created_at ?? new Date().toISOString(),
   };
+}
+
+function redactLockedFinalSource(order: OrderItem): OrderItem {
+  if (
+    order.orderType !== "custom_project" ||
+    ["completed", "closed"].includes(order.status)
+  ) {
+    return order;
+  }
+
+  return { ...order, deliverySourceUrl: null };
 }
 
 function parseStringArray(value: string | string[]) {
@@ -966,4 +1221,10 @@ function normalizePaymentStage(
   }
   if (isPaid) return "complete";
   return orderType === "source_purchase" ? "full" : "deposit";
+}
+
+function normalizeTimestamp(value: string | Date | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }

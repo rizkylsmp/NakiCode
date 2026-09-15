@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import { ResponsiveImage } from "../components/ui/ResponsiveImage";
-import { TemplateCardSkeletonGrid } from "../components/ui/skeletons/TemplateCardSkeleton";
+import { DesignCardSkeletonGrid } from "../components/ui/skeletons/DesignCardSkeleton";
 import type { TemplateItem } from "../domain/content";
 import { useFavoriteTemplates } from "../hooks/useFavorites";
 
@@ -45,7 +45,7 @@ export function WishlistPage({ templates }: WishlistPageProps) {
 
         {isFavoriteLoading ? (
           <div className="mt-8">
-            <TemplateCardSkeletonGrid count={3} />
+            <DesignCardSkeletonGrid count={3} />
           </div>
         ) : favoriteTemplates.length === 0 ? (
           <div className="mt-8 rounded-2xl bg-white p-8 text-center shadow-sm">

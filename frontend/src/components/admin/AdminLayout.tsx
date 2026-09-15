@@ -7,7 +7,7 @@ import {
   AdminSidebar,
 } from "./AdminSidebar";
 import { Header } from "../layout/Header";
-import { type DashboardView } from "../../pages/admin/AdminTemplateWorkspace.shared";
+import { type DashboardView } from "../../pages/admin/AdminDesignWorkspace.shared";
 
 type AdminLayoutProps = {
   children: React.ReactNode;

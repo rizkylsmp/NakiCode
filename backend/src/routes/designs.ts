@@ -10,14 +10,14 @@ import {
   findTemplates,
   normalizeTemplatePayload,
   updateTemplate,
-} from "../models/template.model";
+} from "../models/design.model";
 import { hasSuccessfulTemplateOrder } from "../models/order.model";
 import {
   createTemplateRating,
   hasUserRatedTemplate,
   normalizeTemplateRatingPayload,
-} from "../models/template-rating.model";
-import type { TemplateItem } from "../models/template.model";
+} from "../models/design-rating.model";
+import type { TemplateItem } from "../models/design.model";
 import { deleteCacheKeys, getJsonCache, setJsonCache } from "../redis-cache";
 import { parseBody, parseParams } from "../validation";
 
@@ -249,7 +249,7 @@ templatesRouter.post("/:id/rating", requireUser, async (request, response) => {
 
     if (!hasPaidOrder) {
       response.status(403).json({
-        message: "Rating hanya bisa dikirim setelah order berhasil dibayar",
+        message: "Rating hanya bisa dikirim setelah pesanan selesai",
       });
       return;
     }

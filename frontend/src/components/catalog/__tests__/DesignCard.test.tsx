@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { TemplateItem } from "../../../domain/content";
-import { TemplateCard } from "../TemplateCard";
+import { DesignCard } from "../DesignCard";
 
 const template: TemplateItem = {
   id: 7,
@@ -28,11 +28,11 @@ const template: TemplateItem = {
   reviews: [],
 };
 
-describe("TemplateCard", () => {
+describe("DesignCard", () => {
   it("prioritizes the uploaded video and keeps the cover as its poster", () => {
     const { container } = render(
       <MemoryRouter>
-        <TemplateCard
+        <DesignCard
           isAuthenticated
           isFavorite={false}
           isFavoriteLoading={false}
@@ -70,7 +70,7 @@ describe("TemplateCard", () => {
     const imageTemplate = { ...template, videoUrl: null };
     const { container } = render(
       <MemoryRouter>
-        <TemplateCard
+        <DesignCard
           isAuthenticated={false}
           isFavorite={false}
           isFavoriteLoading={false}

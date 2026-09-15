@@ -2,9 +2,9 @@ import { Skeleton } from "./Skeleton";
 
 /**
  * Skeleton loader for template cards
- * Matches the structure of template cards in TemplateCatalog
+ * Matches the structure of template cards in DesignCatalog
  */
-export function TemplateCardSkeleton() {
+export function DesignCardSkeleton() {
   return (
     <div className="rounded-xl border border-naki-steel bg-naki-frost p-4 shadow-naki-card">
       {/* Preview image skeleton */}
@@ -40,7 +40,7 @@ export function TemplateCardSkeleton() {
  * Grid of template card skeletons
  * Used while template data is loading
  */
-interface TemplateCardSkeletonGridProps {
+interface DesignCardSkeletonGridProps {
   /**
    * Number of skeleton cards to show
    * @default 6
@@ -48,11 +48,11 @@ interface TemplateCardSkeletonGridProps {
   count?: number;
 }
 
-export function TemplateCardSkeletonGrid({ count = 6 }: TemplateCardSkeletonGridProps) {
+export function DesignCardSkeletonGrid({ count = 6 }: DesignCardSkeletonGridProps) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: count }).map((_, index) => (
-        <TemplateCardSkeleton key={index} />
+        <DesignCardSkeleton key={index} />
       ))}
     </div>
   );

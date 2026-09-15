@@ -3,6 +3,7 @@ export type OrderWorkflowStatus =
   | "contacted"
   | "quotation"
   | "awaiting_dp"
+  | "awaiting_balance"
   | "in_progress"
   | "revision"
   | "delivered"
@@ -16,9 +17,10 @@ const transitions: Record<OrderWorkflowStatus, OrderWorkflowStatus[]> = {
   contacted: ["quotation", "awaiting_dp", "cancelled"],
   quotation: ["contacted", "awaiting_dp", "cancelled"],
   awaiting_dp: ["quotation", "in_progress", "cancelled"],
-  in_progress: ["revision", "delivered", "cancelled"],
+  awaiting_balance: ["cancelled"],
+  in_progress: ["delivered", "cancelled"],
   revision: ["in_progress", "delivered", "cancelled"],
-  delivered: ["revision", "completed", "closed"],
+  delivered: ["in_progress", "awaiting_balance", "cancelled"],
   completed: ["closed"],
   cancelled: ["contacted"],
   deal: ["in_progress", "closed", "cancelled"],
@@ -61,7 +63,8 @@ export function canStartOrderPayment(order: {
   );
   const awaitingBalance =
     order.orderType === "custom_project" &&
-    order.paymentStatus === "partial_paid";
+    order.paymentStatus === "partial_paid" &&
+    order.status === "awaiting_balance";
   if (!restartable && !awaitingBalance) {
     return false;
   }

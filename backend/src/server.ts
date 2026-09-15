@@ -22,7 +22,7 @@ import { ordersRouter } from './routes/orders';
 import { router as ordersStatsRouter } from './routes/orders-stats';
 import { paymentsRouter } from './routes/payments';
 import { projectsRouter } from './routes/projects';
-import { templatesRouter } from './routes/templates';
+import { templatesRouter } from './routes/designs';
 import { testimonialsRouter } from './routes/testimonials';
 import { uploadsRouter } from './routes/uploads';
 import {

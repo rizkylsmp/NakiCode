@@ -38,6 +38,15 @@ export async function storeSourcePackage(file: Express.Multer.File) {
   return uploadSourceToLocalDisk(file);
 }
 
+export async function storeRevisionAttachment(file: Express.Multer.File) {
+  if (config.storage.cloudinaryUrl) {
+    configureCloudinary(config.storage.cloudinaryUrl);
+    return uploadRevisionToCloudinary(file);
+  }
+
+  return uploadRevisionToLocalDisk(file);
+}
+
 function configureCloudinary(cloudinaryUrl: string) {
   const parsedUrl = new URL(cloudinaryUrl);
 
@@ -120,6 +129,35 @@ function uploadSourceToCloudinary(
   });
 }
 
+function uploadRevisionToCloudinary(
+  file: Express.Multer.File,
+): Promise<StoredImage & { name: string; mimetype: string; size: number }> {
+  return new Promise((resolve, reject) => {
+    const safeName = sanitizeAttachmentName(file.originalname);
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: `${config.storage.cloudinaryFolder}/revisions`,
+        resource_type: "raw",
+        public_id: `${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeName}`,
+      },
+      (error, result) => {
+        if (error || !result?.secure_url) {
+          reject(error ?? new Error("Cloudinary revision upload failed"));
+          return;
+        }
+        resolve({
+          url: result.secure_url,
+          storage: "cloudinary",
+          name: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+        });
+      },
+    );
+    stream.end(file.buffer);
+  });
+}
+
 async function uploadToLocalDisk(
   file: Express.Multer.File,
 ): Promise<StoredImage> {
@@ -156,6 +194,35 @@ async function uploadSourceToLocalDisk(
   const filename = `${Date.now()}-${crypto.randomBytes(12).toString("hex")}.${extension}`;
   await writeFile(path.join(sourceDir, filename), file.buffer);
   return { url: `/uploads/source/${filename}`, storage: "local" };
+}
+
+async function uploadRevisionToLocalDisk(
+  file: Express.Multer.File,
+): Promise<StoredImage & { name: string; mimetype: string; size: number }> {
+  const revisionDir = path.join(uploadDir, "revisions");
+  await mkdir(revisionDir, { recursive: true });
+  const safeName = sanitizeAttachmentName(file.originalname);
+  const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeName}`;
+  await writeFile(path.join(revisionDir, filename), file.buffer);
+  return {
+    url: `/uploads/revisions/${filename}`,
+    storage: "local",
+    name: file.originalname,
+    mimetype: file.mimetype,
+    size: file.size,
+  };
+}
+
+function sanitizeAttachmentName(filename: string) {
+  const parsed = path.parse(filename);
+  const safeBase =
+    parsed.name
+      .normalize("NFKD")
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "lampiran";
+  const safeExtension = parsed.ext.toLowerCase().replace(/[^a-z0-9.]/g, "");
+  return `${safeBase}${safeExtension}`;
 }
 
 function getImageExtension(mimetype: string) {

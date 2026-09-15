@@ -24,7 +24,7 @@ import {
   userUsernameKey,
 } from "../utils/user-session";
 import { AdminDashboardPage } from "./admin/AdminDashboardPage";
-import { TemplatesPanel } from "./admin/TemplatesPanel";
+import { DesignsPanel } from "./admin/DesignsPanel";
 import { OrdersPanel } from "./admin/OrdersPanel";
 import { PortfolioAdminPanel } from "./admin/PortfolioAdminPanel";
 import { BlogAdminPanel } from "./admin/BlogAdminPanel";
@@ -60,11 +60,11 @@ import {
   type TemplateMutationResponse,
   type TemplatesResponse,
   type TestimonialItem,
-} from "./admin/AdminTemplateWorkspace.shared";
+} from "./admin/AdminDesignWorkspace.shared";
 import { DeleteCategoryDialog } from "./admin/DeleteCategoryDialog";
 import { DeleteOrderDialog } from "./admin/DeleteOrderDialog";
-import { DeleteTemplateDialog } from "./admin/DeleteTemplateDialog";
-import { designDraftStorageKey } from "./admin/TemplateFormModal";
+import { DeleteDesignDialog } from "./admin/DeleteDesignDialog";
+import { designDraftStorageKey } from "./admin/DesignFormModal";
 
 /** Parse order filter state from URL query params. */
 function readOrderFiltersFromUrl(search: string): {
@@ -99,7 +99,7 @@ function readOrderFiltersFromUrl(search: string): {
   };
 }
 
-type AdminTemplatesPageProps = {
+type AdminDesignsPageProps = {
   templates: TemplateItem[];
   categories: TemplateCategory[];
   projects: PortfolioItem[];
@@ -108,14 +108,14 @@ type AdminTemplatesPageProps = {
   onProjectsChange: (projects: PortfolioItem[]) => void;
 };
 
-export function AdminTemplatesPage({
+export function AdminDesignsPage({
   templates,
   categories,
   projects,
   onTemplatesChange,
   onCategoriesChange,
   onProjectsChange,
-}: AdminTemplatesPageProps) {
+}: AdminDesignsPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { adminSection = "dashboard" } = useParams();
@@ -140,6 +140,9 @@ export function AdminTemplatesPage({
   const [templateSearch, setTemplateSearch] = useState("");
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState("all");
   const [templatesPage, setTemplatesPage] = useState(1);
+  const [templatesPageSize, setTemplatesPageSize] = useState(
+    adminTemplatesPageSize,
+  );
   const [activeAdminView, setActiveAdminView] =
     useState<DashboardView>(routeAdminView);
   const [portfolioForm, setPortfolioForm] = useState<PortfolioFormState>(
@@ -158,6 +161,7 @@ export function AdminTemplatesPage({
   const initialOrderState = readOrderFiltersFromUrl(location.search);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [ordersPage, setOrdersPage] = useState(initialOrderState.page);
+  const [ordersPageSize, setOrdersPageSize] = useState(adminOrdersPageSize);
   const [orderFilters, setOrderFilters] = useState<AdminOrderFilters>(
     initialOrderState.filters,
   );
@@ -191,9 +195,7 @@ export function AdminTemplatesPage({
   const [categoriesWithIds, setCategoriesWithIds] = useState<AdminCategory[]>(
     [],
   );
-  const [ordersStatus, setOrdersStatus] = useState(
-    "Login untuk melihat request konsultasi.",
-  );
+  const [ordersStatus, setOrdersStatus] = useState("");
   const [deleteCandidateOrder, setDeleteCandidateOrder] =
     useState<OrderItem | null>(null);
   const [deleteCandidateCategory, setDeleteCandidateCategory] = useState<
@@ -203,6 +205,9 @@ export function AdminTemplatesPage({
     useState<TemplateItem | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
   const [blogPostsPage, setBlogPostsPage] = useState(1);
+  const [blogPostsPageSize, setBlogPostsPageSize] = useState(
+    adminBlogPostsPageSize,
+  );
   const [blogSearch, setBlogSearch] = useState("");
   const [blogForm, setBlogForm] = useState<BlogPostFormState>(
     defaultBlogPostFormState,
@@ -423,12 +428,12 @@ export function AdminTemplatesPage({
   }, [templateCategoryFilter, templateSearch, templates]);
   const templateTotalPages = Math.max(
     1,
-    Math.ceil(filteredAdminTemplates.length / adminTemplatesPageSize),
+    Math.ceil(filteredAdminTemplates.length / templatesPageSize),
   );
   const safeTemplatesPage = Math.min(templatesPage, templateTotalPages);
   const paginatedAdminTemplates = filteredAdminTemplates.slice(
-    (safeTemplatesPage - 1) * adminTemplatesPageSize,
-    safeTemplatesPage * adminTemplatesPageSize,
+    (safeTemplatesPage - 1) * templatesPageSize,
+    safeTemplatesPage * templatesPageSize,
   );
 
   function updateField<Key extends keyof TemplateFormState>(
@@ -564,6 +569,7 @@ export function AdminTemplatesPage({
     token = adminToken,
     page = ordersPage,
     filters = orderFilters,
+    pageSize = ordersPageSize,
   ) {
     if (!token) {
       setOrdersStatus("Login admin diperlukan untuk melihat order.");
@@ -572,7 +578,7 @@ export function AdminTemplatesPage({
 
     const params = new URLSearchParams({
       page: String(page),
-      pageSize: String(adminOrdersPageSize),
+      pageSize: String(pageSize),
     });
 
     if (filters.status !== "all") {
@@ -594,13 +600,9 @@ export function AdminTemplatesPage({
       setOrdersMeta({
         total: data.total ?? data.orders?.length ?? 0,
         totalPages: data.totalPages ?? 1,
-        pageSize: data.pageSize ?? adminOrdersPageSize,
+        pageSize: data.pageSize ?? pageSize,
       });
-      setOrdersStatus(
-        data.total
-          ? `${data.total} request konsultasi ditemukan.`
-          : "Belum ada request konsultasi.",
-      );
+      setOrdersStatus("");
     } catch {
       setOrdersStatus("Gagal memuat order. Pastikan backend aktif.");
     } finally {
@@ -1126,12 +1128,12 @@ export function AdminTemplatesPage({
 
   const blogPostsTotalPages = Math.max(
     1,
-    Math.ceil(filteredBlogPosts.length / adminBlogPostsPageSize),
+    Math.ceil(filteredBlogPosts.length / blogPostsPageSize),
   );
   const safeBlogPostsPage = Math.min(blogPostsPage, blogPostsTotalPages);
   const paginatedBlogPosts = filteredBlogPosts.slice(
-    (safeBlogPostsPage - 1) * adminBlogPostsPageSize,
-    safeBlogPostsPage * adminBlogPostsPageSize,
+    (safeBlogPostsPage - 1) * blogPostsPageSize,
+    safeBlogPostsPage * blogPostsPageSize,
   );
 
   function startCreateBlog() {
@@ -1374,11 +1376,12 @@ export function AdminTemplatesPage({
           )}
 
           {activeAdminView === "design" && (
-            <TemplatesPanel
+            <DesignsPanel
               templates={templates}
               paginatedTemplates={paginatedAdminTemplates}
               filteredTemplatesCount={filteredAdminTemplates.length}
               templatesPage={safeTemplatesPage}
+              templatesPageSize={templatesPageSize}
               templatesTotalPages={templateTotalPages}
               templateSearch={templateSearch}
               templateCategoryFilter={templateCategoryFilter}
@@ -1404,6 +1407,10 @@ export function AdminTemplatesPage({
                 setTemplatesPage(1);
               }}
               onTemplatesPageChange={setTemplatesPage}
+              onTemplatesPageSizeChange={(pageSize) => {
+                setTemplatesPageSize(pageSize);
+                setTemplatesPage(1);
+              }}
               onStartCreate={startCreate}
               onStartEdit={startEdit}
               onDuplicateTemplate={duplicateTemplate}
@@ -1444,6 +1451,14 @@ export function AdminTemplatesPage({
                 params.set("ordersPage", String(page));
                 navigate({ search: params.toString() }, { replace: true });
               }}
+              onOrdersPageSizeChange={(pageSize) => {
+                setOrdersPageSize(pageSize);
+                setOrdersPage(1);
+                void loadOrders(adminToken, 1, orderFilters, pageSize);
+                const params = new URLSearchParams(location.search);
+                params.set("ordersPage", "1");
+                navigate({ search: params.toString() }, { replace: true });
+              }}
               onUpdateOrderStatus={updateOrderStatus}
               onDeleteOrder={setDeleteCandidateOrder}
             />
@@ -1478,6 +1493,7 @@ export function AdminTemplatesPage({
               paginatedPosts={paginatedBlogPosts}
               totalPosts={filteredBlogPosts.length}
               page={safeBlogPostsPage}
+              pageSize={blogPostsPageSize}
               totalPages={blogPostsTotalPages}
               search={blogSearch}
               selectedId={null}
@@ -1488,8 +1504,15 @@ export function AdminTemplatesPage({
               deletingPost={deleteCandidateBlog}
               form={blogForm}
               adminToken={adminToken}
-              onSearchChange={setBlogSearch}
+              onSearchChange={(value) => {
+                setBlogSearch(value);
+                setBlogPostsPage(1);
+              }}
               onPageChange={setBlogPostsPage}
+              onPageSizeChange={(pageSize) => {
+                setBlogPostsPageSize(pageSize);
+                setBlogPostsPage(1);
+              }}
               onStartCreate={startCreateBlog}
               onStartEdit={startEditBlog}
               onDelete={deleteBlog}
@@ -1559,7 +1582,7 @@ export function AdminTemplatesPage({
         onConfirm={(order) => void deleteOrder(order)}
       />
 
-      <DeleteTemplateDialog
+      <DeleteDesignDialog
         template={deleteCandidateTemplate}
         isDeleting={
           deleteCandidateTemplate

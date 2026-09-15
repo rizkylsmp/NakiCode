@@ -1,10 +1,12 @@
 import { Edit3, ExternalLink, Globe2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { type PortfolioItem } from "../../domain/content";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { useClientPagination } from "../../hooks/useClientPagination";
 import {
   normalizeCoverIndex,
   type PortfolioFormState,
-} from "./AdminTemplateWorkspace.shared";
+} from "./AdminDesignWorkspace.shared";
 import { DeletePortfolioDialog } from "./DeletePortfolioDialog";
 import { PortfolioFormModal } from "./PortfolioFormModal";
 
@@ -50,6 +52,15 @@ export function PortfolioAdminPanel({
   onConfirmDelete,
   onCancelDelete,
 }: PortfolioAdminPanelProps) {
+  const {
+    page,
+    pageSize,
+    paginatedItems: paginatedProjects,
+    setPage,
+    setPageSize,
+    totalPages,
+  } = useClientPagination(projects);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,7 +105,7 @@ export function PortfolioAdminPanel({
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
-          {projects.map((project) => (
+          {paginatedProjects.map((project) => (
             <PortfolioProjectCard
               key={project.id ?? project.title}
               project={project}
@@ -106,6 +117,16 @@ export function PortfolioAdminPanel({
           ))}
         </div>
       )}
+
+      <PaginationControls
+        alwaysVisible
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        page={page}
+        pageSize={pageSize}
+        total={projects.length}
+        totalPages={totalPages}
+      />
 
       <PortfolioFormModal
         adminToken={adminToken}

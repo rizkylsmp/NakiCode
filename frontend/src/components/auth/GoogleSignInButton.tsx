@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GoogleBrandIcon } from "../ui/BrandIcons";
 
 type GoogleSignInButtonProps = {
   disabled?: boolean;
@@ -127,9 +128,7 @@ export function GoogleSignInButton({
         type="button"
         title="Atur VITE_GOOGLE_CLIENT_ID untuk mengaktifkan login Google"
       >
-        <span aria-hidden="true" className="text-base font-bold">
-          G
-        </span>
+        <GoogleBrandIcon className="size-5" />
         Lanjutkan dengan Google
       </button>
     );
@@ -143,8 +142,9 @@ export function GoogleSignInButton({
       aria-busy={!isReady}
     >
       {!isReady ? (
-        <div className="naki-auth-google-action absolute inset-0 grid place-items-center rounded-full border border-naki-steel bg-naki-page-bg text-sm font-semibold text-naki-smoke">
-          Memuat Google...
+        <div className="naki-auth-google-action absolute inset-0 flex items-center justify-center gap-3 rounded-full border border-naki-steel bg-naki-page-bg text-sm font-semibold text-naki-smoke">
+          <GoogleBrandIcon className="size-5" />
+          <span>Memuat Google...</span>
         </div>
       ) : null}
       <div className="flex w-full justify-center" ref={containerRef} />

@@ -61,12 +61,14 @@ export function MobileMenu({
           />
         ) : (
           <Link
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-naki-primary px-4 text-sm font-medium text-white"
+            className="inline-flex h-11 w-full items-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-sm font-medium text-naki-primary transition hover:bg-naki-frost"
             onClick={onClose}
             to={loginNext}
           >
-            <LogIn size={16} />
-            Login
+            <span className="grid size-7 place-items-center rounded-md bg-blue-500/10 text-blue-500">
+              <LogIn size={14} />
+            </span>
+            <span>Login</span>
           </Link>
         )}
       </div>

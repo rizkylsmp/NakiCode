@@ -57,6 +57,13 @@ describe("Header Component", () => {
 
     const loginLink = screen.getByRole("link", { name: /Login/i });
     expect(loginLink).toBeInTheDocument();
+    expect(loginLink).toHaveClass(
+      "h-10",
+      "border",
+      "border-naki-steel",
+      "bg-white",
+      "px-3",
+    );
   });
 
   it("shows user menu when authenticated as user", () => {
@@ -80,10 +87,11 @@ describe("Header Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /admin/i }));
 
     expect(screen.getByRole("button", { name: /admin/i })).toHaveClass(
-      "bg-naki-frost",
-    );
-    expect(screen.getByRole("button", { name: /admin/i })).not.toHaveClass(
+      "h-10",
       "border",
+      "border-naki-steel",
+      "bg-white",
+      "px-3",
     );
 
     expect(
@@ -125,10 +133,9 @@ describe("Header Component", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Buka menu" }));
 
-    expect(screen.getByRole("menuitem", { name: "Profil saya" })).toHaveAttribute(
-      "href",
-      "/akun-saya",
-    );
+    expect(
+      screen.getByRole("menuitem", { name: "Profil saya" }),
+    ).toHaveAttribute("href", "/akun-saya");
     expect(
       screen.getByRole("menuitem", { name: "Pesanan saya" }),
     ).toHaveAttribute("href", "/pesanan-saya");

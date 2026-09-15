@@ -3,7 +3,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createUserToken } from "../auth";
 import { createOrder } from "../models/order.model";
-import { findTemplateBySlugOrId } from "../models/template.model";
+import { findTemplateBySlugOrId } from "../models/design.model";
 import { ordersRouter } from "../routes/orders";
 
 vi.mock("../models/order.model", async () => {
@@ -13,10 +13,10 @@ vi.mock("../models/order.model", async () => {
   return { ...actual, createOrder: vi.fn() };
 });
 
-vi.mock("../models/template.model", async () => {
+vi.mock("../models/design.model", async () => {
   const actual = await vi.importActual<
-    typeof import("../models/template.model")
-  >("../models/template.model");
+    typeof import("../models/design.model")
+  >("../models/design.model");
   return { ...actual, findTemplateBySlugOrId: vi.fn() };
 });
 

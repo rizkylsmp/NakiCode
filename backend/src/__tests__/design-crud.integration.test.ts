@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserToken } from '../auth';
-import { templatesRouter } from '../routes/templates';
+import { templatesRouter } from '../routes/designs';
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
@@ -22,9 +22,9 @@ vi.mock('../redis-cache', () => ({
 
 vi.mock('../models/audit-log.model', () => ({ createAdminAuditLog: mocks.audit }));
 
-vi.mock('../models/template.model', async () => {
-  const actual = await vi.importActual<typeof import('../models/template.model')>(
-    '../models/template.model',
+vi.mock('../models/design.model', async () => {
+  const actual = await vi.importActual<typeof import('../models/design.model')>(
+    '../models/design.model',
   );
   return {
     ...actual,
@@ -41,8 +41,8 @@ vi.mock('../models/order.model', async () => ({
   hasSuccessfulTemplateOrder: vi.fn(async () => false),
 }));
 
-vi.mock('../models/template-rating.model', async () => ({
-  ...(await vi.importActual<typeof import('../models/template-rating.model')>('../models/template-rating.model')),
+vi.mock('../models/design-rating.model', async () => ({
+  ...(await vi.importActual<typeof import('../models/design-rating.model')>('../models/design-rating.model')),
   createTemplateRating: vi.fn(),
   hasUserRatedTemplate: vi.fn(async () => false),
 }));

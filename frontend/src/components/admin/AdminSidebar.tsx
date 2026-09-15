@@ -11,7 +11,7 @@ import {
   LogOut,
   X,
 } from "lucide-react";
-import { type DashboardView } from "../../pages/admin/AdminTemplateWorkspace.shared";
+import { type DashboardView } from "../../pages/admin/AdminDesignWorkspace.shared";
 
 type AdminSidebarProps = {
   activeView: DashboardView;

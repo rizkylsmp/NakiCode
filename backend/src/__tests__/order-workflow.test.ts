@@ -16,6 +16,15 @@ describe("order workflow guards", () => {
     ).toBe(false);
   });
 
+  it("returns a revision request from review to the work stage", () => {
+    expect(
+      canTransitionOrderStatus("delivered", "in_progress", "partial_paid"),
+    ).toBe(true);
+    expect(
+      canTransitionOrderStatus("delivered", "revision", "partial_paid"),
+    ).toBe(false);
+  });
+
   it("requires an accepted quote and a restartable payment state", () => {
     expect(
       canStartOrderPayment({
@@ -26,6 +35,24 @@ describe("order workflow guards", () => {
         quoteStatus: "pending",
       }),
     ).toBe(false);
+    expect(
+      canStartOrderPayment({
+        orderType: "custom_project",
+        status: "in_progress",
+        paymentStatus: "partial_paid",
+        quoteAmount: 500_000,
+        quoteStatus: "accepted",
+      }),
+    ).toBe(false);
+    expect(
+      canStartOrderPayment({
+        orderType: "custom_project",
+        status: "awaiting_balance",
+        paymentStatus: "partial_paid",
+        quoteAmount: 500_000,
+        quoteStatus: "accepted",
+      }),
+    ).toBe(true);
     expect(
       canStartOrderPayment({
         orderType: "custom_project",

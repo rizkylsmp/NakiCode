@@ -180,7 +180,7 @@ export async function recordPaidOrderTransaction(
        FROM order_payment_sessions AS payments
        INNER JOIN orders ON orders.id = payments.order_id
        WHERE payments.order_id = ? AND payments.reference = ? AND payments.status = 'paid'
-       ON DUPLICATE KEY UPDATE reference = reference`,
+       ON DUPLICATE KEY UPDATE reference = financial_transactions.reference`,
       [orderId, paymentReference],
     );
     return;
@@ -196,7 +196,7 @@ export async function recordPaidOrderTransaction(
      WHERE id = ?
        AND payment_status IN ('paid', 'partial_refunded', 'refunded')
        AND payment_amount IS NOT NULL
-     ON DUPLICATE KEY UPDATE reference = reference`,
+     ON DUPLICATE KEY UPDATE reference = financial_transactions.reference`,
     [orderId],
   );
 }
@@ -223,7 +223,7 @@ export async function syncPaidOrderTransactions() {
       ON transactions.reference = CONCAT('PAYMENT-', payments.reference)
     WHERE payments.status = 'paid' AND orders.deleted_at IS NULL
       AND transactions.id IS NULL
-    ON DUPLICATE KEY UPDATE reference = reference
+    ON DUPLICATE KEY UPDATE reference = financial_transactions.reference
   `);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO financial_transactions
@@ -243,7 +243,7 @@ export async function syncPaidOrderTransactions() {
        AND orders.deleted_at IS NULL
        AND transactions.id IS NULL
        AND payment_sessions.id IS NULL
-     ON DUPLICATE KEY UPDATE reference = reference`,
+     ON DUPLICATE KEY UPDATE reference = financial_transactions.reference`,
   );
 
   return result.affectedRows;

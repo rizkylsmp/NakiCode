@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { BlogAdminPanel } from "../BlogAdminPanel";
-import { defaultBlogPostFormState } from "../AdminTemplateWorkspace.shared";
+import { defaultBlogPostFormState } from "../AdminDesignWorkspace.shared";
 
 const post = {
   id: 7,
@@ -25,6 +25,7 @@ function renderPanel(isDeleting = false, paginatedPosts = [post]) {
       paginatedPosts={paginatedPosts}
       totalPosts={paginatedPosts.length}
       page={1}
+      pageSize={10}
       totalPages={1}
       search=""
       selectedId={null}
@@ -37,6 +38,7 @@ function renderPanel(isDeleting = false, paginatedPosts = [post]) {
       adminToken="admin-token"
       onSearchChange={vi.fn()}
       onPageChange={vi.fn()}
+      onPageSizeChange={vi.fn()}
       onStartCreate={vi.fn()}
       onStartEdit={vi.fn()}
       onDelete={vi.fn()}
@@ -60,6 +62,9 @@ describe("BlogAdminPanel delete confirmation", () => {
     });
 
     expect(confirmButton).toBeEnabled();
+    expect(
+      screen.getByRole("navigation", { name: "Pagination" }),
+    ).toHaveTextContent("Halaman 1 dari 1");
     fireEvent.click(confirmButton);
     expect(onConfirmDelete).toHaveBeenCalledOnce();
   });

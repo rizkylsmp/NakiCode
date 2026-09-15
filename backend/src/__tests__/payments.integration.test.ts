@@ -18,6 +18,7 @@ import {
   findOrderByIdForUser,
   findOrderByPaymentReference,
   markOrderPaidByPaymentReference,
+  markOrderPaymentFailedByReference,
 } from "../models/order.model";
 import {
   ensureOrderInvoice,
@@ -281,6 +282,16 @@ describe("Payments API Integration", () => {
       expect(response.body.message).toBe("Input tidak valid");
     });
 
+    it("validates the initial custom payment option", async () => {
+      const response = await request(orderPaymentApp)
+        .post("/api/orders/1/payment")
+        .set("Authorization", `Bearer ${userToken}`)
+        .send({ method: "qris", paymentOption: "quarter" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe("Input tidak valid");
+    });
+
     it("accepts transfer payment method", async () => {
       const response = await request(orderPaymentApp)
         .post("/api/orders/1/payment")
@@ -356,11 +367,25 @@ describe("Payments API Integration", () => {
     });
 
     it("handles expired payment", async () => {
+      vi.mocked(findOrderByPaymentReference).mockResolvedValueOnce({
+        id: 12,
+        userId: 10,
+        orderType: "custom_project",
+        paymentReference: "ORDER-000001",
+        paymentAmount: 150000,
+        templateTitle: "Landing Page",
+      } as Awaited<ReturnType<typeof findOrderByPaymentReference>>);
+      vi.mocked(markOrderPaymentFailedByReference).mockResolvedValueOnce(true);
+
       const response = await request(webhookApp)
         .post("/api/payments/midtrans/webhook")
         .send(webhookPayload("expire"));
 
-      expect([200, 400, 404]).toContain(response.status);
+      expect(response.status).toBe(200);
+      expect(markOrderPaymentFailedByReference).toHaveBeenCalledWith(
+        "ORDER-000001",
+        expect.objectContaining({ transactionStatus: "expire" }),
+      );
     });
   });
 });

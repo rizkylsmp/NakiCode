@@ -36,7 +36,7 @@ import {
   supportOptions,
   type MediaUploadState,
   type TemplateFormState,
-} from "./AdminTemplateWorkspace.shared";
+} from "./AdminDesignWorkspace.shared";
 
 type StepKey = "info" | "media" | "details" | "sales";
 const STEPS = [
@@ -69,7 +69,7 @@ type Props = {
   ) => void;
 };
 
-export function TemplateFormModal({
+export function DesignFormModal({
   categoryOptions,
   existingSlugs = [],
   form,
