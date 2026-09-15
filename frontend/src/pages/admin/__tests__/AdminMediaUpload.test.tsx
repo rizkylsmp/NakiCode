@@ -1,22 +1,32 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PreviewDropZone,
   SourceCodeUpload,
   defaultFormState,
   normalizeDesignSlug,
   updateTemplateFormField,
+  uploadPreviewVideo,
+  uploadSourcePackage,
 } from "../AdminDesignWorkspace.shared";
 import { DesignFormModal } from "../DesignFormModal";
 
 const apiUploadMock = vi.hoisted(() => vi.fn());
+const apiPostMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/api-client", () => ({
+  apiPost: apiPostMock,
   apiUpload: apiUploadMock,
 }));
 
 beforeEach(() => {
   apiUploadMock.mockReset();
+  apiPostMock.mockReset();
+  apiPostMock.mockResolvedValue({ upload: null, fallbackAllowed: true });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("updateTemplateFormField", () => {
@@ -57,6 +67,48 @@ describe("updateTemplateFormField", () => {
 });
 
 describe("PreviewDropZone", () => {
+  it("uploads production video directly to signed Cloudinary storage", async () => {
+    apiPostMock.mockResolvedValueOnce({
+      upload: {
+        uploadUrl: "https://api.cloudinary.com/v1_1/naki/video/upload",
+        apiKey: "public-key",
+        timestamp: 1_789_430_400,
+        signature: "signed-value",
+        folder: "naki-code/designs",
+        publicId: "video-id",
+      },
+      fallbackAllowed: false,
+    });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          secure_url: "https://res.cloudinary.com/naki/video/upload/video.mp4",
+        }),
+      } as Response);
+
+    await expect(
+      uploadPreviewVideo(
+        new File(["video"], "preview.mp4", { type: "video/mp4" }),
+        "admin-token",
+      ),
+    ).resolves.toBe(
+      "https://res.cloudinary.com/naki/video/upload/video.mp4",
+    );
+
+    expect(apiPostMock).toHaveBeenCalledWith("/api/uploads/video/signature", {
+      filename: "preview.mp4",
+      mimetype: "video/mp4",
+      size: 5,
+    });
+    expect(apiUploadMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.cloudinary.com/v1_1/naki/video/upload",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    );
+  });
+
   it("places Level below Judul on mobile and beside Slug on desktop", () => {
     render(
       <DesignFormModal
@@ -390,7 +442,9 @@ describe("SourceCodeUpload", () => {
     );
 
     fireEvent.change(container.querySelector('input[type="file"]')!, {
-      target: { files: [new File(["source"], "design.zip")] },
+      target: {
+        files: [new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], "design.zip")],
+      },
     });
 
     await waitFor(() => {
@@ -400,5 +454,42 @@ describe("SourceCodeUpload", () => {
       );
       expect(onChange).toHaveBeenCalledWith("/uploads/source/design.zip");
     });
+  });
+
+  it("uploads source packages directly to signed Cloudinary raw storage", async () => {
+    apiPostMock.mockResolvedValueOnce({
+      upload: {
+        uploadUrl: "https://api.cloudinary.com/v1_1/naki/raw/upload",
+        apiKey: "public-key",
+        timestamp: 1_789_430_400,
+        signature: "signed-value",
+        folder: "naki-code/designs/source",
+        publicId: "source-id.zip",
+      },
+      fallbackAllowed: false,
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        secure_url: "https://res.cloudinary.com/naki/raw/upload/source.zip",
+      }),
+    } as Response);
+    const file = new File(
+      [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+      "design.zip",
+    );
+
+    await expect(uploadSourcePackage(file, "admin-token")).resolves.toEqual({
+      source: {
+        name: "design.zip",
+        url: "https://res.cloudinary.com/naki/raw/upload/source.zip",
+      },
+    });
+
+    expect(apiPostMock).toHaveBeenCalledWith("/api/uploads/source/signature", {
+      filename: "design.zip",
+      size: 4,
+    });
+    expect(apiUploadMock).not.toHaveBeenCalled();
   });
 });

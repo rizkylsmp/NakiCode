@@ -60,6 +60,9 @@ export default defineConfig(async ({ mode }) => {
         server: {
             port: devPort,
             strictPort: true,
+            headers: {
+                'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+            },
             proxy: {
                 '/api': apiTarget,
                 '/uploads': apiTarget,

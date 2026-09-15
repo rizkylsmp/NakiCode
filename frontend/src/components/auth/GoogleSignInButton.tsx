@@ -40,6 +40,37 @@ declare global {
 }
 
 const googleScriptId = "google-identity-services";
+let initializedClientId: string | null = null;
+let activeCredentialHandler: ((credential: string) => void) | null = null;
+let activeErrorHandler: ((message: string) => void) | null = null;
+
+function initializeGoogleIdentity(
+  clientId: string,
+  onCredential: (credential: string) => void,
+  onError: (message: string) => void,
+) {
+  const googleId = window.google?.accounts.id;
+  if (!googleId) return null;
+
+  activeCredentialHandler = onCredential;
+  activeErrorHandler = onError;
+
+  if (initializedClientId !== clientId) {
+    googleId.initialize({
+      client_id: clientId,
+      callback: (response) => {
+        if (response.credential) {
+          activeCredentialHandler?.(response.credential);
+        } else {
+          activeErrorHandler?.("Google tidak mengirim kredensial login.");
+        }
+      },
+    });
+    initializedClientId = clientId;
+  }
+
+  return googleId;
+}
 
 export function GoogleSignInButton({
   disabled = false,
@@ -88,19 +119,12 @@ export function GoogleSignInButton({
       return;
     }
 
+    const googleId = initializeGoogleIdentity(clientId, onCredential, onError);
+    if (!googleId) return;
+
     const render = () => {
       container.replaceChildren();
-      window.google?.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response) => {
-          if (response.credential) {
-            onCredential(response.credential);
-          } else {
-            onError("Google tidak mengirim kredensial login.");
-          }
-        },
-      });
-      window.google?.accounts.id.renderButton(container, {
+      googleId.renderButton(container, {
         type: "standard",
         theme: "outline",
         size: "large",
@@ -117,7 +141,15 @@ export function GoogleSignInButton({
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(render);
     resizeObserver?.observe(container);
 
-    return () => resizeObserver?.disconnect();
+    return () => {
+      resizeObserver?.disconnect();
+      if (activeCredentialHandler === onCredential) {
+        activeCredentialHandler = null;
+      }
+      if (activeErrorHandler === onError) {
+        activeErrorHandler = null;
+      }
+    };
   }, [clientId, disabled, isReady, onCredential, onError]);
 
   if (!clientId) {

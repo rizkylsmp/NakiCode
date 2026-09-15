@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type React from "react";
-import { apiUpload } from "../../services/api-client";
+import { apiPost, apiUpload } from "../../services/api-client";
 import {
   type PortfolioItem,
   type TemplateCategory,
@@ -1278,23 +1278,11 @@ export function SourceCodeUpload({
     }
 
     setIsUploading(true);
-    if (!adminToken) {
-      setUploadStatus("Login admin diperlukan untuk upload source code.");
-      return;
-    }
-    if (packageFiles[0].size > 100 * 1024 * 1024) {
-      setUploadStatus("Ukuran source code maksimal 100MB.");
-      return;
-    }
     setUploadStatus("Mengupload source code...");
 
     void (async () => {
       try {
-        const formData = new FormData();
-        formData.append("source", packageFiles[0]);
-        const uploaded = await apiUpload<{
-          source: { url: string; name: string };
-        }>("/api/uploads/source", formData);
+        const uploaded = await uploadSourcePackage(packageFiles[0], adminToken);
         onChange(appendLines(value, [uploaded.source.url]));
         setUploadStatus(`${uploaded.source.name} berhasil diupload.`);
       } catch (error) {
@@ -1572,6 +1560,55 @@ export async function uploadPreviewVideo(
     throw new Error("Admin token tidak tersedia.");
   }
 
+  const preparation = await apiPost<{
+    upload: {
+      uploadUrl: string;
+      apiKey: string;
+      timestamp: number;
+      signature: string;
+      folder: string;
+      publicId: string;
+    } | null;
+    fallbackAllowed: boolean;
+  }>("/api/uploads/video/signature", {
+    filename: file.name,
+    mimetype: file.type,
+    size: file.size,
+  });
+
+  if (preparation.upload) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", preparation.upload.apiKey);
+    formData.append("timestamp", String(preparation.upload.timestamp));
+    formData.append("signature", preparation.upload.signature);
+    formData.append("folder", preparation.upload.folder);
+    formData.append("public_id", preparation.upload.publicId);
+
+    const response = await fetch(preparation.upload.uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+    const result = (await response.json().catch(() => null)) as {
+      secure_url?: string;
+      error?: { message?: string };
+    } | null;
+
+    if (!response.ok || !result?.secure_url) {
+      throw new Error(
+        result?.error?.message || "Upload video ke penyimpanan gagal.",
+      );
+    }
+
+    return result.secure_url;
+  }
+
+  if (!preparation.fallbackAllowed) {
+    throw new Error(
+      "Cloudinary belum dikonfigurasi pada API production untuk upload video.",
+    );
+  }
+
   const formData = new FormData();
   formData.append("video", file);
 
@@ -1585,6 +1622,93 @@ export async function uploadPreviewVideo(
   }
 
   return data.video.url;
+}
+
+export async function uploadSourcePackage(
+  file: File,
+  adminToken: string | null,
+) {
+  if (!adminToken) {
+    throw new Error("Login admin diperlukan untuk upload source code.");
+  }
+  if (!/\.(zip|rar)$/i.test(file.name)) {
+    throw new Error("File harus berformat ZIP atau RAR.");
+  }
+  if (file.size > 100 * 1024 * 1024) {
+    throw new Error("Ukuran source code maksimal 100MB.");
+  }
+  if (!(await hasValidSourceSignature(file))) {
+    throw new Error("Isi file bukan arsip ZIP atau RAR yang valid.");
+  }
+
+  const preparation = await apiPost<{
+    upload: {
+      uploadUrl: string;
+      apiKey: string;
+      timestamp: number;
+      signature: string;
+      folder: string;
+      publicId: string;
+    } | null;
+    fallbackAllowed: boolean;
+  }>("/api/uploads/source/signature", {
+    filename: file.name,
+    size: file.size,
+  });
+
+  if (preparation.upload) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", preparation.upload.apiKey);
+    formData.append("timestamp", String(preparation.upload.timestamp));
+    formData.append("signature", preparation.upload.signature);
+    formData.append("folder", preparation.upload.folder);
+    formData.append("public_id", preparation.upload.publicId);
+
+    const response = await fetch(preparation.upload.uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+    const result = (await response.json().catch(() => null)) as {
+      secure_url?: string;
+      error?: { message?: string };
+    } | null;
+
+    if (!response.ok || !result?.secure_url) {
+      throw new Error(
+        result?.error?.message || "Upload source code ke penyimpanan gagal.",
+      );
+    }
+
+    return { source: { url: result.secure_url, name: file.name } };
+  }
+
+  if (!preparation.fallbackAllowed) {
+    throw new Error(
+      "Cloudinary belum dikonfigurasi pada API production untuk upload source code.",
+    );
+  }
+
+  const formData = new FormData();
+  formData.append("source", file);
+  return apiUpload<{ source: { url: string; name: string } }>(
+    "/api/uploads/source",
+    formData,
+  );
+}
+
+async function hasValidSourceSignature(file: File) {
+  const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b;
+  const isRar =
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x61 &&
+    bytes[2] === 0x72 &&
+    bytes[3] === 0x21 &&
+    bytes[4] === 0x1a &&
+    bytes[5] === 0x07;
+
+  return isZip || isRar;
 }
 
 export function reorderItems<Item>(

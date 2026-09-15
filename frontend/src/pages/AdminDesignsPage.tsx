@@ -1433,6 +1433,7 @@ export function AdminDesignsPage({
 
           {activeAdminView === "orders" && (
             <OrdersPanel
+              adminToken={adminToken}
               orders={orders}
               ordersStatus={ordersStatus}
               ordersPage={ordersPage}

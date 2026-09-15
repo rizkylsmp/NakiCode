@@ -9,6 +9,15 @@ export type StoredImage = {
   storage: "cloudinary" | "local";
 };
 
+export type DirectVideoUpload = {
+  uploadUrl: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  publicId: string;
+};
+
 const uploadDir = path.resolve(__dirname, "../../uploads");
 
 export async function storePreviewImage(file: Express.Multer.File) {
@@ -27,6 +36,59 @@ export async function storePreviewVideo(file: Express.Multer.File) {
   }
 
   return uploadVideoToLocalDisk(file);
+}
+
+export function createDirectVideoUploadSignature(): DirectVideoUpload | null {
+  if (!config.storage.cloudinaryUrl) return null;
+
+  const parsedUrl = new URL(config.storage.cloudinaryUrl);
+  const cloudName = parsedUrl.hostname;
+  const apiKey = decodeURIComponent(parsedUrl.username);
+  const apiSecret = decodeURIComponent(parsedUrl.password);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = config.storage.cloudinaryFolder;
+  const publicId = `${timestamp}-${crypto.randomBytes(12).toString("hex")}`;
+  const signature = cloudinary.utils.api_sign_request(
+    { folder, public_id: publicId, timestamp },
+    apiSecret,
+  );
+
+  return {
+    uploadUrl: `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/video/upload`,
+    apiKey,
+    timestamp,
+    signature,
+    folder,
+    publicId,
+  };
+}
+
+export function createDirectSourceUploadSignature(
+  filename: string,
+): DirectVideoUpload | null {
+  if (!config.storage.cloudinaryUrl) return null;
+
+  const parsedUrl = new URL(config.storage.cloudinaryUrl);
+  const cloudName = parsedUrl.hostname;
+  const apiKey = decodeURIComponent(parsedUrl.username);
+  const apiSecret = decodeURIComponent(parsedUrl.password);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = `${config.storage.cloudinaryFolder}/source`;
+  const extension = getSourceExtension(filename);
+  const publicId = `${timestamp}-${crypto.randomBytes(12).toString("hex")}.${extension}`;
+  const signature = cloudinary.utils.api_sign_request(
+    { folder, public_id: publicId, timestamp },
+    apiSecret,
+  );
+
+  return {
+    uploadUrl: `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/raw/upload`,
+    apiKey,
+    timestamp,
+    signature,
+    folder,
+    publicId,
+  };
 }
 
 export async function storeSourcePackage(file: Express.Multer.File) {

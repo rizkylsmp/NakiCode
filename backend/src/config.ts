@@ -110,6 +110,17 @@ const isProductionDeployment =
   env.VERCEL_ENV === "production" ||
   (env.NODE_ENV === "production" && !env.VERCEL_ENV);
 
+const clientOrigins = Array.from(
+  new Set(
+    [
+      env.CLIENT_ORIGIN,
+      ...env.CLIENT_ORIGINS.split(","),
+    ]
+      .map(normalizeClientOrigin)
+      .filter((origin): origin is string => Boolean(origin)),
+  ),
+);
+
 if (
   isProductionDeployment &&
   (env.PAYMENT_PROVIDER !== "midtrans" || !env.MIDTRANS_SERVER_KEY)
@@ -125,9 +136,7 @@ export const config = {
   isProductionDeployment,
   port: env.PORT,
   clientOrigin: env.CLIENT_ORIGIN,
-  clientOrigins: env.CLIENT_ORIGINS.split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  clientOrigins,
   rateLimit: {
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     apiLimit: env.RATE_LIMIT_API_LIMIT,
@@ -187,3 +196,14 @@ export const config = {
     tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE,
   },
 };
+
+function normalizeClientOrigin(value: string) {
+  const origin = value.trim();
+  if (!origin) return null;
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, "");
+  }
+}

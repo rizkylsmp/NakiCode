@@ -19,7 +19,6 @@ import {
   apiDelete,
   apiPatch,
   apiPost,
-  apiUpload,
   getApiErrorMessage,
 } from "../../services/api-client";
 import { PaginationControls } from "../../components/ui/PaginationControls";
@@ -38,9 +37,11 @@ import {
   type OrderStatusFilter,
   type PaymentStatusFilter,
   formatFileSize,
+  uploadSourcePackage,
 } from "./AdminDesignWorkspace.shared";
 
 type OrdersPanelProps = {
+  adminToken?: string | null;
   orders: OrderItem[];
   ordersStatus: string;
   ordersPage: number;
@@ -73,6 +74,7 @@ type OrderActionDialog = {
 };
 
 export function OrdersPanel({
+  adminToken = null,
   orders,
   ordersStatus,
   ordersPage,
@@ -302,11 +304,10 @@ export function OrdersPanel({
       } else {
         let sourceUrl = actionDialog.sourceUrl?.trim() || "";
         if (actionDialog.sourceFile) {
-          const formData = new FormData();
-          formData.append("source", actionDialog.sourceFile);
-          const uploaded = await apiUpload<{
-            source: { url: string; name: string };
-          }>("/api/uploads/source", formData);
+          const uploaded = await uploadSourcePackage(
+            actionDialog.sourceFile,
+            adminToken,
+          );
           sourceUrl = uploaded.source.url;
         }
         await apiPatch(`/api/orders/${actionDialog.order.id}/delivery`, {

@@ -2,14 +2,19 @@ import { Router, type RequestHandler } from "express";
 import * as Sentry from "@sentry/node";
 import multer from "multer";
 import sharp from "sharp";
+import { z } from "zod";
 import { requireAdmin, requireUser, type UserTokenPayload } from "../auth";
 import { createAdminAuditLog } from "../models/audit-log.model";
 import {
+  createDirectSourceUploadSignature,
+  createDirectVideoUploadSignature,
   storePreviewImage,
   storePreviewVideo,
   storeRevisionAttachment,
   storeSourcePackage,
 } from "../storage/image-storage";
+import { config } from "../config";
+import { parseBody } from "../validation";
 
 export const uploadsRouter = Router();
 
@@ -86,9 +91,15 @@ const ALLOWED_VIDEO_TYPES = new Set([
   "video/webm",
   "video/quicktime",
 ]);
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+const directVideoSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  mimetype: z.enum(["video/mp4", "video/webm", "video/quicktime"]),
+  size: z.number().int().positive().max(MAX_VIDEO_SIZE),
+});
 const videoUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024, files: 1 },
+  limits: { fileSize: MAX_VIDEO_SIZE, files: 1 },
   fileFilter(_request, file, callback) {
     if (!ALLOWED_VIDEO_TYPES.has(file.mimetype)) {
       callback(new Error("Hanya file MP4, WebM, dan MOV yang diperbolehkan"));
@@ -98,9 +109,10 @@ const videoUpload = multer({
   },
 });
 
+const MAX_SOURCE_SIZE = 100 * 1024 * 1024;
 const sourceUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024, files: 1 },
+  limits: { fileSize: MAX_SOURCE_SIZE, files: 1 },
   fileFilter(_request, file, callback) {
     if (!/\.(zip|rar)$/i.test(file.originalname)) {
       callback(new Error("Hanya file ZIP dan RAR yang diperbolehkan"));
@@ -108,6 +120,16 @@ const sourceUpload = multer({
     }
     callback(null, true);
   },
+});
+
+const directSourceSchema = z.object({
+  filename: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .regex(/\.(zip|rar)$/i, "Hanya file ZIP dan RAR yang diperbolehkan"),
+  size: z.number().int().positive().max(MAX_SOURCE_SIZE),
 });
 
 const ALLOWED_REVISION_EXTENSIONS = new Set([
@@ -227,6 +249,43 @@ uploadsRouter.post(
 );
 
 uploadsRouter.post(
+  "/video/signature",
+  requireAdmin,
+  async (request, response) => {
+    const body = parseBody(directVideoSchema, request, response);
+    if (!body) return;
+
+    try {
+      const directUpload = createDirectVideoUploadSignature();
+      if (!directUpload) {
+        response.json({
+          upload: null,
+          fallbackAllowed: !config.isProductionDeployment,
+        });
+        return;
+      }
+
+      await createAdminAuditLog({
+        admin: response.locals.admin as UserTokenPayload | null | undefined,
+        action: "prepare_video_upload",
+        entityType: "upload",
+        metadata: {
+          publicId: directUpload.publicId,
+          filename: body.filename,
+          size: body.size,
+          mimetype: body.mimetype,
+          ip: request.ip ?? "unknown",
+        },
+      });
+      response.json({ upload: directUpload, fallbackAllowed: false });
+    } catch (error) {
+      Sentry.captureException(error);
+      response.status(500).json({ message: "Gagal menyiapkan upload video" });
+    }
+  },
+);
+
+uploadsRouter.post(
   "/video",
   requireAdmin,
   videoUpload.single("video"),
@@ -253,6 +312,42 @@ uploadsRouter.post(
     } catch (error) {
       Sentry.captureException(error);
       response.status(500).json({ message: "Gagal upload video preview" });
+    }
+  },
+);
+
+uploadsRouter.post(
+  "/source/signature",
+  requireAdmin,
+  async (request, response) => {
+    const body = parseBody(directSourceSchema, request, response);
+    if (!body) return;
+
+    try {
+      const directUpload = createDirectSourceUploadSignature(body.filename);
+      if (!directUpload) {
+        response.json({
+          upload: null,
+          fallbackAllowed: !config.isProductionDeployment,
+        });
+        return;
+      }
+
+      await createAdminAuditLog({
+        admin: response.locals.admin as UserTokenPayload | null | undefined,
+        action: "prepare_source_upload",
+        entityType: "upload",
+        metadata: {
+          publicId: directUpload.publicId,
+          filename: body.filename,
+          size: body.size,
+          ip: request.ip ?? "unknown",
+        },
+      });
+      response.json({ upload: directUpload, fallbackAllowed: false });
+    } catch (error) {
+      Sentry.captureException(error);
+      response.status(500).json({ message: "Gagal menyiapkan upload source code" });
     }
   },
 );

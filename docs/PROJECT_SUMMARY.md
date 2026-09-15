@@ -108,7 +108,7 @@ Wajib/critical:
 Optional:
 
 - `CLIENT_ORIGIN`
-- `CLIENT_ORIGINS` (comma-separated allowlist CORS)
+- `CLIENT_ORIGINS` (comma-separated allowlist CORS; digabung dan dinormalisasi bersama nilai tunggal `CLIENT_ORIGIN`)
 - `REDIS_URL`
 - `PAYMENT_PROVIDER=dev|midtrans|xendit`
 - `MIDTRANS_SERVER_KEY`
@@ -229,7 +229,7 @@ Business:
 - Password hash: `scrypt` + salt.
 - Middleware: `requireUser`, `requireAdmin`.
 - Frontend menyimpan token di localStorage lewat `frontend/src/utils/user-session.ts`.
-- Login Google memakai Google Identity Services di frontend dan verifikasi ID token dengan `GOOGLE_CLIENT_ID` di backend; identitas stabil disimpan pada `users.google_sub`.
+- Login Google memakai Google Identity Services di frontend dan verifikasi ID token dengan `GOOGLE_CLIENT_ID` di backend; identitas stabil disimpan pada `users.google_sub`. Frontend menginisialisasi GIS satu kali per Client ID, hanya merender ulang tombol saat ukuran berubah, dan memakai `Cross-Origin-Opener-Policy: same-origin-allow-popups` agar komunikasi popup tidak diblokir. `VITE_GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_ID` wajib berisi Web Client ID yang sama pada environment deployment masing-masing.
 - Axios client di `frontend/src/services/api-client.ts` inject `Authorization: Bearer <token>` otomatis.
 - Global 401 handler auto logout.
 - Backend pakai `helmet`, rate limit global API, auth rate limit lebih ketat, CORS allowlist dari `CLIENT_ORIGINS`.
@@ -327,9 +327,9 @@ Mode:
 - Form Design memakai satu drop zone media untuk gambar dan video melalui browse, drag & drop, atau paste; tipe file dipilah otomatis ke endpoint upload yang sesuai. Upload tetap berjalan ketika admin berpindah tab, statusnya tampil persisten pada header modal, dan penyimpanan Design menunggu upload selesai.
 - Input Design memakai wizard empat langkah (Informasi, Media, Detail, Penjualan), auto-slug, validasi per langkah, progres kelengkapan, autosave draft lokal, peringatan perubahan belum disimpan, status draft/published, opsi source dijual, dan aksi duplikasi sebagai draft. Checkout langsung ditolak oleh backend ketika source design tidak dijual.
 - Gambar admin diupload via `POST /api/uploads/images`.
-- Design dapat memiliki satu `video_url` opsional. Admin menguploadnya melalui `POST /api/uploads/video`; card katalog memprioritaskan video muted/autoplay/loop dan memakai gambar pertama sebagai poster serta fallback.
+- Design dapat memiliki satu `video_url` opsional. Di production, admin meminta signature lewat `POST /api/uploads/video/signature`, lalu browser mengupload video langsung ke Cloudinary agar file besar tidak melewati batas request Vercel. Endpoint multipart `POST /api/uploads/video` tetap menjadi fallback local. Card katalog memprioritaskan video muted/autoplay/loop dan memakai gambar pertama sebagai poster serta fallback.
 - Jika `CLOUDINARY_URL` tersedia, gambar dan video masuk Cloudinary (video sebagai resource video); jika tidak, semua media fallback ke local `/uploads`.
-- Source ZIP/RAR diupload nyata maksimal 100 MB ke Cloudinary raw atau `/uploads/source`; ekstensi dan signature arsip divalidasi sebelum disimpan. Pengiriman hasil proyek custom memakai uploader yang sama untuk source final, lalu menahan URL unduhan dari pelanggan sampai order lunas dan berstatus Selesai.
+- Source ZIP/RAR maksimal 100 MB pada form Design maupun pengiriman hasil final memakai signed direct upload ke Cloudinary raw pada production agar tidak melewati batas payload Vercel, dengan signature arsip diperiksa di browser serta nama/ukuran divalidasi backend sebelum signature upload diterbitkan. Endpoint `/uploads/source` tetap menjadi fallback local dan memvalidasi ulang isi arsip. Source final tetap ditahan dari pelanggan sampai order lunas dan berstatus Selesai.
 - Frontend pakai `ResponsiveImage` untuk lazy loading, responsive sizes, dan Cloudinary srcset otomatis.
 
 ---
