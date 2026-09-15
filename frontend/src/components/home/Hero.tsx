@@ -122,7 +122,7 @@ export function Hero({
             <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible sm:top-8 lg:left-8 lg:right-0">
               <HeroAbstractShape />
               <img
-                className="absolute bottom-[-2.5rem] left-1/2 z-10 h-[350px] max-w-none -translate-x-1/2 object-contain object-bottom sm:bottom-[-3rem] sm:h-[420px] md:-bottom-14 md:h-[500px] lg:-bottom-16 lg:h-[540px]"
+                className="absolute bottom-[-1.75rem] left-1/2 z-10 h-[350px] max-w-none -translate-x-1/2 object-contain object-bottom sm:bottom-[-1.75rem] sm:h-[420px] md:-bottom-10 md:h-[500px] lg:-bottom-12 lg:h-[540px]"
                 src="/images/hero-naki-character.png"
                 alt="Karakter Naki Code sebagai visual hero"
                 width="1122"
