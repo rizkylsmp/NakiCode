@@ -21,10 +21,10 @@ describe("Hero", () => {
     expect(
       screen.getByAltText(/karakter naki code sebagai visual hero/i),
     ).toHaveClass(
-      "bottom-[-2.5rem]",
-      "sm:bottom-[-3rem]",
-      "md:-bottom-14",
-      "lg:-bottom-16",
+      "bottom-[-1.75rem]",
+      "sm:bottom-[-1.75rem]",
+      "md:-bottom-10",
+      "lg:-bottom-12",
     );
   });
 });

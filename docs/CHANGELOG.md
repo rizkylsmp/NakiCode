@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-09-15 - Publikasikan penyesuaian posisi karakter Hero yang tersimpan lokal dan selaraskan tes posisi responsif dengan offset terbaru - files: frontend/src/components/home/Hero.tsx, frontend/src/components/home/__tests__/Hero.test.tsx, docs/CHANGELOG.md
+
 - [x] 2026-09-15 - Terapkan signed direct upload Cloudinary raw untuk source ZIP/RAR production pada form Design dan pengiriman hasil final agar paket hingga 100 MB tidak melewati batas payload Vercel, tetap validasi signature arsip di browser dan nama/ukuran di backend, serta perbaiki state loading pada kegagalan validasi - files: backend/src/routes/uploads.ts, backend/src/storage/image-storage.ts, frontend/src/pages/AdminDesignsPage.tsx, frontend/src/pages/admin/AdminDesignWorkspace.shared.tsx, frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/__tests__/AdminMediaUpload.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
 
 - [x] 2026-09-15 - Perbaiki upload video production dengan menormalisasi CLIENT_ORIGIN/CLIENT_ORIGINS serta mengalihkan video ke direct signed upload Cloudinary agar tidak terkena batas payload Vercel yang tampil sebagai error CORS - files: backend/src/config.ts, backend/src/routes/uploads.ts, backend/src/storage/image-storage.ts, backend/src/__tests__/security.test.ts, frontend/src/pages/admin/AdminDesignWorkspace.shared.tsx, frontend/src/pages/admin/__tests__/AdminMediaUpload.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
