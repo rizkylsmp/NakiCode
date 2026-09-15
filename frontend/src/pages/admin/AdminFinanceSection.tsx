@@ -95,6 +95,8 @@ export function AdminFinanceSection() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isReconciling, setIsReconciling] = useState(false);
+  const [categoryStatus, setCategoryStatus] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,15 +108,13 @@ export function AdminFinanceSection() {
         pageSize: String(pageSize),
       });
       if (type !== "all") query.set("type", type);
-      const [finance, categoryResult] = await Promise.all([
-        apiGet<FinanceResponse>(`/api/finance/transactions?${query}`),
-        apiGet<{ categories: FinanceCategory[] }>("/api/finance/categories"),
-      ]);
+      const finance = await apiGet<FinanceResponse>(
+        `/api/finance/transactions?${query}`,
+      );
       setData(finance);
-      setCategories(categoryResult.categories);
       setStatus("");
     } catch (error) {
-      setStatus(getApiErrorMessage(error, "Gagal memuat pembukuan."));
+      setStatus(getApiErrorMessage(error, "Gagal memuat transaksi keuangan."));
     } finally {
       setLoading(false);
     }
@@ -123,6 +123,28 @@ export function AdminFinanceSection() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    let isActive = true;
+    apiGet<{ categories: FinanceCategory[] }>("/api/finance/categories")
+      .then((result) => {
+        if (!isActive) return;
+        setCategories(result.categories ?? []);
+        setCategoryStatus("");
+      })
+      .catch((error) => {
+        if (!isActive) return;
+        setCategoryStatus(
+          getApiErrorMessage(
+            error,
+            "Kategori pengeluaran gagal dimuat. Riwayat transaksi tetap dapat digunakan.",
+          ),
+        );
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   function changePeriod(nextPeriod: PeriodPreset) {
     setPeriod(nextPeriod);
@@ -149,8 +171,8 @@ export function AdminFinanceSection() {
       if (form.id) await apiPut(`/api/finance/expenses/${form.id}`, payload);
       else await apiPost("/api/finance/expenses", payload);
       setForm(null);
-      setStatus("Pengeluaran berhasil disimpan.");
       await load();
+      setStatus("Pengeluaran berhasil disimpan.");
     } catch (error) {
       setStatus(getApiErrorMessage(error, "Gagal menyimpan pengeluaran."));
     } finally {
@@ -167,8 +189,8 @@ export function AdminFinanceSection() {
       return;
     try {
       await apiDelete(`/api/finance/expenses/${item.id}`);
-      setStatus("Pengeluaran dibatalkan.");
       await load();
+      setStatus("Pengeluaran dibatalkan.");
     } catch (error) {
       setStatus(getApiErrorMessage(error, "Gagal membatalkan pengeluaran."));
     }
@@ -180,9 +202,27 @@ export function AdminFinanceSection() {
       categoryId: String(item.categoryId ?? ""),
       amount: String(item.amount),
       paymentMethod: item.paymentMethod ?? "",
-      occurredAt: new Date(item.occurredAt).toISOString().slice(0, 16),
+      occurredAt: formatDateTimeLocal(new Date(item.occurredAt)),
       notes: item.notes ?? "",
     });
+  }
+
+  async function reconcilePayments() {
+    setIsReconciling(true);
+    setStatus("");
+    try {
+      const result = await apiPost<{ synced: number; message: string }>(
+        "/api/finance/reconcile",
+      );
+      await load();
+      setStatus(result.message);
+    } catch (error) {
+      setStatus(
+        getApiErrorMessage(error, "Gagal memeriksa transaksi pembayaran."),
+      );
+    } finally {
+      setIsReconciling(false);
+    }
   }
 
   async function downloadReport(format: "csv" | "pdf") {
@@ -208,23 +248,33 @@ export function AdminFinanceSection() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-naki-primary">
-            Pembukuan
-          </h1>
+          <h1 className="text-2xl font-bold text-naki-primary">Keuangan</h1>
           <p className="mt-1 text-sm text-naki-smoke">
-            {data?.total ?? 0} transaksi pada periode terpilih • Pembayaran,
+            {data?.total ?? 0} transaksi kas pada periode terpilih • Pembayaran,
             pengeluaran, dan refund.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            aria-label="Muat ulang pembukuan"
+            aria-label="Muat ulang keuangan"
             className="grid size-11 place-items-center rounded-xl border border-naki-steel bg-white text-naki-smoke transition hover:bg-naki-frost disabled:opacity-50"
             disabled={loading}
             onClick={() => void load()}
             type="button"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-naki-steel bg-white px-3 text-sm font-medium text-naki-primary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={loading || isReconciling}
+            onClick={() => void reconcilePayments()}
+            type="button"
+          >
+            <RefreshCw
+              className={isReconciling ? "animate-spin" : ""}
+              size={15}
+            />
+            {isReconciling ? "Memeriksa..." : "Periksa pembayaran"}
           </button>
           <button
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white shadow-naki-soft transition hover:opacity-90"
@@ -244,21 +294,30 @@ export function AdminFinanceSection() {
           {status}
         </p>
       )}
+      {categoryStatus && (
+        <p
+          aria-live="polite"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {categoryStatus}
+        </p>
+      )}
       <section className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-naki-card">
         <div className="flex flex-col gap-3 border-b border-naki-steel px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="flex items-center gap-2 font-semibold text-naki-primary">
               <Scale size={17} />
-              Statistik laba/rugi
+              Ringkasan kas
             </h2>
             <p className="mt-0.5 text-xs text-naki-smoke">
-              Pemasukan checkout dihitung otomatis setelah pembayaran berhasil.
+              Pembayaran berhasil tercatat otomatis. Ringkasan ini bukan laporan
+              akuntansi atau pajak.
             </p>
           </div>
           <label className="grid gap-1 text-xs font-medium text-naki-smoke sm:min-w-52">
             Periode laporan
             <select
-              aria-label="Periode statistik pembukuan"
+              aria-label="Periode ringkasan keuangan"
               className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm font-medium text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
               value={period}
               onChange={(event) =>
@@ -299,8 +358,8 @@ export function AdminFinanceSection() {
             icon={BadgeDollarSign}
             label={
               (data?.summary.netProfit ?? 0) >= 0
-                ? "Laba bersih"
-                : "Rugi bersih"
+                ? "Saldo operasional"
+                : "Defisit operasional"
             }
             value={data?.summary.netProfit ?? 0}
             detail="Pemasukan − pengeluaran − refund"
@@ -324,7 +383,7 @@ export function AdminFinanceSection() {
           <label className="grid gap-1.5 text-xs font-medium text-naki-smoke">
             Tampilkan transaksi
             <select
-              aria-label="Jenis transaksi pembukuan"
+              aria-label="Jenis transaksi keuangan"
               className="h-11 rounded-xl border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
               value={type}
               onChange={(e) => {
@@ -772,6 +831,10 @@ function formatDateInput(date: Date) {
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
+}
+
+function formatDateTimeLocal(date: Date) {
+  return `${formatDateInput(date)}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 function money(value: number) {

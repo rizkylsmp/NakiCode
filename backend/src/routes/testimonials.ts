@@ -168,9 +168,6 @@ router.post('/from-rating/:ratingId', requireAdmin, async (req, res) => {
       if (error.message === 'Rating already used as testimonial') {
         return res.status(409).json({ message: 'Rating sudah digunakan sebagai testimonial' });
       }
-      if (error.message === 'Rating message is required') {
-        return res.status(400).json({ message: 'Review harus memiliki pesan sebelum dijadikan testimoni' });
-      }
     }
 
     res.status(500).json({ message: 'Gagal membuat testimonial dari rating' });

@@ -2,6 +2,12 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-09-15 - Menyederhanakan Pembukuan menjadi Keuangan berbasis buku kas operasional: pemuatan halaman tidak lagi menjalankan rekonsiliasi berat, kategori dimuat terpisah, rekonsiliasi historis tersedia sebagai aksi manual ter-audit, waktu lokal form diperbaiki, istilah saldo operasional diperjelas, dan ekspor mencakup seluruh transaksi - files: backend/src/models/finance.model.ts, backend/src/routes/finance.ts, backend/src/__tests__/finance.model.test.ts, backend/src/__tests__/finance.integration.test.ts, frontend/src/components/admin/AdminSidebar.tsx, frontend/src/pages/admin/AdminFinanceSection.tsx, frontend/src/pages/admin/__tests__/AdminFinanceSection.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
+- [x] 2026-09-15 - Menampilkan rating buyer otomatis pada bagian Testimoni beranda, termasuk rating tanpa komentar sebagai kartu nilai dan nama design, serta memungkinkan rating tanpa pesan dikelola sebagai testimoni tanpa duplikasi - files: backend/src/models/testimonial.model.ts, backend/src/routes/testimonials.ts, backend/src/__tests__/testimonial.model.test.ts, frontend/src/components/home/TestimonialSection.tsx, frontend/src/components/home/__tests__/TestimonialSection.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
+- [x] 2026-09-15 - Memperbaiki rating beranda agar memakai rata-rata tertimbang dari rating buyer yang nyata dan tidak lagi menghitung design tanpa rating sebagai nol - files: backend/src/models/design.model.ts, frontend/src/domain/content.ts, frontend/src/pages/HomePage.tsx, frontend/src/pages/__tests__/HomePage.test.ts, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
 - [x] 2026-09-15 - Menyederhanakan teks opsi filter Order admin dengan menghapus pengulangan prefix Status order dan Pembayaran tanpa mengurangi label aksesibilitas dropdown - files: frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/__tests__/OrdersPanel.test.tsx, docs/CHANGELOG.md
 
 - [x] 2026-09-15 - Menambahkan aksi hapus pada pilihan halaman menu Order admin dengan dialog validasi, ringkasan order yang terlindungi karena transaksi, dan eksekusi hanya untuk order yang aman dihapus - files: frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/__tests__/OrdersPanel.test.tsx, docs/CHANGELOG.md

@@ -20,7 +20,7 @@ describe("finance model", () => {
     const { syncPaidOrderTransactions } =
       await import("../models/finance.model");
 
-    await expect(syncPaidOrderTransactions()).resolves.toBe(2);
+    await expect(syncPaidOrderTransactions()).resolves.toBe(3);
     expect(dbMock.query).toHaveBeenCalledWith(
       expect.stringContaining("payments.status = 'paid'"),
     );

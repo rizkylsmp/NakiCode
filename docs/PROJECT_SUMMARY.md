@@ -305,6 +305,8 @@ Mode:
 - Perubahan status order mengikuti transition map; lompatan status berbahaya dan pembatalan saat pembayaran aktif/lunas ditolak backend.
 - Source code/panduan hanya tersedia untuk order `source_purchase` dengan `payment_status = paid`; pembayaran proyek custom tidak pernah membuka paket source.
 - Rating design baru ditampilkan dan diterima API jika user memiliki order design berstatus paid serta workflow-nya sudah Selesai (`completed`/`closed`); tahap Review dan Pelunasan belum dapat mengirim rating.
+- Rating ringkas beranda dihitung dari jumlah rating nyata secara tertimbang; design yang belum memiliki rating tidak dianggap sebagai rating nol.
+- Rating buyer otomatis mengisi slot kosong pada bagian Testimoni beranda meskipun tanpa pesan; kartu menampilkan nilai rating dan nama design tanpa membuat kutipan palsu. Rating yang sudah dikelola sebagai testimoni mengikuti status featured dari admin dan tidak tampil ganda.
 
 ---
 
@@ -402,7 +404,7 @@ Admin:
 - Filter, pencarian server-side, update individual, dan bulk workflow order
 - Workflow jasa: baru, dihubungi, penawaran, menunggu DP, dikerjakan, revisi, diserahkan, selesai, atau dibatalkan
 - Penawaran harga admin untuk order custom beserta persentase DP sebelum pelanggan checkout
-- Pembukuan kas admin dengan dropdown periode (bulan ini, bulan lalu, 30 hari, tahun ini, atau tanggal custom), filter jenis transaksi, statistik pemasukan/pengeluaran/refund/laba-rugi, pengeluaran manual, refund parsial/penuh, serta ekspor CSV/PDF. Pembayaran penuh, DP, dan pelunasan masing-masing diakui sebagai pemasukan setelah berhasil; webhook dan konfirmasi lokal mencatat setiap reference secara idempoten, sedangkan pembukaan halaman pembukuan merekonsiliasi pembayaran lama yang belum memiliki transaksi kas.
+- Keuangan admin difokuskan sebagai buku kas operasional dengan dropdown periode (bulan ini, bulan lalu, 30 hari, tahun ini, atau tanggal custom), filter jenis transaksi, ringkasan pemasukan/pengeluaran/refund/saldo operasional, pengeluaran manual, refund parsial/penuh, serta ekspor CSV/PDF lengkap. Pembayaran penuh, DP, dan pelunasan masing-masing diakui sebagai pemasukan setelah berhasil melalui webhook atau konfirmasi secara idempoten. Pemuatan halaman tidak menjalankan rekonsiliasi berat; admin dapat memakai aksi Periksa pembayaran untuk memulihkan transaksi lama yang terlewat tanpa memblokir pembacaan riwayat.
 - Invoice bernomor stabil dengan snapshot pelanggan dan total order; proyek custom berstatus parsial setelah DP dan lunas setelah pelunasan, serta order bertransaksi tidak dapat dihapus
 - Soft delete design/order/project/blog
 - Audit trail admin

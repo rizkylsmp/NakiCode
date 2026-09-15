@@ -10,6 +10,7 @@ export type Testimonial = {
   quote: string;
   rating: number;
   design_id: number | null;
+  design_title?: string | null;
   is_featured: boolean;
   sort_order: number;
   created_at: string;
@@ -39,9 +40,55 @@ export async function findTestimonials(page = 1, limit = 20): Promise<{ testimon
 
 export async function findFeaturedTestimonials(): Promise<Testimonial[]> {
   const [rows] = await pool.query<TestimonialRow[]>(
-    'SELECT * FROM testimonials WHERE is_featured = TRUE AND deleted_at IS NULL ORDER BY sort_order ASC, created_at DESC LIMIT 10'
+    `SELECT testimonials.*, designs.title AS design_title
+     FROM testimonials
+     LEFT JOIN designs ON designs.id = testimonials.design_id
+     WHERE testimonials.is_featured = TRUE
+       AND testimonials.deleted_at IS NULL
+     ORDER BY testimonials.sort_order ASC, testimonials.created_at DESC
+     LIMIT 10`
   );
-  return rows.map(normalizeTestimonial);
+  const featured = rows.map(normalizeTestimonial);
+  const remainingSlots = Math.max(0, 10 - featured.length);
+
+  if (remainingSlots === 0) {
+    return featured;
+  }
+
+  const [ratingRows] = await pool.query<RowDataPacket[]>(
+    `SELECT design_ratings.id, design_ratings.customer_name,
+            design_ratings.rating, design_ratings.message,
+            design_ratings.design_id, design_ratings.created_at,
+            designs.title AS design_title
+     FROM design_ratings
+     LEFT JOIN designs ON designs.id = design_ratings.design_id
+     WHERE NOT EXISTS (
+       SELECT 1 FROM testimonials
+       WHERE testimonials.rating_id = design_ratings.id
+     )
+     ORDER BY design_ratings.created_at DESC
+     LIMIT ?`,
+    [remainingSlots],
+  );
+
+  return [
+    ...featured,
+    ...ratingRows.map((row) => ({
+      id: -Number(row.id),
+      source_type: 'rating' as const,
+      rating_id: Number(row.id),
+      customer_name: String(row.customer_name),
+      customer_role: null,
+      quote: String(row.message ?? '').trim(),
+      rating: Number(row.rating),
+      design_id: row.design_id ? Number(row.design_id) : null,
+      design_title: row.design_title ? String(row.design_title) : null,
+      is_featured: true,
+      sort_order: 0,
+      created_at: String(row.created_at),
+      updated_at: String(row.created_at),
+    })),
+  ];
 }
 
 export async function createTestimonial(data: {
@@ -120,10 +167,6 @@ export async function createFromRating(ratingId: number): Promise<Testimonial> {
   }
 
   const quote = String(rating.message ?? '').trim();
-
-  if (!quote) {
-    throw new Error('Rating message is required');
-  }
 
   const sortOrder = await getNextSortOrder();
 
@@ -230,8 +273,6 @@ export async function findAvailableRatings(): Promise<any[]> {
        SELECT rating_id FROM testimonials
        WHERE rating_id IS NOT NULL AND deleted_at IS NULL
      )
-     AND tr.message IS NOT NULL
-     AND TRIM(tr.message) <> ''
      ORDER BY tr.created_at DESC`
   );
   return rows;

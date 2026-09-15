@@ -73,9 +73,7 @@ export function HomePage({
   // Calculate stats only from data that is available to the storefront.
   const totalTemplates = templates.length;
   const totalTransactions = templates.reduce((sum, t) => sum + (t.buyerCount || 0), 0);
-  const averageRating = templates.length > 0
-    ? templates.reduce((sum, t) => sum + (t.rating || 0), 0) / templates.length
-    : 0;
+  const averageRating = calculateStorefrontAverageRating(templates);
 
   return (
     <div className="naki-frosted-grid min-h-screen text-naki-primary">
@@ -124,4 +122,21 @@ export function HomePage({
       <Footer />
     </div>
   );
+}
+
+export function calculateStorefrontAverageRating(templates: TemplateItem[]) {
+  const ratingTotals = templates.reduce(
+    (totals, template) => {
+      const fallbackCount = template.rating > 0 ? 1 : 0;
+      const ratingCount = template.ratingCount ?? fallbackCount;
+
+      return {
+        score: totals.score + template.rating * ratingCount,
+        count: totals.count + ratingCount,
+      };
+    },
+    { score: 0, count: 0 },
+  );
+
+  return ratingTotals.count > 0 ? ratingTotals.score / ratingTotals.count : 0;
 }

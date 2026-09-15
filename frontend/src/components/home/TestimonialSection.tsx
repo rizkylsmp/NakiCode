@@ -9,6 +9,7 @@ type Testimonial = {
   customer_role: string | null;
   quote: string;
   rating: number;
+  design_title?: string | null;
 };
 
 export function TestimonialSection() {
@@ -83,9 +84,22 @@ export function TestimonialSection() {
                         />
                       ))}
                     </div>
-                    <p className="text-sm leading-relaxed text-naki-smoke">
-                      "{testimonial.quote}"
-                    </p>
+                    {testimonial.quote.trim() ? (
+                      <p className="text-sm leading-relaxed text-naki-smoke">
+                        &ldquo;{testimonial.quote}&rdquo;
+                      </p>
+                    ) : (
+                      <div className="rounded-xl bg-naki-frost px-4 py-3">
+                        <p className="text-lg font-bold text-naki-primary">
+                          {rating.toFixed(1)}/5
+                        </p>
+                        {testimonial.design_title ? (
+                          <p className="mt-0.5 text-xs text-naki-smoke">
+                            {testimonial.design_title}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
                     <div className="mt-5 flex items-center gap-3">
                       <span className="grid size-10 place-items-center rounded-full bg-blue-500/10 text-sm font-semibold text-blue-500">
                         {name.charAt(0)}

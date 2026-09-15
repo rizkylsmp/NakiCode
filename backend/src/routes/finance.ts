@@ -67,7 +67,6 @@ financeRouter.get("/transactions", async (request, response) => {
     return;
   }
   try {
-    await syncPaidOrderTransactions();
     const [summary, page] = await Promise.all([
       findFinanceSummary(query.data.from, query.data.to),
       findFinanceTransactions(query.data),
@@ -75,6 +74,23 @@ financeRouter.get("/transactions", async (request, response) => {
     response.json({ summary, ...page });
   } catch (error) {
     handleError(error, response, "Gagal memuat transaksi keuangan");
+  }
+});
+
+financeRouter.post("/reconcile", async (_request, response) => {
+  try {
+    const admin = response.locals.admin as UserTokenPayload;
+    const synced = await syncPaidOrderTransactions();
+    await audit(admin, "finance.reconcile", 0, { synced });
+    response.json({
+      synced,
+      message:
+        synced > 0
+          ? `${synced} transaksi pembayaran dipulihkan.`
+          : "Semua pembayaran sudah tercatat.",
+    });
+  } catch (error) {
+    handleError(error, response, "Gagal merekonsiliasi pembayaran");
   }
 });
 
@@ -164,11 +180,7 @@ financeRouter.get("/reports.csv", async (request, response) => {
     return;
   }
   try {
-    const data = await findFinanceTransactions({
-      ...query.data,
-      page: 1,
-      pageSize: 1000,
-    });
+    const transactions = await findAllReportTransactions(query.data);
     const rows = [
       [
         "Tanggal",
@@ -181,7 +193,7 @@ financeRouter.get("/reports.csv", async (request, response) => {
         "Catatan",
       ],
     ];
-    for (const item of data.transactions) {
+    for (const item of transactions) {
       rows.push([
         item.occurredAt,
         item.type,
@@ -212,9 +224,9 @@ financeRouter.get("/reports.pdf", async (request, response) => {
     return;
   }
   try {
-    const [summary, data] = await Promise.all([
+    const [summary, transactions] = await Promise.all([
       findFinanceSummary(query.data.from, query.data.to),
-      findFinanceTransactions({ ...query.data, page: 1, pageSize: 1000 }),
+      findAllReportTransactions(query.data),
     ]);
     response.setHeader("Content-Type", "application/pdf");
     response.setHeader(
@@ -223,7 +235,7 @@ financeRouter.get("/reports.pdf", async (request, response) => {
     );
     const doc = new PDFDocument({ size: "A4", margin: 48 });
     doc.pipe(response);
-    doc.fontSize(22).fillColor("#0f172a").text("Laporan Keuangan Naki Code");
+    doc.fontSize(22).fillColor("#0f172a").text("Laporan Kas Naki Code");
     doc
       .fontSize(10)
       .fillColor("#64748b")
@@ -232,9 +244,9 @@ financeRouter.get("/reports.pdf", async (request, response) => {
     doc.text(`Pemasukan bersih: ${rupiah(summary.income)}`);
     doc.text(`Pengeluaran: ${rupiah(summary.expense)}`);
     doc.text(`Refund: ${rupiah(summary.refunds)}`);
-    doc.text(`Laba bersih: ${rupiah(summary.netProfit)}`);
+    doc.text(`Saldo operasional: ${rupiah(summary.netProfit)}`);
     doc.moveDown();
-    for (const item of data.transactions) {
+    for (const item of transactions) {
       if (doc.y > 735) doc.addPage();
       doc
         .fontSize(9)
@@ -282,6 +294,31 @@ function csvCell(value: string) {
   const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
   return `"${safeValue.replaceAll('"', '""')}"`;
 }
+
+async function findAllReportTransactions(query: {
+  from: string;
+  to: string;
+  type?: "income" | "expense" | "refund";
+}) {
+  const firstPage = await findFinanceTransactions({
+    ...query,
+    page: 1,
+    pageSize: 1000,
+  });
+  const transactions = [...firstPage.transactions];
+
+  for (let page = 2; page <= firstPage.totalPages; page += 1) {
+    const nextPage = await findFinanceTransactions({
+      ...query,
+      page,
+      pageSize: 1000,
+    });
+    transactions.push(...nextPage.transactions);
+  }
+
+  return transactions;
+}
+
 function rupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

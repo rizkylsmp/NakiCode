@@ -207,7 +207,7 @@ export async function recordPaidOrderTransaction(
  * run repeatedly and prevents duplicate income rows.
  */
 export async function syncPaidOrderTransactions() {
-  await pool.query(`
+  const [paymentSessionResult] = await pool.query<ResultSetHeader>(`
     INSERT INTO financial_transactions
       (order_id, transaction_type, amount, gateway_fee, net_amount, payment_method, reference, occurred_at, notes)
     SELECT payments.order_id, 'income', payments.amount,
@@ -246,7 +246,7 @@ export async function syncPaidOrderTransactions() {
      ON DUPLICATE KEY UPDATE reference = financial_transactions.reference`,
   );
 
-  return result.affectedRows;
+  return paymentSessionResult.affectedRows + result.affectedRows;
 }
 
 export async function ensureOrderInvoice(orderId: number) {

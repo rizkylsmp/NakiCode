@@ -16,6 +16,8 @@ type TemplateRow = RowDataPacket & {
   stack: string | string[];
   level: string;
   rating: number;
+  rating_count?: number;
+  ratingCount?: number;
   accent_class?: string;
   accentClass?: string;
   preview: string | TemplatePreviewItem[];
@@ -56,6 +58,7 @@ export type TemplateItem = {
   stack: string[];
   level: string;
   rating: number;
+  ratingCount: number;
   accentClass: string;
   preview: TemplatePreviewItem[];
   videoUrl: string | null;
@@ -74,7 +77,7 @@ export type TemplateItem = {
 };
 export type TemplatePayload = Omit<
   TemplateItem,
-  "id" | "categoryId" | "rating" | "buyerCount" | "reviews"
+  "id" | "categoryId" | "rating" | "ratingCount" | "buyerCount" | "reviews"
 >;
 
 const templateSelect = `SELECT
@@ -88,6 +91,7 @@ const templateSelect = `SELECT
   designs.stack,
   designs.level,
   COALESCE(rating_stats.rating, 0) AS rating,
+  COALESCE(rating_stats.rating_count, 0) AS rating_count,
   designs.accent_class,
   designs.preview,
   designs.video_url,
@@ -105,7 +109,7 @@ const templateSelect = `SELECT
 FROM designs
 LEFT JOIN categories ON categories.id = designs.category_id
 LEFT JOIN (
-  SELECT design_id, ROUND(AVG(rating), 1) AS rating
+  SELECT design_id, ROUND(AVG(rating), 1) AS rating, COUNT(*) AS rating_count
   FROM design_ratings
   GROUP BY design_id
 ) AS rating_stats ON rating_stats.design_id = designs.id
@@ -285,6 +289,7 @@ function normalizeTemplateRow(row: TemplateRow): TemplateItem {
     stack: parseStringArray(row.stack),
     level: row.level,
     rating: Number(row.rating),
+    ratingCount: Number(row.rating_count ?? row.ratingCount ?? 0),
     accentClass: row.accent_class ?? row.accentClass ?? "bg-naki-secondary",
     preview: parsePreviewArray(row.preview),
     videoUrl: row.video_url ?? row.videoUrl ?? null,

@@ -33,6 +33,7 @@ export type TemplateItem = {
   stack: string[];
   level: string;
   rating: number;
+  ratingCount?: number;
   accentClass: string;
   preview: TemplatePreviewItem[];
   videoUrl?: string | null;
