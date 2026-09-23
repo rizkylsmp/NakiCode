@@ -479,7 +479,10 @@ export function AdminDesignsPage({
   }
 
   function resetPortfolioForm() {
-    setPortfolioForm(defaultPortfolioFormState);
+    setPortfolioForm({
+      ...defaultPortfolioFormState,
+      category: categoryOptions[0] ?? "",
+    });
     setIsPortfolioModalOpen(true);
     setPortfolioStatus("Mode tambah portofolio baru.");
   }
@@ -1470,6 +1473,7 @@ export function AdminDesignsPage({
           {activeAdminView === "portfolio" && (
             <PortfolioAdminPanel
               projects={projects}
+              categoryOptions={categoryOptions}
               form={portfolioForm}
               status={portfolioStatus}
               isSaving={isSavingPortfolio}

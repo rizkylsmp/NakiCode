@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { Hero } from "../Hero";
 
 describe("Hero", () => {
-  it("centers the CTA group and lowers the character responsively", () => {
+  it("centers mobile CTAs and aligns them left from md without changing the character", () => {
     render(
       <Hero
         averageRating={5}
@@ -16,7 +16,10 @@ describe("Hero", () => {
     const exploreLink = screen.getByRole("link", {
       name: /jelajahi design/i,
     });
-    expect(exploreLink.parentElement).toHaveClass("sm:justify-center");
+    expect(exploreLink.parentElement).toHaveClass(
+      "sm:justify-center",
+      "md:justify-start",
+    );
 
     expect(
       screen.getByAltText(/karakter naki code sebagai visual hero/i),

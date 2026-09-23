@@ -2,6 +2,18 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-09-23 - Pastikan halaman publik Portfolio menampilkan seluruh data melalui pagination server-side yang selalu terlihat dan tambahkan informasi rentang portofolio pada halaman aktif - files: frontend/src/pages/PortfolioPage.tsx, frontend/src/pages/__tests__/PortfolioPage.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
+- [x] 2026-09-23 - Ubah daftar foto form Portfolio admin menjadi daftar vertikal yang dapat diurutkan melalui drag and drop atau tombol naik/turun, dengan foto teratas otomatis menjadi cover - files: frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/__tests__/PortfolioAdminPanel.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
+- [x] 2026-09-23 - Ubah kolom Kategori pada form Portfolio admin menjadi dropdown dari kategori yang terdaftar, pilih kategori aktif pertama untuk entri baru, dan pertahankan kategori lama saat mengedit data historis - files: frontend/src/pages/AdminDesignsPage.tsx, frontend/src/pages/admin/AdminDesignWorkspace.tsx, frontend/src/pages/admin/PortfolioAdminPanel.tsx, frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/__tests__/PortfolioAdminPanel.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
+- [x] 2026-09-15 - Revisi tiga cover blog terbaru melalui imagegen ke tema navy/blue/frost Naki urban malam, simpan aset v2 tanpa menghapus versi lama, serta ganti hanya cover artikel di Cloudinary/database dengan validasi tautan dan invalidasi cache - files: frontend/public/images/blog/*-naki-v2.webp, backend/src/scripts/refresh-blog-covers.ts, backend/database/migrations/20260915-000001-publish-three-naki-blog-posts.sql, backend/package.json, docs/PROJECT_SUMMARY.md
+
+- [x] 2026-09-15 - Tambahkan dan publikasikan tiga blog tentang brief project, CTA, dan perawatan setelah launch dengan cover imagegen chibi Sychlew/Honne, unggah cover ke Cloudinary sebelum publikasi, serta pertahankan konten lama melalui migrasi aditif idempoten - files: backend/database/migrations/20260915-000001-publish-three-naki-blog-posts.sql, backend/src/scripts/publish-blog-content.ts, backend/src/__tests__/blog-content.test.ts, frontend/public/images/blog, docs/PROJECT_SUMMARY.md
+
+- [x] 2026-09-15 - Pertahankan CTA Hero di tengah pada mobile dan ratakan ke kiri mulai breakpoint md tanpa mengubah posisi karakter - files: frontend/src/components/home/Hero.tsx, frontend/src/components/home/__tests__/Hero.test.tsx, docs/CHANGELOG.md
+
 - [x] 2026-09-15 - Publikasikan penyesuaian posisi karakter Hero yang tersimpan lokal dan selaraskan tes posisi responsif dengan offset terbaru - files: frontend/src/components/home/Hero.tsx, frontend/src/components/home/__tests__/Hero.test.tsx, docs/CHANGELOG.md
 
 - [x] 2026-09-15 - Terapkan signed direct upload Cloudinary raw untuk source ZIP/RAR production pada form Design dan pengiriman hasil final agar paket hingga 100 MB tidak melewati batas payload Vercel, tetap validasi signature arsip di browser dan nama/ukuran di backend, serta perbaiki state loading pada kegagalan validasi - files: backend/src/routes/uploads.ts, backend/src/storage/image-storage.ts, frontend/src/pages/AdminDesignsPage.tsx, frontend/src/pages/admin/AdminDesignWorkspace.shared.tsx, frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/admin/__tests__/AdminMediaUpload.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md

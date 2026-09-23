@@ -12,6 +12,7 @@ import { PortfolioFormModal } from "./PortfolioFormModal";
 
 type PortfolioAdminPanelProps = {
   projects: PortfolioItem[];
+  categoryOptions: string[];
   form: PortfolioFormState;
   status: string;
   isSaving: boolean;
@@ -35,6 +36,7 @@ type PortfolioAdminPanelProps = {
 
 export function PortfolioAdminPanel({
   projects,
+  categoryOptions,
   form,
   status,
   isSaving,
@@ -130,6 +132,7 @@ export function PortfolioAdminPanel({
 
       <PortfolioFormModal
         adminToken={adminToken}
+        categoryOptions={categoryOptions}
         form={form}
         isOpen={isModalOpen}
         isSaving={isSaving}

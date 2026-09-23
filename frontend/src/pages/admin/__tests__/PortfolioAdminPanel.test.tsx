@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -20,19 +20,27 @@ const project: PortfolioItem = {
 
 function PortfolioPanelHarness({
   projects = [project],
+  categoryOptions = ["Company Profile", "E-Commerce"],
+  isModalOpen = false,
+  initialForm = defaultPortfolioFormState,
 }: {
   projects?: PortfolioItem[];
+  categoryOptions?: string[];
+  isModalOpen?: boolean;
+  initialForm?: typeof defaultPortfolioFormState;
 }) {
   const [deleteCandidateProject, setDeleteCandidateProject] =
     useState<PortfolioItem | null>(null);
+  const [form, setForm] = useState(initialForm);
 
   return (
     <PortfolioAdminPanel
       adminToken="admin-token"
+      categoryOptions={categoryOptions}
       deleteCandidateProject={deleteCandidateProject}
       deletingProjectId={null}
-      form={defaultPortfolioFormState}
-      isModalOpen={false}
+      form={form}
+      isModalOpen={isModalOpen}
       isSaving={false}
       onCancelDelete={() => setDeleteCandidateProject(null)}
       onCloseModal={vi.fn()}
@@ -42,7 +50,9 @@ function PortfolioPanelHarness({
       onReset={vi.fn()}
       onStartEdit={vi.fn()}
       onSubmit={vi.fn()}
-      onUpdateField={vi.fn()}
+      onUpdateField={(key, value) =>
+        setForm((current) => ({ ...current, [key]: value }))
+      }
       projects={projects}
       status=""
     />
@@ -98,5 +108,76 @@ describe("PortfolioAdminPanel", () => {
     expect(
       screen.getByRole("button", { name: "Ya, hapus portofolio" }),
     ).toBeEnabled();
+  });
+
+  it("uses registered categories in the portfolio form", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PortfolioPanelHarness
+        categoryOptions={["Company profile", "Toko Online"]}
+        isModalOpen
+      />,
+    );
+
+    const categorySelect = screen.getByRole("combobox", {
+      name: "Kategori",
+    });
+
+    expect(categorySelect).toHaveTextContent("Company profile");
+    expect(categorySelect).toHaveTextContent("Toko Online");
+
+    await user.selectOptions(categorySelect, "Toko Online");
+
+    expect(categorySelect).toHaveValue("Toko Online");
+  });
+
+  it("shows photos vertically and makes the first dragged photo the cover", () => {
+    render(
+      <PortfolioPanelHarness
+        initialForm={{
+          ...defaultPortfolioFormState,
+          title: "Portfolio Drag",
+          imageUrl: "https://example.com/two.jpg",
+          imageUrls: [
+            "https://example.com/one.jpg",
+            "https://example.com/two.jpg",
+            "https://example.com/three.jpg",
+          ],
+          coverIndex: 1,
+        }}
+        isModalOpen
+      />,
+    );
+
+    const photoList = screen.getByRole("list", {
+      name: "Urutan foto portofolio",
+    });
+    let photoItems = within(photoList).getAllByRole("listitem");
+
+    expect(photoItems[0]).toHaveAttribute("draggable", "true");
+    expect(within(photoItems[0]).getByRole("img")).toHaveAttribute(
+      "src",
+      "https://example.com/two.jpg",
+    );
+    expect(photoItems[0]).toHaveAccessibleName("Foto 1, cover");
+
+    const dataTransfer = {
+      effectAllowed: "move",
+      dropEffect: "move",
+      setData: vi.fn(),
+      getData: vi.fn(() => "2"),
+    };
+
+    fireEvent.dragStart(photoItems[2], { dataTransfer });
+    fireEvent.dragOver(photoItems[0], { dataTransfer });
+    fireEvent.drop(photoItems[0], { dataTransfer });
+
+    photoItems = within(photoList).getAllByRole("listitem");
+    expect(within(photoItems[0]).getByRole("img")).toHaveAttribute(
+      "src",
+      "https://example.com/three.jpg",
+    );
+    expect(photoItems[0]).toHaveAccessibleName("Foto 1, cover");
   });
 });

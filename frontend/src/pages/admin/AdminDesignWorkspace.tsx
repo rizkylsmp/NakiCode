@@ -317,7 +317,7 @@ export function AdminDesignWorkspace({
           </Suspense>
         ) : activeAdminView === "portfolio" ? (
           <Suspense fallback={<PanelLoader />}>
-            <PortfolioAdminPanel projects={projects} form={portfolioForm} status={portfolioStatus} isSaving={isSavingPortfolio} isModalOpen={isPortfolioModalOpen} deletingProjectId={deletingProjectId} adminToken={adminToken} onStartEdit={onStartEditPortfolio} onReset={onResetPortfolioForm} onDelete={onDeletePortfolio} onOpenModal={onOpenPortfolioModal} onCloseModal={onClosePortfolioModal} onUpdateField={onUpdatePortfolioField} onSubmit={onSubmitPortfolio} onConfirmDelete={onConfirmDeletePortfolio} onCancelDelete={onCancelDeletePortfolio} />
+            <PortfolioAdminPanel projects={projects} categoryOptions={categoryOptions} form={portfolioForm} status={portfolioStatus} isSaving={isSavingPortfolio} isModalOpen={isPortfolioModalOpen} deletingProjectId={deletingProjectId} adminToken={adminToken} onStartEdit={onStartEditPortfolio} onReset={onResetPortfolioForm} onDelete={onDeletePortfolio} onOpenModal={onOpenPortfolioModal} onCloseModal={onClosePortfolioModal} onUpdateField={onUpdatePortfolioField} onSubmit={onSubmitPortfolio} onConfirmDelete={onConfirmDeletePortfolio} onCancelDelete={onCancelDeletePortfolio} />
           </Suspense>
         ) : activeAdminView === "blog" ? (
           <Suspense fallback={<PanelLoader />}>

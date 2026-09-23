@@ -146,6 +146,7 @@ Jangan commit `.env`.
 - `/checkout/:orderId` - checkout/payment, butuh login
 - `/akun-saya` dan `/profile` - profil user
 - `/wishlist` - design favorit user
+- `/portofolio` - seluruh portfolio publik dengan pagination server-side dan URL halaman yang dapat dibagikan
 - `/admin/dashboard`, `/admin/design`, `/admin/orders`, `/admin/coupons`, `/admin/portfolio` - admin panel, butuh role admin
 
 ---
@@ -378,6 +379,8 @@ Core/storefront:
 - Social sharing/copy link/Web Share API
 - Search history/recently viewed
 - Blog DB real (`/blog`, `/blog/:slug`)
+- Konten editorial blog dapat dipublikasikan dengan `npm run content:publish-blog --workspace backend -- <nama-migrasi.sql> --upload-covers`. Flag tersebut mewajibkan Cloudinary dan mengunggah cover lokal sebelum INSERT, sehingga gambar langsung tersedia tanpa deploy frontend. Tanpa argumen, script tetap memakai migrasi starter lama. Migrasi tambahan 20260915 menambahkan tiga artikel secara idempoten tanpa menimpa perubahan editorial pada slug yang sudah ada.
+- Revisi cover navy/blue v2 untuk tiga artikel September dapat diterapkan dengan `npm run content:refresh-blog-covers --workspace backend`; script memvalidasi seluruh target dan gambar hosted sebelum mengganti hanya cover_image dalam transaksi, menjaga isi/tanggal publikasi, mempertahankan aset lama, dan menghapus cache daftar/detail blog.
 - PWA baseline + service worker + offline page
 
 User/auth:
@@ -398,7 +401,7 @@ Admin:
 - Admin route `/admin/dashboard`
 - CRUD design
 - CRUD categories dengan jumlah design aktif per kategori dan tooltip judul design saat indikator jumlah diarahkan atau difokuskan; kategori yang masih dipakai tidak dapat dihapus sampai seluruh design dipindahkan ke kategori lain
-- CRUD projects/portfolio dengan multi-foto, cover selection, dan preview asset
+- CRUD projects/portfolio dengan multi-foto, pengurutan foto vertikal melalui drag and drop (foto teratas otomatis menjadi cover), preview asset, dan dropdown kategori yang bersumber dari kategori terdaftar
 - Blog/tutorial management API
 - Order management tab
 - Filter, pencarian server-side, update individual, dan bulk workflow order

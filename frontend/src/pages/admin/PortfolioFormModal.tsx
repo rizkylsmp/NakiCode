@@ -1,4 +1,12 @@
-import { BadgeCheck, Check, RefreshCw, Save, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  BadgeCheck,
+  GripVertical,
+  RefreshCw,
+  Save,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import type React from "react";
 import { createPortal } from "react-dom";
@@ -12,6 +20,7 @@ import {
 
 type PortfolioFormModalProps = {
   adminToken: string | null;
+  categoryOptions: string[];
   form: PortfolioFormState;
   isOpen: boolean;
   isSaving: boolean;
@@ -27,6 +36,7 @@ type PortfolioFormModalProps = {
 
 export function PortfolioFormModal({
   adminToken,
+  categoryOptions,
   form,
   isOpen,
   isSaving,
@@ -40,11 +50,17 @@ export function PortfolioFormModal({
     "Upload, drop, atau paste satu foto portofolio.",
   );
   const [previewImageError, setPreviewImageError] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(
+    null,
+  );
+  const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setImageStatus("Upload, drop, atau paste satu foto portofolio.");
       setPreviewImageError(false);
+      setDraggedImageIndex(null);
+      setDragTargetIndex(null);
     }
   }, [form.id, isOpen]);
 
@@ -59,19 +75,37 @@ export function PortfolioFormModal({
     form.description.trim() ||
     "Deskripsi singkat website yang sudah selesai dibuat.";
   const previewResult = form.result.trim() || "Hasil project";
-  const portfolioImages =
+  const storedPortfolioImages =
     form.imageUrls.length > 0
       ? form.imageUrls
       : form.imageUrl.trim()
         ? [form.imageUrl.trim()]
         : [];
-  const coverIndex = normalizeCoverIndex(form.coverIndex, portfolioImages);
-  const coverImage = portfolioImages[coverIndex] ?? "";
+  const storedCoverIndex = normalizeCoverIndex(
+    form.coverIndex,
+    storedPortfolioImages,
+  );
+  const portfolioImages =
+    storedCoverIndex > 0
+      ? [
+          storedPortfolioImages[storedCoverIndex],
+          ...storedPortfolioImages.filter(
+            (_, imageIndex) => imageIndex !== storedCoverIndex,
+          ),
+        ]
+      : storedPortfolioImages;
+  const coverImage = portfolioImages[0] ?? "";
   const hasImage = Boolean(coverImage);
+  const registeredCategories = Array.from(
+    new Set(categoryOptions.map((category) => category.trim()).filter(Boolean)),
+  );
+  const currentCategory = form.category.trim();
+  const hasLegacyCategory =
+    Boolean(currentCategory) && !registeredCategories.includes(currentCategory);
 
   function updatePortfolioImages(
     imageUrls: string[],
-    nextIndex = form.coverIndex,
+    nextIndex = 0,
   ) {
     const nextCoverIndex = normalizeCoverIndex(nextIndex, imageUrls);
 
@@ -82,20 +116,36 @@ export function PortfolioFormModal({
 
   function handleThumbnailDelete(imageIndex: number) {
     const newImages = portfolioImages.filter((_, i) => i !== imageIndex);
-    const adjustedCoverIndex =
-      imageIndex === coverIndex
-        ? 0
-        : imageIndex < coverIndex
-          ? coverIndex - 1
-          : coverIndex;
-    updatePortfolioImages(newImages, adjustedCoverIndex);
-    setImageStatus(`Foto posisi ${imageIndex + 1} dihapus dari form.`);
+    updatePortfolioImages(newImages, 0);
+    setPreviewImageError(false);
+    setImageStatus(
+      imageIndex === 0
+        ? "Foto cover dihapus. Foto berikutnya otomatis menjadi cover."
+        : `Foto posisi ${imageIndex + 1} dihapus dari form.`,
+    );
   }
 
-  function handleSetCover(imageIndex: number) {
-    onUpdateField("coverIndex", imageIndex);
-    onUpdateField("imageUrl", portfolioImages[imageIndex]);
-    setImageStatus(`Foto posisi ${imageIndex + 1} dijadikan cover.`);
+  function movePortfolioImage(fromIndex: number, toIndex: number) {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= portfolioImages.length ||
+      toIndex >= portfolioImages.length
+    ) {
+      return;
+    }
+
+    const nextImages = [...portfolioImages];
+    const [movedImage] = nextImages.splice(fromIndex, 1);
+    nextImages.splice(toIndex, 0, movedImage);
+    updatePortfolioImages(nextImages, 0);
+    setPreviewImageError(false);
+    setImageStatus(
+      toIndex === 0
+        ? "Urutan foto diperbarui. Foto paling atas menjadi cover."
+        : `Foto dipindahkan ke posisi ${toIndex + 1}.`,
+    );
   }
 
   return createPortal(
@@ -159,12 +209,40 @@ export function PortfolioFormModal({
                 onChange={(value) => onUpdateField("title", value)}
                 required
               />
-              <Field
-                label="Kategori"
-                value={form.category}
-                onChange={(value) => onUpdateField("category", value)}
-                required
-              />
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-naki-smoke">
+                  Kategori
+                </span>
+                <select
+                  aria-label="Kategori"
+                  className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={registeredCategories.length === 0 && !hasLegacyCategory}
+                  onChange={(event) =>
+                    onUpdateField("category", event.target.value)
+                  }
+                  required
+                  value={form.category}
+                >
+                  <option disabled value="">
+                    Pilih kategori
+                  </option>
+                  {hasLegacyCategory ? (
+                    <option value={currentCategory}>
+                      {currentCategory} (kategori lama)
+                    </option>
+                  ) : null}
+                  {registeredCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                {registeredCategories.length === 0 ? (
+                  <span className="text-xs text-naki-smoke">
+                    Tambahkan kategori terlebih dahulu melalui menu Kategori.
+                  </span>
+                ) : null}
+              </label>
               <Field
                 label="Hasil"
                 value={form.result}
@@ -222,19 +300,52 @@ export function PortfolioFormModal({
                     Hapus semua
                   </button>
                 </div>
-                <div className="grid gap-3 p-3 sm:grid-cols-2 md:grid-cols-3">
+                <ol
+                  aria-label="Urutan foto portofolio"
+                  className="grid gap-2 p-3"
+                >
                   {portfolioImages.map((imageUrl, index) => (
                     <ThumbnailImageWrapper
                       key={`${imageUrl}-${index}`}
                       imageUrl={imageUrl}
                       title={previewTitle}
                       index={index}
-                      coverIndex={coverIndex}
-                      onSetCover={() => handleSetCover(index)}
+                      isCover={index === 0}
+                      isDragging={draggedImageIndex === index}
+                      isDragTarget={
+                        dragTargetIndex === index && draggedImageIndex !== index
+                      }
+                      canMoveUp={index > 0}
+                      canMoveDown={index < portfolioImages.length - 1}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", String(index));
+                        setDraggedImageIndex(index);
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                        setDragTargetIndex(index);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const sourceIndex =
+                          draggedImageIndex ??
+                          Number(event.dataTransfer.getData("text/plain"));
+                        movePortfolioImage(sourceIndex, index);
+                        setDraggedImageIndex(null);
+                        setDragTargetIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedImageIndex(null);
+                        setDragTargetIndex(null);
+                      }}
+                      onMoveUp={() => movePortfolioImage(index, index - 1)}
+                      onMoveDown={() => movePortfolioImage(index, index + 1)}
                       onDelete={() => handleThumbnailDelete(index)}
                     />
                   ))}
-                </div>
+                </ol>
               </div>
             ) : null}
           </div>
@@ -311,27 +422,62 @@ export function PortfolioFormModal({
   );
 }
 
-// Wrapper component that accepts handler props
 function ThumbnailImageWrapper({
   imageUrl,
   title,
   index,
-  coverIndex,
-  onSetCover,
+  isCover,
+  isDragging,
+  isDragTarget,
+  canMoveUp,
+  canMoveDown,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onMoveUp,
+  onMoveDown,
   onDelete,
 }: {
   imageUrl: string;
   title: string;
   index: number;
-  coverIndex: number;
-  onSetCover: () => void;
+  isCover: boolean;
+  isDragging: boolean;
+  isDragTarget: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onDragStart: (event: React.DragEvent<HTMLLIElement>) => void;
+  onDragOver: (event: React.DragEvent<HTMLLIElement>) => void;
+  onDrop: (event: React.DragEvent<HTMLLIElement>) => void;
+  onDragEnd: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onDelete: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-      <div className="relative h-32 overflow-hidden bg-naki-frost">
+    <li
+      aria-label={`Foto ${index + 1}${isCover ? ", cover" : ""}`}
+      className={`grid cursor-grab grid-cols-[auto_5.5rem_minmax(0,1fr)] items-center gap-3 rounded-xl border bg-white p-2 shadow-sm transition active:cursor-grabbing sm:grid-cols-[auto_6.5rem_minmax(0,1fr)_auto] ${
+        isDragTarget
+          ? "border-naki-secondary ring-2 ring-naki-secondary/20"
+          : "border-naki-steel"
+      } ${isDragging ? "opacity-45" : "opacity-100"}`}
+      draggable
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragStart={onDragStart}
+      onDrop={onDrop}
+    >
+      <span
+        aria-hidden="true"
+        className="grid size-8 place-items-center text-naki-smoke"
+      >
+        <GripVertical size={18} />
+      </span>
+      <div className="relative h-16 overflow-hidden rounded-lg bg-naki-frost sm:h-20">
         {imageError ? (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-naki-primary/10 to-naki-secondary/10 text-xs text-naki-smoke">
             No image
@@ -346,31 +492,50 @@ function ThumbnailImageWrapper({
             onError={() => setImageError(true)}
           />
         )}
-        {index === coverIndex ? (
-          <span className="absolute left-2 top-2 rounded-lg bg-naki-primary px-2 py-1 text-xs font-medium text-white">
+        {isCover ? (
+          <span className="absolute left-1.5 top-1.5 rounded-md bg-naki-primary px-2 py-1 text-[10px] font-medium text-white">
             Cover
           </span>
         ) : null}
       </div>
-      <div className="grid grid-cols-2 border-t border-naki-steel">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-naki-primary">
+          Foto {index + 1}
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-naki-smoke">
+          {isCover
+            ? "Foto paling atas digunakan sebagai cover."
+            : "Drag untuk mengubah urutan foto."}
+        </p>
+      </div>
+      <div className="col-span-3 flex justify-end gap-1 border-t border-naki-steel pt-2 sm:col-span-1 sm:border-0 sm:pt-0">
         <button
-          className="flex h-9 items-center justify-center gap-1 text-xs font-medium text-naki-secondary transition hover:text-naki-primary disabled:cursor-not-allowed disabled:text-naki-smoke"
-          disabled={index === coverIndex}
-          onClick={onSetCover}
+          aria-label={`Naikkan foto ${index + 1}`}
+          className="grid size-8 place-items-center rounded-lg text-naki-secondary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-35"
+          disabled={!canMoveUp}
+          onClick={onMoveUp}
           type="button"
         >
-          <Check size={13} />
-          Cover
+          <ArrowUp size={14} />
         </button>
         <button
-          className="flex h-9 items-center justify-center gap-1 border-l border-naki-steel text-xs font-medium text-naki-secondary transition hover:text-naki-primary"
+          aria-label={`Turunkan foto ${index + 1}`}
+          className="grid size-8 place-items-center rounded-lg text-naki-secondary transition hover:bg-naki-frost disabled:cursor-not-allowed disabled:opacity-35"
+          disabled={!canMoveDown}
+          onClick={onMoveDown}
+          type="button"
+        >
+          <ArrowDown size={14} />
+        </button>
+        <button
+          aria-label={`Hapus foto ${index + 1}`}
+          className="grid size-8 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500"
           onClick={onDelete}
           type="button"
         >
-          <X size={13} />
-          Hapus
+          <X size={14} />
         </button>
       </div>
-    </div>
+    </li>
   );
 }

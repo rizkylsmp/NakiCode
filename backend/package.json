@@ -10,6 +10,7 @@
     "backup:db": "tsx src/scripts/backup-database.ts",
     "backup:list": "tsx src/scripts/backup-database.ts --list",
     "content:publish-blog": "tsx src/scripts/publish-blog-content.ts",
+    "content:refresh-blog-covers": "tsx src/scripts/refresh-blog-covers.ts",
     "payment:webhook:sandbox": "tsx src/scripts/midtrans-webhook-sandbox.ts",
     "migrate": "npm run migrate:sql",
     "migrate:status": "npm run migrate:sql:status",

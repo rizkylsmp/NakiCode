@@ -43,6 +43,8 @@ export function PortfolioPage() {
   const page = portfolioQuery.data?.page ?? requestedPage;
   const total = portfolioQuery.data?.total ?? 0;
   const totalPages = portfolioQuery.data?.totalPages ?? 1;
+  const firstVisiblePortfolio = total === 0 ? 0 : (page - 1) * portfolioPageSize + 1;
+  const lastVisiblePortfolio = Math.min(page * portfolioPageSize, total);
   const pagePath = requestedPage > 1 ? `/portofolio?page=${requestedPage}` : "/portofolio";
   const canonicalUrl = absoluteSiteUrl(pagePath);
   const pageTitle = requestedPage > 1
@@ -111,12 +113,22 @@ export function PortfolioPage() {
               </div>
             ) : (
               <>
+                <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <h2 className="text-xl font-bold text-naki-primary">
+                    Semua portofolio
+                  </h2>
+                  <p className="text-xs font-medium text-naki-smoke">
+                    Menampilkan {firstVisiblePortfolio}-{lastVisiblePortfolio} dari{" "}
+                    {total} portofolio
+                  </p>
+                </div>
                 <PortfolioGrid
                   items={projects}
                   isLoading={portfolioQuery.isPending}
                 />
                 <div className="mt-10">
                   <PaginationControls
+                    alwaysVisible
                     page={page}
                     totalPages={totalPages}
                     total={total}

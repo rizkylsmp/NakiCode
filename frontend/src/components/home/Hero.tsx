@@ -69,7 +69,7 @@ export function Hero({
             </p>
 
             {/* CTA Buttons */}
-            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center md:justify-start">
               <a
                 className="naki-inverse-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-naki-primary px-6 text-sm font-semibold text-white transition hover:bg-naki-primary/90"
                 href="/design"
