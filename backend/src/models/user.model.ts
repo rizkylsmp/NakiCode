@@ -341,15 +341,30 @@ export async function createGoogleUserAccount(payload: {
 }
 
 export async function linkGoogleIdentity(userId: number, googleSub: string) {
-  const [result] = await pool.query<ResultSetHeader>(
-    `UPDATE users
-    SET google_sub = ?,
-      email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP)
-    WHERE id = ? AND google_sub IS NULL`,
-    [googleSub, userId],
-  );
+  try {
+    const [result] = await pool.query<ResultSetHeader>(
+      `UPDATE users
+      SET google_sub = ?,
+        email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP)
+      WHERE id = ? AND google_sub IS NULL`,
+      [googleSub, userId],
+    );
 
-  return result.affectedRows > 0;
+    if (result.affectedRows > 0) {
+      return true;
+    }
+
+    const currentUser = await findUserById(userId);
+    return currentUser?.googleSub === googleSub;
+  } catch (error) {
+    const databaseError = error as { code?: string };
+
+    if (databaseError.code === "ER_DUP_ENTRY") {
+      return false;
+    }
+
+    throw error;
+  }
 }
 
 export async function ensureDefaultAdminUser() {

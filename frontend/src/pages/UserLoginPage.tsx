@@ -54,6 +54,7 @@ type UserAuthResponse = {
   verificationEmail?: string | null;
   verificationUrl?: string | null;
   message?: string;
+  code?: string;
 };
 
 const defaultForm = {
@@ -74,6 +75,9 @@ export function UserLoginPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLinkCredential, setGoogleLinkCredential] = useState("");
+  const [googleLinkPassword, setGoogleLinkPassword] = useState("");
+  const [showGoogleLinkPassword, setShowGoogleLinkPassword] = useState(false);
   const [captcha, setCaptcha] = useState<CaptchaState>(() =>
     initializeCaptcha(),
   );
@@ -131,6 +135,22 @@ export function UserLoginPage() {
         });
         completeAuthentication(data);
       } catch (error) {
+        const errorData = getApiErrorData<UserAuthResponse>(error);
+
+        if (
+          getApiErrorStatus(error) === 409 &&
+          errorData?.code === "GOOGLE_ACCOUNT_LINK_REQUIRED"
+        ) {
+          setGoogleLinkCredential(credential);
+          setGoogleLinkPassword("");
+          setStatus({
+            message:
+              "Konfirmasi password akun Naki Code untuk menghubungkan Google.",
+            tone: "neutral",
+          });
+          return;
+        }
+
         setStatus({
           message: getApiErrorMessage(
             error,
@@ -144,6 +164,55 @@ export function UserLoginPage() {
     },
     [completeAuthentication],
   );
+
+  async function submitGoogleAccountLink(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!googleLinkCredential) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setStatus({
+      message: "Menghubungkan Google ke akun Naki Code...",
+      tone: "neutral",
+    });
+
+    try {
+      const data = await apiPost<UserAuthResponse>(
+        "/api/auth/user/google/link",
+        {
+          credential: googleLinkCredential,
+          password: googleLinkPassword,
+        },
+      );
+      setGoogleLinkCredential("");
+      setGoogleLinkPassword("");
+      completeAuthentication(data);
+    } catch (error) {
+      setStatus({
+        message: getApiErrorMessage(
+          error,
+          "Akun Google gagal dihubungkan. Periksa password lalu coba lagi.",
+        ),
+        tone: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function cancelGoogleAccountLink() {
+    setGoogleLinkCredential("");
+    setGoogleLinkPassword("");
+    setShowGoogleLinkPassword(false);
+    setStatus({
+      message: "Penghubungan akun Google dibatalkan.",
+      tone: "neutral",
+    });
+  }
 
   const handleGoogleError = useCallback((message: string) => {
     setStatus({ message, tone: "error" });
@@ -377,6 +446,8 @@ export function UserLoginPage() {
                     }`}
                     onClick={() => {
                       setMode(item);
+                      setGoogleLinkCredential("");
+                      setGoogleLinkPassword("");
                       setStatus({
                         message:
                           item === "login"
@@ -394,11 +465,92 @@ export function UserLoginPage() {
                 ))}
               </div>
 
-              <GoogleSignInButton
-                disabled={isSubmitting}
-                onCredential={handleGoogleCredential}
-                onError={handleGoogleError}
-              />
+              {googleLinkCredential ? (
+                <form
+                  className="grid gap-4 rounded-2xl border border-naki-steel bg-naki-page-bg p-4"
+                  onSubmit={submitGoogleAccountLink}
+                >
+                  <div>
+                    <p className="text-sm font-bold text-naki-primary">
+                      Hubungkan akun Google
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-naki-smoke">
+                      Email Google ini sudah digunakan akun Naki Code. Masukkan
+                      password akun lama agar order, wishlist, dan profil tetap
+                      berada pada satu akun.
+                    </p>
+                  </div>
+                  <label className="grid gap-1.5">
+                    <span className="text-xs font-semibold text-naki-primary">
+                      Password akun Naki Code
+                    </span>
+                    <span className="relative">
+                      <LockKeyhole
+                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-naki-smoke"
+                        size={17}
+                      />
+                      <input
+                        autoComplete="current-password"
+                        className="h-11 w-full rounded-xl border border-naki-steel bg-white px-11 text-sm outline-none transition focus-visible:border-naki-secondary focus-visible:ring-2 focus-visible:ring-naki-secondary/20"
+                        onChange={(event) =>
+                          setGoogleLinkPassword(event.target.value)
+                        }
+                        placeholder="Masukkan password akun lama"
+                        required
+                        type={showGoogleLinkPassword ? "text" : "password"}
+                        value={googleLinkPassword}
+                      />
+                      <button
+                        aria-label={
+                          showGoogleLinkPassword
+                            ? "Sembunyikan password bind Google"
+                            : "Tampilkan password bind Google"
+                        }
+                        className="absolute right-3 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-naki-smoke transition hover:bg-naki-steel/60 hover:text-naki-primary focus-visible:ring-2 focus-visible:ring-naki-secondary"
+                        onClick={() =>
+                          setShowGoogleLinkPassword((current) => !current)
+                        }
+                        type="button"
+                      >
+                        {showGoogleLinkPassword ? (
+                          <EyeOff size={17} />
+                        ) : (
+                          <Eye size={17} />
+                        )}
+                      </button>
+                    </span>
+                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:bg-naki-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSubmitting}
+                      type="submit"
+                    >
+                      {isSubmitting ? "Menghubungkan..." : "Hubungkan & masuk"}
+                    </button>
+                    <button
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-naki-steel bg-white px-4 text-sm font-semibold text-naki-primary transition hover:border-naki-secondary"
+                      disabled={isSubmitting}
+                      onClick={cancelGoogleAccountLink}
+                      type="button"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                  <Link
+                    className="w-fit text-xs font-semibold text-naki-secondary hover:underline"
+                    to={forgotPasswordUrl}
+                  >
+                    Lupa password akun lama?
+                  </Link>
+                </form>
+              ) : (
+                <GoogleSignInButton
+                  disabled={isSubmitting}
+                  onCredential={handleGoogleCredential}
+                  onError={handleGoogleError}
+                />
+              )}
 
               <div className="my-5 flex items-center gap-3" aria-hidden="true">
                 <span className="h-px flex-1 bg-naki-steel" />

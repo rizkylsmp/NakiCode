@@ -2,6 +2,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createUserToken } from "../auth";
 import { app } from "../server";
+import { isGoogleAuthoritativeForEmail } from "../routes/auth";
 
 describe("Auth API Integration", () => {
   const adminToken = createUserToken({
@@ -169,6 +170,23 @@ describe("Auth API Integration", () => {
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty("message");
+    });
+
+    it("requires a valid payload when confirming an account link", async () => {
+      const response = await request(app)
+        .post("/api/auth/user/google/link")
+        .send({ credential: "invalid", password: "Password123!" });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("message");
+    });
+
+    it("only treats Gmail and hosted Workspace email as authoritative", () => {
+      expect(isGoogleAuthoritativeForEmail("buyer@gmail.com")).toBe(true);
+      expect(
+        isGoogleAuthoritativeForEmail("buyer@company.test", "company.test"),
+      ).toBe(true);
+      expect(isGoogleAuthoritativeForEmail("buyer@yahoo.com")).toBe(false);
     });
   });
 

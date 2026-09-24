@@ -61,6 +61,68 @@ export async function sendPasswordResetOtpEmail({
   });
 }
 
+export async function sendGoogleAccountLinkedEmail({
+  email,
+  username,
+}: Omit<SendVerificationOtpEmailInput, 'otp'>) {
+  const fromAddress = formatFromAddress();
+
+  if (!fromAddress) {
+    throw new Error('SMTP sender is not configured');
+  }
+
+  const linkedAt = new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'Asia/Jakarta',
+  }).format(new Date());
+  const safeUsername = escapeHtml(username);
+
+  await getTransporter().sendMail({
+    from: fromAddress,
+    to: email,
+    subject: 'Akun Google terhubung ke Naki Code',
+    text: [
+      `Halo ${username},`,
+      '',
+      'Akun Google berhasil dihubungkan ke akun Naki Code kamu.',
+      `Waktu: ${linkedAt} WIB`,
+      '',
+      'Jika kamu tidak melakukan ini, segera reset password dan hubungi Naki Code.',
+    ].join('\n'),
+    html: `
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Akun Google Terhubung</title></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:${COLORS.frost};color:${COLORS.primary}">
+  <div style="max-width:600px;margin:0 auto;background:${COLORS.white}">
+    <div style="background:${COLORS.primary};padding:32px 24px;text-align:center"><h1 style="font-size:28px;color:${COLORS.white};margin:0">NAKI CODE</h1></div>
+    <div style="padding:40px 24px">
+      <h2 style="font-size:24px;margin:0 0 16px">Akun Google berhasil terhubung</h2>
+      <p style="font-size:16px;line-height:1.6">Halo <strong>${safeUsername}</strong>, akun Google baru saja dihubungkan ke akun Naki Code kamu.</p>
+      <div style="background:${COLORS.frost};border-left:4px solid ${COLORS.secondary};padding:16px;margin:24px 0;border-radius:4px"><strong>Waktu:</strong> ${linkedAt} WIB</div>
+      <p style="font-size:16px;line-height:1.6">Jika kamu tidak melakukan ini, segera reset password dan hubungi Naki Code.</p>
+    </div>
+  </div>
+</body>
+</html>`.trim(),
+  });
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;',
+    };
+
+    return entities[character] ?? character;
+  });
+}
+
 function createTransporter() {
   if (!config.smtp.host || !config.smtp.user || !config.smtp.password) {
     throw new Error('SMTP configuration is incomplete');

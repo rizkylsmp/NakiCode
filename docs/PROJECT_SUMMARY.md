@@ -172,6 +172,7 @@ Auth/user:
 - `POST /api/auth/user/register`
 - `POST /api/auth/user/login`
 - `POST /api/auth/user/google`
+- `POST /api/auth/user/google/link` - bind Google ke akun user yang emailnya sudah terdaftar dengan konfirmasi password bila Google bukan otoritas email
 - `POST /api/auth/user/verify-email`
 - `POST /api/auth/user/resend-otp`
 - `POST /api/auth/user/forgot-password`
@@ -230,7 +231,7 @@ Business:
 - Password hash: `scrypt` + salt.
 - Middleware: `requireUser`, `requireAdmin`.
 - Frontend menyimpan token di localStorage lewat `frontend/src/utils/user-session.ts`.
-- Login Google memakai Google Identity Services di frontend dan verifikasi ID token dengan `GOOGLE_CLIENT_ID` di backend; identitas stabil disimpan pada `users.google_sub`. Frontend menginisialisasi GIS satu kali per Client ID, hanya merender ulang tombol saat ukuran berubah, dan memakai `Cross-Origin-Opener-Policy: same-origin-allow-popups` agar komunikasi popup tidak diblokir. `VITE_GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_ID` wajib berisi Web Client ID yang sama pada environment deployment masing-masing.
+- Login Google memakai Google Identity Services di frontend dan verifikasi ID token dengan `GOOGLE_CLIENT_ID` di backend; identitas stabil disimpan pada `users.google_sub`. Jika email sudah terdaftar, Gmail atau Google Workspace terverifikasi dapat di-bind otomatis ke akun user yang sama, sedangkan akun Google dengan email pihak ketiga wajib mengonfirmasi password Naki Code melalui `/api/auth/user/google/link`. Admin tetap wajib login memakai password, `google_sub` unik, hasil update bind diverifikasi ulang untuk mencegah race condition, dan email keamanan dikirim setelah linking berhasil. Frontend menginisialisasi GIS satu kali per Client ID, hanya merender ulang tombol saat ukuran berubah, dan memakai `Cross-Origin-Opener-Policy: same-origin-allow-popups` agar komunikasi popup tidak diblokir. `VITE_GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_ID` wajib berisi Web Client ID yang sama pada environment deployment masing-masing.
 - Axios client di `frontend/src/services/api-client.ts` inject `Authorization: Bearer <token>` otomatis.
 - Global 401 handler auto logout.
 - Backend pakai `helmet`, rate limit global API, auth rate limit lebih ketat, CORS allowlist dari `CLIENT_ORIGINS`.

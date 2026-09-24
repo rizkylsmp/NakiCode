@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-09-24 - Amankan account linking Google untuk email yang sudah terdaftar: Gmail/Workspace terverifikasi dapat terhubung otomatis, email pihak ketiga wajib mengonfirmasi password akun lama, konflik identitas dan race condition ditolak, serta notifikasi keamanan dikirim setelah bind berhasil - files: backend/src/routes/auth.ts, backend/src/models/user.model.ts, backend/src/email.ts, backend/src/email-queue.ts, backend/src/openapi.ts, backend/src/__tests__/auth.integration.test.ts, backend/src/__tests__/user-google-link.test.ts, frontend/src/pages/UserLoginPage.tsx, frontend/src/pages/__tests__/UserLoginGoogleLink.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
 - [x] 2026-09-23 - Pastikan halaman publik Portfolio menampilkan seluruh data melalui pagination server-side yang selalu terlihat dan tambahkan informasi rentang portofolio pada halaman aktif - files: frontend/src/pages/PortfolioPage.tsx, frontend/src/pages/__tests__/PortfolioPage.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
 
 - [x] 2026-09-23 - Ubah daftar foto form Portfolio admin menjadi daftar vertikal yang dapat diurutkan melalui drag and drop atau tombol naik/turun, dengan foto teratas otomatis menjadi cover - files: frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/__tests__/PortfolioAdminPanel.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md

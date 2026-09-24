@@ -1,6 +1,7 @@
 import { Queue, Worker, type JobsOptions } from 'bullmq';
 import { config } from './config';
 import {
+  sendGoogleAccountLinkedEmail,
   sendPasswordResetOtpEmail,
   sendVerificationOtpEmail,
 } from './email';
@@ -23,7 +24,18 @@ type PasswordResetEmailJob = {
   };
 };
 
-export type EmailJob = VerificationEmailJob | PasswordResetEmailJob;
+type GoogleAccountLinkedEmailJob = {
+  type: 'google-account-linked';
+  payload: {
+    email: string;
+    username: string;
+  };
+};
+
+export type EmailJob =
+  | VerificationEmailJob
+  | PasswordResetEmailJob
+  | GoogleAccountLinkedEmailJob;
 
 let emailQueue: Queue<EmailJob, void, string> | null = null;
 let emailWorker: Worker<EmailJob, void, string> | null = null;
@@ -85,6 +97,11 @@ export async function enqueueEmail(job: EmailJob) {
 async function processEmailJob(job: EmailJob) {
   if (job.type === 'verification') {
     await sendVerificationOtpEmail(job.payload);
+    return;
+  }
+
+  if (job.type === 'google-account-linked') {
+    await sendGoogleAccountLinkedEmail(job.payload);
     return;
   }
 

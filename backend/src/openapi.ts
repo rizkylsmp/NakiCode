@@ -35,6 +35,18 @@ export const openApiDocument = {
         },
       },
     },
+    "/auth/user/google/link": {
+      post: {
+        summary:
+          "Hubungkan Google ke akun user yang sudah ada dengan konfirmasi password",
+        responses: {
+          200: { description: "Akun Google berhasil dihubungkan dan login" },
+          401: { description: "Credential Google atau password tidak valid" },
+          409: { description: "Identitas Google mengalami konflik" },
+          503: { description: "Login Google belum dikonfigurasi" },
+        },
+      },
+    },
     "/templates": {
       get: {
         summary: "List design katalog",

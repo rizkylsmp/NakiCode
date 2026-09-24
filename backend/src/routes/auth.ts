@@ -32,6 +32,7 @@ import {
   verifyUserEmailOtp,
   updateUserPassword,
   updateUserProfileName,
+  type UserAccount,
 } from "../models/user.model";
 import { parseBody } from "../validation";
 
@@ -49,6 +50,10 @@ const userLoginBodySchema = z.object({
 
 const googleLoginBodySchema = z.object({
   credential: z.string().trim().min(100).max(10_000),
+});
+
+const googleLinkBodySchema = googleLoginBodySchema.extend({
+  password: z.string().min(1).max(200),
 });
 
 const registerBodySchema = z.object({
@@ -312,12 +317,7 @@ authRouter.post("/user/google", async (request, response) => {
   }
 
   try {
-    const googleClient = new OAuth2Client(config.auth.googleClientId);
-    const ticket = await googleClient.verifyIdToken({
-      idToken: body.credential,
-      audience: config.auth.googleClientId,
-    });
-    const profile = ticket.getPayload();
+    const profile = await verifyGoogleCredential(body.credential);
 
     if (!profile?.sub || !profile.email || profile.email_verified !== true) {
       response
@@ -328,6 +328,7 @@ authRouter.post("/user/google", async (request, response) => {
 
     const email = profile.email.trim().toLowerCase();
     let user = await findUserByGoogleSub(profile.sub);
+    let googleWasLinked = false;
 
     if (!user) {
       const existingUser = await findUserByEmail(email);
@@ -348,7 +349,27 @@ authRouter.post("/user/google", async (request, response) => {
         }
 
         if (!existingUser.googleSub) {
-          await linkGoogleIdentity(existingUser.id, profile.sub);
+          if (!isGoogleAuthoritativeForEmail(email, profile.hd)) {
+            response.status(409).json({
+              code: "GOOGLE_ACCOUNT_LINK_REQUIRED",
+              message:
+                "Email ini sudah terdaftar. Masukkan password akun Naki Code untuk menghubungkan Google.",
+            });
+            return;
+          }
+
+          googleWasLinked = await linkGoogleIdentity(
+            existingUser.id,
+            profile.sub,
+          );
+
+          if (!googleWasLinked) {
+            response.status(409).json({
+              code: "GOOGLE_ACCOUNT_LINK_CONFLICT",
+              message: "Akun tidak dapat dihubungkan dengan Google ini",
+            });
+            return;
+          }
         }
         user = await findUserById(existingUser.id);
       } else {
@@ -368,20 +389,130 @@ authRouter.post("/user/google", async (request, response) => {
       return;
     }
 
-    response.json({
-      token: createUserToken(user),
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    if (user.role === "admin") {
+      response.status(403).json({
+        message: "Akun admin harus masuk menggunakan password",
+      });
+      return;
+    }
+
+    if (user.googleSub !== profile.sub) {
+      response.status(409).json({
+        code: "GOOGLE_ACCOUNT_LINK_CONFLICT",
+        message: "Akun ini sudah terhubung dengan identitas Google lain",
+      });
+      return;
+    }
+
+    if (googleWasLinked) {
+      queueGoogleLinkedNotice(user.email, user.username);
+    }
+
+    response.json(createGoogleAuthenticationResponse(user));
   } catch (error) {
     Sentry.captureException(error);
     response
       .status(401)
       .json({ message: "Login Google gagal. Silakan coba lagi." });
+  }
+});
+
+authRouter.post("/user/google/link", async (request, response) => {
+  const body = parseBody(googleLinkBodySchema, request, response);
+
+  if (!body) {
+    return;
+  }
+
+  if (!config.auth.googleClientId) {
+    response.status(503).json({ message: "Login Google belum dikonfigurasi" });
+    return;
+  }
+
+  try {
+    const profile = await verifyGoogleCredential(body.credential);
+
+    if (!profile?.sub || !profile.email || profile.email_verified !== true) {
+      response
+        .status(401)
+        .json({ message: "Akun Google tidak dapat diverifikasi" });
+      return;
+    }
+
+    const email = profile.email.trim().toLowerCase();
+    const linkedUser = await findUserByGoogleSub(profile.sub);
+
+    if (linkedUser) {
+      if (linkedUser.role === "admin") {
+        response.status(403).json({
+          message: "Akun admin harus masuk menggunakan password",
+        });
+        return;
+      }
+
+      response.json(createGoogleAuthenticationResponse(linkedUser));
+      return;
+    }
+
+    const existingUser = await findUserByEmail(email);
+
+    if (!existingUser) {
+      response.status(409).json({
+        code: "GOOGLE_ACCOUNT_LINK_EXPIRED",
+        message: "Akun Naki Code tidak ditemukan. Ulangi login Google.",
+      });
+      return;
+    }
+
+    if (existingUser.role === "admin") {
+      response.status(403).json({
+        message: "Akun admin harus masuk menggunakan password",
+      });
+      return;
+    }
+
+    if (
+      existingUser.googleSub &&
+      existingUser.googleSub !== profile.sub
+    ) {
+      response.status(409).json({
+        code: "GOOGLE_ACCOUNT_LINK_CONFLICT",
+        message: "Email ini sudah terhubung dengan akun Google lain",
+      });
+      return;
+    }
+
+    if (!(await verifyPassword(body.password, existingUser.passwordHash))) {
+      response.status(401).json({
+        code: "GOOGLE_ACCOUNT_LINK_PASSWORD_INVALID",
+        message: "Password akun Naki Code salah",
+      });
+      return;
+    }
+
+    const googleWasLinked = await linkGoogleIdentity(
+      existingUser.id,
+      profile.sub,
+    );
+    const user = googleWasLinked
+      ? await findUserById(existingUser.id)
+      : null;
+
+    if (!user || user.googleSub !== profile.sub) {
+      response.status(409).json({
+        code: "GOOGLE_ACCOUNT_LINK_CONFLICT",
+        message: "Akun tidak dapat dihubungkan dengan Google ini",
+      });
+      return;
+    }
+
+    queueGoogleLinkedNotice(user.email, user.username);
+    response.json(createGoogleAuthenticationResponse(user));
+  } catch (error) {
+    Sentry.captureException(error);
+    response
+      .status(401)
+      .json({ message: "Akun Google gagal dihubungkan. Silakan coba lagi." });
   }
 });
 
@@ -797,6 +928,42 @@ function buildPasswordResetUrl(email: string) {
 
 function generateOtpCode() {
   return String(crypto.randomInt(100000, 1000000));
+}
+
+async function verifyGoogleCredential(credential: string) {
+  const googleClient = new OAuth2Client(config.auth.googleClientId);
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: config.auth.googleClientId,
+  });
+
+  return ticket.getPayload();
+}
+
+export function isGoogleAuthoritativeForEmail(
+  email: string,
+  hostedDomain?: string,
+) {
+  return email.toLowerCase().endsWith("@gmail.com") || Boolean(hostedDomain);
+}
+
+function createGoogleAuthenticationResponse(user: UserAccount) {
+  return {
+    token: createUserToken(user),
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    },
+  };
+}
+
+function queueGoogleLinkedNotice(email: string, username: string) {
+  void enqueueEmail({
+    type: "google-account-linked",
+    payload: { email, username },
+  }).catch((error) => Sentry.captureException(error));
 }
 
 async function createAvailableGoogleUsername(displayName: string) {
