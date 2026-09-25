@@ -659,24 +659,24 @@ export function DesignDetailPage({
       <Header />
 
       {/* Breadcrumb */}
-      <div className="bg-naki-page-bg border-b border-naki-steel/60">
+      <div className="border-b border-naki-steel/60 bg-naki-page-bg">
         <div className="mx-auto max-w-7xl px-5 py-3 md:px-8 xl:px-12 2xl:px-16">
           <nav
-            className="flex items-center gap-2 text-sm text-naki-smoke"
+            className="flex min-w-0 items-center gap-2 overflow-hidden text-sm text-naki-smoke"
             aria-label="Breadcrumb"
           >
-            <Link className="hover:text-naki-primary" to="/">
+            <Link className="shrink-0 hover:text-naki-primary" to="/">
               Home
             </Link>
-            <span>/</span>
+            <span className="shrink-0">/</span>
             <Link
-              className="hover:text-naki-primary"
+              className="shrink-0 hover:text-naki-primary"
               to={selectedTemplateCategoryPath}
             >
               {selectedTemplate.category}
             </Link>
-            <span>/</span>
-            <span className="font-medium text-naki-primary">
+            <span className="shrink-0">/</span>
+            <span className="min-w-0 truncate font-medium text-naki-primary">
               {selectedTemplate.title}
             </span>
           </nav>
@@ -695,13 +695,13 @@ export function DesignDetailPage({
           </Link>
 
           {/* Main content grid */}
-          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
+          <div className="mt-6 grid min-w-0 gap-6 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
             {/* Left: Preview + Details */}
-            <div>
+            <div className="contents min-w-0 lg:block">
               {/* Preview media */}
-              <div className="overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-sm">
+              <div className="order-1 min-w-0 overflow-hidden rounded-2xl border border-naki-steel bg-white shadow-sm lg:order-none">
                 {previewMedia[activePreviewIndex] ? (
-                  <div className="group relative aspect-[16/10] overflow-hidden bg-naki-frost">
+                  <div className="group relative aspect-[4/3] min-w-0 overflow-hidden bg-naki-frost sm:aspect-[16/10]">
                     {previewMedia[activePreviewIndex].type === "video" ? (
                       <video
                         aria-label={previewMedia[activePreviewIndex].caption}
@@ -759,11 +759,11 @@ export function DesignDetailPage({
                 )}
                 {/* Thumbnail row */}
                 {previewMedia.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto border-t border-naki-steel/60 p-3">
+                  <div className="flex min-w-0 gap-2 overflow-x-auto border-t border-naki-steel/60 p-2.5 sm:p-3">
                     {previewMedia.map((item, index) => (
                       <button
                         key={`${item.type}-${item.src}`}
-                        className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 bg-naki-frost transition ${activePreviewIndex === index ? "border-blue-500" : "border-transparent opacity-65 hover:opacity-100"}`}
+                        className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 bg-naki-frost transition sm:h-16 sm:w-24 ${activePreviewIndex === index ? "border-blue-500" : "border-transparent opacity-65 hover:opacity-100"}`}
                         onClick={() => setActivePreviewIndex(index)}
                         type="button"
                         aria-label={`Tampilkan ${item.type === "video" ? "video" : "gambar"} preview ${index + 1}`}
@@ -798,7 +798,7 @@ export function DesignDetailPage({
               </div>
 
               {/* Title + Description */}
-              <div className="mt-8">
+              <div className="order-2 min-w-0 lg:order-none lg:mt-8">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-500">
                     {selectedTemplate.category}
@@ -829,37 +829,37 @@ export function DesignDetailPage({
                 </div>
 
                 {/* Stats */}
-                <div className="mt-6 grid grid-cols-3 gap-4">
-                  <div className="rounded-xl bg-naki-frost p-4">
+                <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="min-w-0 rounded-xl bg-naki-frost p-3 sm:p-4">
                     <Star size={18} className="text-blue-500" />
                     <p className="mt-2 text-xs text-naki-smoke">Rating</p>
-                    <p className="text-lg font-semibold text-naki-primary">
+                    <p className="truncate text-base font-semibold text-naki-primary sm:text-lg">
                       {selectedTemplate.rating > 0
                         ? selectedTemplate.rating.toFixed(1)
                         : "Baru"}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-naki-frost p-4">
+                  <div className="min-w-0 rounded-xl bg-naki-frost p-3 sm:p-4">
                     <UsersRound size={18} className="text-blue-500" />
                     <p className="mt-2 text-xs text-naki-smoke">Pelanggan</p>
-                    <p className="text-lg font-semibold text-naki-primary">
+                    <p className="truncate text-base font-semibold text-naki-primary sm:text-lg">
                       {selectedTemplate.buyerCount}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-naki-frost p-4">
+                  <div className="min-w-0 rounded-xl bg-naki-frost p-3 sm:p-4">
                     <FileCode2 size={18} className="text-blue-500" />
                     <p className="mt-2 text-xs text-naki-smoke">Level</p>
-                    <p className="text-lg font-semibold text-naki-primary">
+                    <p className="truncate text-base font-semibold text-naki-primary sm:text-lg">
                       {selectedTemplate.level}
                     </p>
                   </div>
                 </div>
 
                 {/* Wishlist + Share */}
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-6 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
                   {userToken && (
                     <button
-                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                      className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
                         favoriteIds.has(selectedTemplate.id)
                           ? "bg-blue-500 text-white"
                           : "border border-naki-steel text-naki-smoke hover:text-naki-primary"
@@ -882,7 +882,7 @@ export function DesignDetailPage({
                     </button>
                   )}
                   <button
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
+                    className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
                     onClick={() =>
                       void shareTemplate(
                         selectedTemplate.title,
@@ -895,7 +895,7 @@ export function DesignDetailPage({
                     <Share2 size={14} /> Share
                   </button>
                   <a
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
+                    className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
                     href={`https://wa.me/?text=${shareText}%20${encodeURIComponent(shareUrl)}`}
                     rel="noreferrer"
                     target="_blank"
@@ -904,7 +904,7 @@ export function DesignDetailPage({
                     WhatsApp
                   </a>
                   <button
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
+                    className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-naki-steel px-3 py-2.5 text-sm text-naki-smoke transition hover:text-naki-primary"
                     onClick={() => void copyShareLink(shareUrl, setShareStatus)}
                     type="button"
                   >
@@ -914,7 +914,7 @@ export function DesignDetailPage({
               </div>
 
               {/* Features + Included Files */}
-              <div className="mt-10 grid gap-6 md:grid-cols-2">
+              <div className="order-4 grid min-w-0 gap-4 sm:gap-6 md:grid-cols-2 lg:order-none lg:mt-10">
                 <DetailBlock
                   title="Fitur utama"
                   items={selectedTemplate.features}
@@ -927,7 +927,7 @@ export function DesignDetailPage({
                   title="Cocok untuk"
                   items={selectedTemplate.suitableFor}
                 />
-                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                   <ShieldCheck size={24} className="text-blue-500" />
                   <h2 className="mt-3 text-base font-semibold text-naki-primary">
                     Lisensi dan support
@@ -942,7 +942,7 @@ export function DesignDetailPage({
               </div>
 
               {/* Reviews */}
-              <section className="mt-10">
+              <section className="order-5 min-w-0 lg:order-none lg:mt-10">
                 <h2 className="flex items-center gap-2 text-base font-semibold text-naki-primary">
                   <MessageSquareText size={18} className="text-blue-500" />
                   Review pelanggan
@@ -956,7 +956,7 @@ export function DesignDetailPage({
                     {selectedTemplate.reviews.map((review) => (
                       <article
                         key={review.id}
-                        className="rounded-xl bg-white p-5 shadow-sm"
+                        className="rounded-xl bg-white p-4 shadow-sm sm:p-5"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <p className="font-medium text-naki-primary">
@@ -985,7 +985,7 @@ export function DesignDetailPage({
 
               {/* Related designs */}
               {relatedTemplates.length > 0 && (
-                <section className="mt-14">
+                <section className="order-6 min-w-0 lg:order-none lg:mt-14">
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-blue-500">
@@ -1039,9 +1039,9 @@ export function DesignDetailPage({
             </div>
 
             {/* Right: Sidebar */}
-            <aside className="h-fit space-y-5 md:sticky md:top-24">
+            <aside className="order-3 min-w-0 space-y-4 sm:space-y-5 lg:order-none lg:sticky lg:top-24 lg:h-fit">
               {/* Primary service */}
-              <div className="rounded-2xl bg-naki-primary p-6 text-white shadow-sm">
+              <div className="rounded-2xl bg-naki-primary p-5 text-white shadow-sm sm:p-6">
                 <HeartHandshake size={24} className="text-blue-300" />
                 <p className="mt-3 text-xs font-medium uppercase text-blue-200">
                   Layanan utama
@@ -1066,7 +1066,7 @@ export function DesignDetailPage({
 
               {/* Source code purchase */}
               {selectedTemplate.sourceAvailable !== false ? (
-                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
                   <p className="text-xs font-medium uppercase text-naki-smoke">
                     Opsi mandiri
                   </p>
@@ -1165,7 +1165,7 @@ export function DesignDetailPage({
                   </div>
 
                   <form
-                    className="rounded-2xl bg-white p-6 shadow-sm"
+                    className="rounded-2xl bg-white p-5 shadow-sm sm:p-6"
                     onSubmit={submitConsultation}
                   >
                     <h2 className="text-base font-semibold text-naki-primary">
@@ -1382,7 +1382,7 @@ function UserAuthPanel({
   onUpdateField,
 }: UserAuthPanelProps) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm">
+    <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-start gap-3">
         <span className="grid size-10 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
           <LockKeyhole size={18} />
@@ -1597,7 +1597,7 @@ function PreviewArrow({
   const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
   return (
     <button
-      className={`absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full shadow-sm transition ${direction === "previous" ? "left-3" : "right-3"} ${overlay ? "bg-white/90 text-naki-primary hover:bg-white" : "bg-naki-primary/85 text-white hover:bg-naki-primary"}`}
+      className={`absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full shadow-sm transition sm:size-11 ${direction === "previous" ? "left-2 sm:left-3" : "right-2 sm:right-3"} ${overlay ? "bg-white/90 text-naki-primary hover:bg-white" : "bg-naki-primary/85 text-white hover:bg-naki-primary"}`}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
@@ -1614,7 +1614,7 @@ function PreviewArrow({
 
 function DetailBlock({ title, items }: DetailBlockProps) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm">
+    <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-base font-semibold text-naki-primary">{title}</h2>
       <div className="mt-3 grid gap-2">
         {items.map((item) => (

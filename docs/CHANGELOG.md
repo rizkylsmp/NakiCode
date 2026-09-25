@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-09-25 - Rapikan halaman detail Design pada mobile: cegah kolom galeri melebar keluar viewport, ringkaskan kontrol dan statistik, rapikan breadcrumb serta touch target, dan tampilkan panel konsultasi/checkout sebelum detail lanjutan tanpa mengubah layout desktop - files: frontend/src/pages/DesignDetailPage.tsx, docs/CHANGELOG.md
+
 - [x] 2026-09-25 - Ganti visual karakter pada hero beranda dengan aset Sychlew terbaru dan sesuaikan metadata dimensi gambar agar layout tetap stabil saat dimuat - files: frontend/public/images/hero-naki-character.png, frontend/src/components/home/Hero.tsx, docs/CHANGELOG.md
 
 - [x] 2026-09-24 - Amankan account linking Google untuk email yang sudah terdaftar: Gmail/Workspace terverifikasi dapat terhubung otomatis, email pihak ketiga wajib mengonfirmasi password akun lama, konflik identitas dan race condition ditolak, serta notifikasi keamanan dikirim setelah bind berhasil - files: backend/src/routes/auth.ts, backend/src/models/user.model.ts, backend/src/email.ts, backend/src/email-queue.ts, backend/src/openapi.ts, backend/src/__tests__/auth.integration.test.ts, backend/src/__tests__/user-google-link.test.ts, frontend/src/pages/UserLoginPage.tsx, frontend/src/pages/__tests__/UserLoginGoogleLink.test.tsx, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
