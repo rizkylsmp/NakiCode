@@ -53,7 +53,7 @@ Target UX:
 - TanStack React Query
 - `react-helmet-async` untuk meta tags/SEO
 - Build frontend menghasilkan HTML prerender untuk route publik statis, kategori, serta detail design/blog ketika `SITEMAP_API_URL` tersedia, lalu memvalidasi metadata dan konten crawlable sebelum selesai.
-- PWA: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `offline.html`
+- PWA: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `offline.html`; navigasi dan aset same-origin non-hash memakai network-first agar deployment baru langsung menggantikan tampilan/cache lama, aset build ber-hash tetap cache-first, dan frontend memeriksa update service worker serta perubahan build saat halaman kembali aktif lalu reload satu kali bila versi baru tersedia.
 - Analytics env-based: `VITE_ANALYTICS_PROVIDER=ga4|plausible|umami|none`
 - Struktur `frontend/src`: `app` untuk application shell/router, `contexts` untuk global state, `domain` untuk model/data bisnis, `services` untuk integrasi eksternal, `utils` untuk helper murni, `hooks` untuk custom hooks, serta `components` dan `pages` untuk UI.
 - Root `frontend/src` hanya menyimpan entry/global files: `main.tsx`, `styles.css`, dan `vite-env.d.ts`.

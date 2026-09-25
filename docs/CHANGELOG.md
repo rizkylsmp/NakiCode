@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-09-25 - Pastikan deployment frontend terbaru otomatis menggantikan tampilan lama dengan navigasi network-first, cache service worker versi baru, pemeriksaan update tanpa HTTP cache, deteksi perubahan bundle saat tab aktif kembali, reload satu kali, dan header no-cache untuk service worker/HTML utama - files: frontend/public/sw.js, frontend/src/services/pwa.ts, frontend/src/services/pwa.test.ts, frontend/vercel.json, frontend/tsconfig.tsbuildinfo, docs/PROJECT_SUMMARY.md, docs/CHANGELOG.md
+
 - [x] 2026-09-25 - Rapikan halaman detail Design pada mobile: cegah kolom galeri melebar keluar viewport, ringkaskan kontrol dan statistik, rapikan breadcrumb serta touch target, dan tampilkan panel konsultasi/checkout sebelum detail lanjutan tanpa mengubah layout desktop - files: frontend/src/pages/DesignDetailPage.tsx, docs/CHANGELOG.md
 
 - [x] 2026-09-25 - Ganti visual karakter pada hero beranda dengan aset Sychlew terbaru dan sesuaikan metadata dimensi gambar agar layout tetap stabil saat dimuat - files: frontend/public/images/hero-naki-character.png, frontend/src/components/home/Hero.tsx, docs/CHANGELOG.md
