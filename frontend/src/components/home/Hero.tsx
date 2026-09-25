@@ -14,7 +14,7 @@ function HeroAbstractShape() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute bottom-2 left-1/2 z-0 h-[275px] w-[345px] max-w-none -translate-x-1/2 sm:h-[345px] sm:w-[435px] md:-top-1 md:bottom-auto md:h-[415px] md:w-[520px] lg:-top-8 lg:h-[460px] lg:w-[575px]"
+      className="pointer-events-none absolute bottom-2 left-1/2 z-0 h-[275px] w-[345px] max-w-none -translate-x-1/2 sm:h-[345px] sm:w-[435px] md:-top-1 md:bottom-auto md:h-[415px] md:w-[520px] lg:top-20 lg:h-[460px] lg:w-[575px]"
     >
       <span className="naki-hero-shape-glow absolute inset-[13%] rounded-full" />
       <img
@@ -126,14 +126,14 @@ export function Hero({
                 src="/images/hero-naki-character.png"
                 alt="Karakter Naki Code sebagai visual hero"
                 width="1122"
-                height="1402"
+                height="1199"
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
               />
             </div>
 
-            <div className="absolute left-0 top-5 z-20 rounded-xl border border-naki-steel/70 bg-white px-4 py-2.5 shadow-lg sm:left-2 sm:top-8 sm:px-5 sm:py-3">
+            <div className="absolute left-0 top-5 z-20 rounded-xl border border-naki-steel/70 bg-white px-4 py-2.5 shadow-lg sm:left-10 sm:top-20 sm:px-5 sm:py-3">
               <p className="text-[11px] font-semibold uppercase text-naki-smoke">
                 Design Bulan Ini
               </p>
@@ -155,7 +155,7 @@ export function Hero({
               </p>
             </div>
 
-            <div className="absolute bottom-8 left-2 z-20 hidden rounded-xl border border-green-200 bg-white px-5 py-3 shadow-lg sm:flex sm:left-8">
+            <div className="absolute bottom-8 left-2 z-20 hidden rounded-xl border border-green-200 bg-white px-5 py-3 shadow-lg sm:flex sm:left-8 sm:bottom-12">
               <div className="flex items-center gap-3">
                 <span className="grid size-9 place-items-center rounded-lg bg-green-100 text-green-600">
                   <Check size={18} />
