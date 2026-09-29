@@ -32,6 +32,7 @@ import { AdminTestimonialsSection } from "./admin/AdminTestimonialsSection";
 import { AdminCategoriesSection } from "./admin/AdminCategoriesSection";
 import { AdminCouponsSection } from "./admin/AdminCouponsSection";
 import { AdminFinanceSection } from "./admin/AdminFinanceSection";
+import { AdminOutreachSection } from "./admin/AdminOutreachSection";
 import {
   adminBlogPostsPageSize,
   adminOrdersPageSize,
@@ -1469,6 +1470,8 @@ export function AdminDesignsPage({
           )}
 
           {activeAdminView === "finance" && <AdminFinanceSection />}
+
+          {activeAdminView === "outreach" && <AdminOutreachSection />}
 
           {activeAdminView === "portfolio" && (
             <PortfolioAdminPanel

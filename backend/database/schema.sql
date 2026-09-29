@@ -359,3 +359,29 @@ CREATE TABLE IF NOT EXISTS design_bundle_items (
   sort_order INT NOT NULL DEFAULT 0,
   UNIQUE KEY bundle_design_unique (bundle_id, design_id)
 );
+
+CREATE TABLE IF NOT EXISTS outreach_leads (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  external_key VARCHAR(255) NOT NULL UNIQUE,
+  business_name VARCHAR(180) NOT NULL,
+  category VARCHAR(120) NOT NULL DEFAULT '',
+  city VARCHAR(120) NOT NULL DEFAULT '',
+  source_url VARCHAR(700) NOT NULL,
+  evidence_url VARCHAR(700) NOT NULL,
+  contact_url VARCHAR(700) NOT NULL,
+  observation TEXT NOT NULL,
+  opportunity TEXT NOT NULL,
+  score TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  draft_message TEXT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'new',
+  whatsapp_number VARCHAR(32) NULL,
+  opt_in_at DATETIME NULL,
+  opt_in_source VARCHAR(700) NULL,
+  sent_at DATETIME NULL,
+  last_error VARCHAR(500) NULL,
+  checked_at DATE NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_outreach_status (status, score, created_at)
+);

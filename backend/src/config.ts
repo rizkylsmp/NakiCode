@@ -73,6 +73,12 @@ const envSchema = z.object({
 
   // Storefront configuration - optional
   STOREFRONT_WHATSAPP_NUMBER: z.string().optional().or(z.literal("")),
+  WHATSAPP_CLOUD_ACCESS_TOKEN: z.string().optional().or(z.literal("")),
+  WHATSAPP_CLOUD_PHONE_NUMBER_ID: z.string().optional().or(z.literal("")),
+  WHATSAPP_OUTREACH_TEMPLATE: z.string().optional().or(z.literal("")),
+  WHATSAPP_OUTREACH_TEMPLATE_LANGUAGE: z.string().default("id"),
+  WHATSAPP_META_APP_SECRET: z.string().optional().or(z.literal("")),
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().optional().or(z.literal("")),
 
   // Cloud storage - optional (falls back to local)
   CLOUDINARY_URL: z.string().optional().or(z.literal("")),
@@ -178,6 +184,14 @@ export const config = {
   },
   storefront: {
     whatsappNumber: env.STOREFRONT_WHATSAPP_NUMBER || "",
+  },
+  outreach: {
+    accessToken: env.WHATSAPP_CLOUD_ACCESS_TOKEN || "",
+    phoneNumberId: env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || "",
+    template: env.WHATSAPP_OUTREACH_TEMPLATE || "",
+    templateLanguage: env.WHATSAPP_OUTREACH_TEMPLATE_LANGUAGE,
+    appSecret: env.WHATSAPP_META_APP_SECRET || "",
+    webhookVerifyToken: env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "",
   },
   storage: {
     cloudinaryUrl: env.CLOUDINARY_URL || "",

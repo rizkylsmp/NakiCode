@@ -8,6 +8,7 @@ import {
   TicketPercent,
   BookOpen,
   WalletCards,
+  ContactRound,
   LogOut,
   X,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const MAIN_MENU: MenuItem[] = [
 const APP_MENU: MenuItem[] = [
   { key: "design", label: "Design", icon: FileText },
   { key: "orders", label: "Orders", icon: ShoppingCart },
+  { key: "outreach", label: "Client Outreach", icon: ContactRound },
   { key: "finance", label: "Keuangan", icon: WalletCards },
   { key: "portfolio", label: "Portfolio", icon: Briefcase },
   { key: "blog", label: "Blog", icon: BookOpen },

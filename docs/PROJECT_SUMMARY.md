@@ -118,6 +118,7 @@ Optional:
 - `CLOUDINARY_FOLDER`
 - `SENTRY_DSN`
 - `GOOGLE_CLIENT_ID` untuk verifikasi ID token login Google; nilainya sama dengan `VITE_GOOGLE_CLIENT_ID` di frontend
+- `WHATSAPP_CLOUD_ACCESS_TOKEN`, `WHATSAPP_CLOUD_PHONE_NUMBER_ID`, `WHATSAPP_OUTREACH_TEMPLATE`, `WHATSAPP_OUTREACH_TEMPLATE_LANGUAGE` untuk Client Outreach admin; tanpa tiga nilai pertama fitur kirim tidak aktif. Template harus sudah disetujui Meta. `WHATSAPP_META_APP_SECRET` dan `WHATSAPP_WEBHOOK_VERIFY_TOKEN` diperlukan untuk webhook balasan.
 
 Frontend optional:
 
@@ -148,6 +149,7 @@ Jangan commit `.env`.
 - `/wishlist` - design favorit user
 - `/portofolio` - seluruh portfolio publik dengan pagination server-side dan URL halaman yang dapat dibagikan
 - `/admin/dashboard`, `/admin/design`, `/admin/orders`, `/admin/coupons`, `/admin/portfolio` - admin panel, butuh role admin
+- `/admin/outreach` - daftar prospek, status, observasi, draf, dan bukti opt-in WhatsApp; butuh role admin
 
 ---
 
@@ -208,6 +210,8 @@ Admin:
 - `POST /api/orders/:id/payment/confirm-lynk` (admin)
 - Design/category/project/blog CRUD routes; design memakai `/api/designs` dengan `/api/templates` sebagai alias kompatibilitas sementara
 - `GET /api/admin/stats`
+- `GET|POST /api/admin/outreach`, `PATCH /api/admin/outreach/:id`, `POST /api/admin/outreach/:id/send` - pengelolaan prospek admin. Pengiriman hanya untuk status `ready` dengan nomor dan bukti opt-in.
+- `GET|POST /api/webhooks/whatsapp` - verifikasi webhook Meta dan penerimaan balasan bertanda tangan; balasan dari kontak yang sudah pernah dikirim menandai prospek `replied`.
 - `POST /api/uploads/images` (admin)
 - `POST /api/uploads/video` (admin, satu video MP4/WebM/MOV maksimal 50 MB)
 - `POST /api/uploads/source` (admin, satu arsip ZIP/RAR valid maksimal 100 MB)
@@ -412,6 +416,7 @@ Admin:
 - Invoice bernomor stabil dengan snapshot pelanggan dan total order; proyek custom berstatus parsial setelah DP dan lunas setelah pelunasan, serta order bertransaksi tidak dapat dihapus
 - Soft delete design/order/project/blog
 - Audit trail admin
+- Client Outreach admin: prospek hasil riset disimpan di `outreach_leads` (MySQL), bukan tabel pelanggan/order. Job Codex hari kerja meneliti kandidat publik dan menulis `MARKETING/CLIENT_OUTREACH/LEADS.csv`; `npm run outreach:migrate --workspace backend` menyiapkan hanya tabel outreach, lalu `npm run outreach:sync --workspace backend` memasukkan baris baru tanpa menimpa status admin. `npm run outreach:dispatch --workspace backend` memproses maksimal lima kontak opt-in `ready` per putaran lewat template WhatsApp Cloud API. Webhook Meta dapat memperbarui status balasan. Sumber riset, status persetujuan, dan riwayat kirim tetap terpisah dari katalog design.
 - Admin stats endpoint: total orders, revenue, orders by status, top designs, recent orders, weekly revenue
 
 Backend/platform:
@@ -507,4 +512,9 @@ npm run migrate:sql:status --workspace backend
 npm run backup:db --workspace backend
 npm run backup:list --workspace backend
 npm run payment:webhook:sandbox --workspace backend -- <payment_reference> <settlement|pending|deny|cancel|expire|failure> <amount> [webhook_url]
+npm run outreach:check --workspace backend
+npm run outreach:migrate --workspace backend
+npm run outreach:status --workspace backend
+npm run outreach:sync --workspace backend
+npm run outreach:dispatch --workspace backend
 ```

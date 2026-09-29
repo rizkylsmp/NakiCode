@@ -245,7 +245,8 @@ export type DashboardView =
   | "blog"
   | "testimonials"
   | "categories"
-  | "coupons";
+  | "coupons"
+  | "outreach";
 export type AdminOrderFilters = {
   status: OrderStatusFilter;
   paymentStatus: PaymentStatusFilter;
@@ -279,7 +280,8 @@ export function normalizeAdminSection(section: string): DashboardView {
     section === "blog" ||
     section === "testimonials" ||
     section === "categories" ||
-    section === "coupons"
+    section === "coupons" ||
+    section === "outreach"
     ? section
     : "dashboard";
 }
@@ -295,7 +297,8 @@ export function legacyHashToAdminView(hash: string): DashboardView | null {
     view === "blog" ||
     view === "testimonials" ||
     view === "categories" ||
-    view === "coupons"
+    view === "coupons" ||
+    view === "outreach"
     ? view
     : null;
 }
