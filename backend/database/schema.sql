@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS financial_transactions (
 CREATE TABLE IF NOT EXISTS invoices (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_id INT NOT NULL,
+  stage VARCHAR(20) NOT NULL DEFAULT 'order',
   invoice_number VARCHAR(40) NOT NULL,
   subtotal_amount BIGINT NOT NULL,
   discount_amount BIGINT NOT NULL DEFAULT 0,
@@ -256,8 +257,24 @@ CREATE TABLE IF NOT EXISTS invoices (
   paid_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_invoice_order (order_id),
+  UNIQUE KEY uniq_invoice_order_stage (order_id, stage),
   UNIQUE KEY uniq_invoice_number (invoice_number)
+);
+
+CREATE TABLE IF NOT EXISTS order_email_deliveries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  invoice_id INT NULL,
+  event_key VARCHAR(80) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  lock_token VARCHAR(36) NULL,
+  locked_at TIMESTAMP NULL,
+  attempts INT NOT NULL DEFAULT 0,
+  sent_at TIMESTAMP NULL,
+  last_error VARCHAR(500) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_order_email_event (order_id, event_key),
+  KEY idx_order_email_pending (status, created_at)
 );
 
 CREATE TABLE IF NOT EXISTS projects (

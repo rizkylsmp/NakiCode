@@ -26,6 +26,9 @@ import {
 } from "../models/finance.model";
 import { ordersRouter } from "../routes/orders";
 import { paymentsRouter } from "../routes/payments";
+import { syncPaymentInvoice } from "../order-email.service";
+
+vi.mock("../order-email.service", () => ({ syncPaymentInvoice: vi.fn(async () => undefined) }));
 
 vi.mock("../models/order.model", async () => {
   const actual = await vi.importActual<typeof import("../models/order.model")>(
@@ -187,6 +190,7 @@ describe("Payments API Integration", () => {
 
       expect(response.status).toBe(200);
       expect(ensureOrderInvoice).toHaveBeenCalledWith(12);
+      expect(syncPaymentInvoice).toHaveBeenCalledWith(12, "ORDER-000001");
       expect(recordPaidOrderTransaction).toHaveBeenCalledWith(
         12,
         "ORDER-000001",

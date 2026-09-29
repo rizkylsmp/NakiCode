@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+import { syncPaymentInvoice } from "../order-email.service";
 import {
   redeemCouponReservation,
   releaseCouponReservation,
@@ -61,6 +62,7 @@ export async function reconcileWaitingMidtransOrder(order: OrderItem) {
       );
       await Promise.all([
         ensureOrderInvoice(order.id),
+        syncPaymentInvoice(order.id, order.paymentReference),
         recordPaidOrderTransaction(order.id, order.paymentReference),
         order.orderType === "source_purchase"
           ? redeemCouponReservation(order.id)

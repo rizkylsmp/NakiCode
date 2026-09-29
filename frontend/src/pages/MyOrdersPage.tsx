@@ -34,6 +34,7 @@ import { Header } from "../components/layout/Header";
 import { PaginationControls } from "../components/ui/PaginationControls";
 import { OrderCardSkeletonGrid } from "../components/ui/skeletons/ProfileSkeleton";
 import { PaymentDeadline } from "../components/payment/PaymentDeadline";
+import { OrderInvoices } from "../components/payment/OrderInvoices";
 import type { TemplateItem } from "../domain/content";
 import {
   canConfirmPaymentManually,
@@ -1094,6 +1095,8 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                           </div>
                         </section>
                       ) : null}
+
+                      <OrderInvoices orderId={order.id} version={`${order.paymentReference}-${order.paymentStatus}-${order.status}`} />
 
                       {canRateOrder(order) ? (
                         <section className="naki-orders-detail-surface mt-4 rounded-xl bg-naki-frost p-4">

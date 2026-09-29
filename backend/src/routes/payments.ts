@@ -3,6 +3,7 @@ import { Router } from "express";
 import * as Sentry from "@sentry/node";
 import { z } from "zod";
 import { config } from "../config";
+import { syncPaymentInvoice } from "../order-email.service";
 import {
   findOrderById,
   findOrderByPaymentReference,
@@ -145,6 +146,7 @@ paymentsRouter.post("/midtrans/webhook", async (request, response) => {
       // failed. This keeps invoices and bookkeeping self-healing.
       await Promise.all([
         ensureOrderInvoice(order.id),
+        syncPaymentInvoice(order.id, body.order_id),
         recordPaidOrderTransaction(order.id, body.order_id),
         order.orderType === "source_purchase"
           ? redeemCouponReservation(order.id)

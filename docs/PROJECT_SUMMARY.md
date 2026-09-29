@@ -191,6 +191,8 @@ Orders/payment:
 - `POST /api/orders/:id/payment/confirm`
 - `PATCH /api/orders/:id/delivery` (admin mengirim demo/source hasil custom)
 - `POST /api/orders/:id/delivery/respond` (user approve atau meminta revisi)
+- `GET /api/orders/:id/invoices` - daftar invoice DP/pelunasan/penuh milik pengguna
+- `GET /api/orders/:id/invoice?stage=deposit|balance|full` - unduh PDF invoice tahap tertentu; URL tanpa stage tetap kompatibel
 - `POST /api/payments/midtrans/webhook`
 
 Wishlist/notifications:
@@ -324,6 +326,8 @@ Mode:
 - SMTP wajib configured.
 - Email dikirim async via BullMQ jika `REDIS_URL` ada.
 - Jika Redis tidak ada, fallback async lokal agar request tidak menunggu SMTP.
+- Email order memakai outbox MySQL `order_email_deliveries`: konfirmasi order, invoice tagihan, dan konfirmasi pembayaran dengan PDF terlampir dikirim ke email akun pemilik order. Invoice DP terbit saat sesi DP dibuat; invoice pelunasan baru terbit setelah approve hasil; bayar penuh memakai invoice full. Nomor unik per order/tahap disimpan di `invoices.stage`, dan invoice ringkasan lama dipertahankan pada stage `order`. Pembayaran lunas tidak ditimpa callback gagal atau retry lama.
+- Untuk email order, fallback tanpa Redis menunggu pengiriman SMTP agar fungsi serverless tidak berhenti sebelum email terkirim; kegagalan email dicatat tanpa membatalkan order/pembayaran. Redis memakai retry queue tiga kali. Outbox gagal dapat diproses ulang dengan `npm run email:retry-orders --workspace backend`; belum ada scheduler retry khusus tanpa Redis. Lock/event unik menekan kiriman ganda, tetapi crash setelah SMTP menerima email dan sebelum status tersimpan tetap memiliki risiko duplikasi.
 
 ---
 
@@ -517,4 +521,5 @@ npm run outreach:migrate --workspace backend
 npm run outreach:status --workspace backend
 npm run outreach:sync --workspace backend
 npm run outreach:dispatch --workspace backend
+npm run email:retry-orders --workspace backend
 ```

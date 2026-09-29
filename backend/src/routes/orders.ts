@@ -53,6 +53,8 @@ import {
 } from "../payments/payment.service";
 import { reconcileWaitingMidtransOrder } from "../payments/midtrans-reconciliation.service";
 import { parseBody, parseParams } from "../validation";
+import { backfillStageInvoices, findStageInvoice, findStageInvoices, invoiceStageLabels } from "../models/invoice.model";
+import { invoicePdfData, notifyBalanceDue, notifyOrderCreated, syncPaymentInvoice } from "../order-email.service";
 
 export const ordersRouter = Router();
 
@@ -318,6 +320,7 @@ ordersRouter.post("/", requireUser, async (request, response) => {
       user.userId,
     );
     const order = await createOrder(payload);
+    await notifyOrderCreated(order.id);
 
     await createNotification({
       userId: order.userId,
@@ -374,6 +377,7 @@ ordersRouter.post("/:id/payment", requireUser, async (request, response) => {
         existingOrder.paymentReference &&
         existingOrder.paymentUrl
       ) {
+        await syncPaymentInvoice(existingOrder.id, existingOrder.paymentReference);
         response.json({
           source: "mysql",
           order: existingOrder,
@@ -529,6 +533,8 @@ ordersRouter.post("/:id/payment", requireUser, async (request, response) => {
         return;
       }
 
+      await syncPaymentInvoice(order.id, order.paymentReference);
+
       response.json({
         source: "mysql",
         order,
@@ -606,6 +612,7 @@ ordersRouter.post(
 
       await Promise.all([
         ensureOrderInvoice(order.id),
+        syncPaymentInvoice(order.id, order.paymentReference),
         recordPaidOrderTransaction(order.id, order.paymentReference),
         redeemCouponReservation(order.id),
       ]);
@@ -693,6 +700,9 @@ ordersRouter.post(
         return;
       }
       const order = await findOrderByIdForUser(params.id, user.userId);
+      if (body.decision === "approved" && order?.status === "awaiting_balance") {
+        await notifyBalanceDue(order.id);
+      }
       await createNotification({
         userId: null,
         title:
@@ -783,6 +793,7 @@ ordersRouter.post(
 
       await Promise.all([
         ensureOrderInvoice(order.id),
+        syncPaymentInvoice(order.id, order.paymentReference),
         recordPaidOrderTransaction(order.id, order.paymentReference),
         redeemCouponReservation(order.id),
       ]);
@@ -1061,7 +1072,28 @@ ordersRouter.delete("/:id", requireAdmin, async (request, response) => {
   }
 });
 
-// GET /orders/:id/invoice - Generate and download PDF invoice
+ordersRouter.get("/:id/invoices", requireUser, async (request, response) => {
+  const params = parseParams(idParamsSchema, request, response);
+  const user = response.locals.user as UserTokenPayload;
+  if (!params) return;
+  try {
+    const order = await findOrderByIdForUser(params.id, user.userId);
+    if (!order) { response.status(404).json({ message: "Order tidak ditemukan" }); return; }
+    await backfillStageInvoices(order.id);
+    const invoices = await findStageInvoices(order.id);
+    response.setHeader("Cache-Control", "private, no-store");
+    response.json({ invoices: invoices.map((invoice) => ({
+      id: invoice.id, stage: invoice.stage, label: invoiceStageLabels[invoice.stage],
+      invoiceNumber: invoice.invoiceNumber, totalAmount: invoice.totalAmount,
+      currency: invoice.currency, status: invoice.status, issuedAt: invoice.issuedAt, paidAt: invoice.paidAt,
+    })) });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: "Gagal memuat invoice" });
+  }
+});
+
+// The legacy URL remains available; stage selects a separate DP/balance invoice.
 ordersRouter.get("/:id/invoice", requireUser, async (request, response) => {
   const params = parseParams(idParamsSchema, request, response);
   const user = response.locals.user as UserTokenPayload | null | undefined;
@@ -1078,11 +1110,28 @@ ordersRouter.get("/:id/invoice", requireUser, async (request, response) => {
       return;
     }
 
+    const stage = z.enum(["deposit", "balance", "full"]).optional().safeParse(request.query.stage);
+    if (!stage.success) { response.status(400).json({ message: "Tahap invoice tidak valid" }); return; }
+    await backfillStageInvoices(order.id);
+    const invoice = stage.data
+      ? await findStageInvoice(order.id, stage.data)
+      : (await findStageInvoices(order.id)).at(-1);
+    if (invoice) {
+      const { generateInvoiceBuffer } = await import("../utils/generateInvoice.js");
+      const pdf = await generateInvoiceBuffer(invoicePdfData(invoice));
+      response.setHeader("Content-Type", "application/pdf");
+      response.setHeader("Cache-Control", "private, no-store");
+      response.setHeader("Content-Disposition", `attachment; filename="invoice-${order.id}-${invoice.stage}.pdf"`);
+      response.end(pdf);
+      return;
+    }
+    if (stage.data) { response.status(404).json({ message: "Invoice tahap ini belum diterbitkan" }); return; }
+
     // Only generate invoice for paid orders.
     // Paid state lives in payment_status; `status` is the fulfilment enum
     // (new|contacted|deal|closed) and is never 'paid'.
     if (
-      !["paid", "partial_refunded", "refunded"].includes(order.paymentStatus)
+      !["paid", "partial_paid", "partial_refunded", "refunded"].includes(order.paymentStatus)
     ) {
       response.status(400).json({
         message: "Invoice hanya tersedia untuk pesanan yang sudah dibayar",
@@ -1117,7 +1166,7 @@ ordersRouter.get("/:id/invoice", requireUser, async (request, response) => {
       totalAmount: order.paymentAmount ?? order.quoteAmount ?? 0,
       currency: order.currency,
       projectType: order.projectType,
-      status: order.status,
+      status: order.paymentStatus,
       createdAt: order.createdAt,
       paymentDate: order.paidAt ?? undefined,
       paymentMethod: order.paymentMethod || "Transfer Bank",

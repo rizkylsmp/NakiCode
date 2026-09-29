@@ -21,6 +21,21 @@ type SendVerificationOtpEmailInput = {
 
 let transporter: ReturnType<typeof createTransporter> | null = null;
 
+export async function sendOrderEmail(input: {
+  email: string; subject: string; customerName: string; title: string;
+  details: string; message: string; url: string;
+  attachment?: { filename: string; content: Buffer };
+}) {
+  const from = formatFromAddress();
+  if (!from) throw new Error('SMTP sender is not configured');
+  await getTransporter().sendMail({
+    from, to: input.email, subject: input.subject,
+    text: [`Halo ${input.customerName},`, input.title, input.details, input.message, `Lihat pesanan: ${input.url}`].join('\n\n'),
+    html: `<html lang="id"><body style="margin:0;background:${COLORS.frost};font-family:Arial,sans-serif;color:${COLORS.primary}"><div style="max-width:600px;margin:0 auto;background:${COLORS.white}"><div style="padding:24px;background:${COLORS.primary};color:${COLORS.white};font-size:24px;font-weight:bold">NAKI CODE</div><div style="padding:28px 24px"><h1 style="font-size:22px">${escapeHtml(input.title)}</h1><p>Halo ${escapeHtml(input.customerName)},</p><div style="padding:16px;background:${COLORS.frost};line-height:1.7">${escapeHtml(input.details).replace(/\n/g, '<br>')}</div><p style="line-height:1.7">${escapeHtml(input.message)}</p><a href="${escapeHtml(input.url)}" style="display:inline-block;padding:14px 20px;background:${COLORS.secondary};color:${COLORS.white};border-radius:8px;text-decoration:none">Lihat pesanan</a><p style="font-size:12px;color:${COLORS.smoke};margin-top:24px">${input.attachment ? 'Invoice PDF terlampir. ' : ''}Pembayaran hanya dilakukan dari akun Naki Code milikmu.</p></div></div></body></html>`,
+    attachments: input.attachment ? [{ ...input.attachment, contentType: 'application/pdf' }] : [],
+  });
+}
+
 export async function sendVerificationOtpEmail({
   email,
   username,
@@ -132,6 +147,9 @@ function createTransporter() {
     host: config.smtp.host,
     port: config.smtp.port,
     secure: config.smtp.secure,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
     auth: {
       user: config.smtp.user,
       pass: config.smtp.password,

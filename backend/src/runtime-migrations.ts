@@ -817,6 +817,29 @@ const runtimeMigrations: Migration[] = [
       }
     },
   },
+  {
+    id: "027_stage_invoices_and_order_email_deliveries",
+    async up(connection) {
+      if (!(await hasColumn(connection, "invoices", "stage"))) {
+        await connection.query("ALTER TABLE invoices ADD COLUMN stage VARCHAR(20) NOT NULL DEFAULT 'order' AFTER order_id");
+      }
+      if (!(await hasIndex(connection, "invoices", "uniq_invoice_order_stage"))) {
+        await connection.query("ALTER TABLE invoices ADD UNIQUE KEY uniq_invoice_order_stage (order_id, stage)");
+      }
+      if (await hasIndex(connection, "invoices", "uniq_invoice_order")) {
+        await connection.query("ALTER TABLE invoices DROP INDEX uniq_invoice_order");
+      }
+      await connection.query(`CREATE TABLE IF NOT EXISTS order_email_deliveries (
+        id INT AUTO_INCREMENT PRIMARY KEY, order_id INT NOT NULL, invoice_id INT NULL,
+        event_key VARCHAR(80) NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        lock_token VARCHAR(36) NULL, locked_at TIMESTAMP NULL,
+        attempts INT NOT NULL DEFAULT 0, sent_at TIMESTAMP NULL,
+        last_error VARCHAR(500) NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_order_email_event (order_id, event_key),
+        KEY idx_order_email_pending (status, created_at)
+      )`);
+    },
+  },
 ];
 
 export async function runRuntimeMigrations(connection: Connection) {

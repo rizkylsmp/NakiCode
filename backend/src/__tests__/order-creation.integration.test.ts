@@ -5,6 +5,9 @@ import { createUserToken } from "../auth";
 import { createOrder } from "../models/order.model";
 import { findTemplateBySlugOrId } from "../models/design.model";
 import { ordersRouter } from "../routes/orders";
+import { notifyOrderCreated } from "../order-email.service";
+
+vi.mock("../order-email.service", () => ({ notifyOrderCreated: vi.fn(async () => undefined) }));
 
 vi.mock("../models/order.model", async () => {
   const actual = await vi.importActual<typeof import("../models/order.model")>(
@@ -65,6 +68,7 @@ describe("order creation", () => {
       });
 
     expect(response.status).toBe(201);
+    expect(notifyOrderCreated).toHaveBeenCalledWith(91);
     expect(createOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         templateId: 8,

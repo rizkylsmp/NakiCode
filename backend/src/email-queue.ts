@@ -35,7 +35,8 @@ type GoogleAccountLinkedEmailJob = {
 export type EmailJob =
   | VerificationEmailJob
   | PasswordResetEmailJob
-  | GoogleAccountLinkedEmailJob;
+  | GoogleAccountLinkedEmailJob
+  | { type: 'order-notification'; payload: { orderId: number } };
 
 let emailQueue: Queue<EmailJob, void, string> | null = null;
 let emailWorker: Worker<EmailJob, void, string> | null = null;
@@ -86,6 +87,11 @@ export async function enqueueEmail(job: EmailJob) {
     return;
   }
 
+  if (job.type === 'order-notification') {
+    await processEmailJob(job);
+    return;
+  }
+
   setImmediate(() => {
     void processEmailJob(job).catch((error) => {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -95,6 +101,11 @@ export async function enqueueEmail(job: EmailJob) {
 }
 
 async function processEmailJob(job: EmailJob) {
+  if (job.type === 'order-notification') {
+    const { deliverOrderEmails } = await import('./order-email.service.js');
+    await deliverOrderEmails(job.payload.orderId);
+    return;
+  }
   if (job.type === 'verification') {
     await sendVerificationOtpEmail(job.payload);
     return;

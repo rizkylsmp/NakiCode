@@ -353,7 +353,8 @@ export async function recordOrderRefund(
       [isFullyRefunded ? "refunded" : "partial_refunded", orderId],
     );
     await connection.query(
-      `UPDATE invoices SET status = ? WHERE order_id = ?`,
+      `UPDATE invoices SET status = ? WHERE order_id = ?
+        AND (stage = 'order' OR status IN ('paid', 'partial_refunded'))`,
       [isFullyRefunded ? "refunded" : "partial_refunded", orderId],
     );
     await connection.commit();

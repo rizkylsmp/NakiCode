@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   redeemCoupon: vi.fn(),
   ensureInvoice: vi.fn(),
   recordTransaction: vi.fn(),
+  syncInvoice: vi.fn(),
 }));
+
+vi.mock("../order-email.service", () => ({ syncPaymentInvoice: mocks.syncInvoice }));
 
 vi.mock("./payment.service", () => ({
   getMidtransTransactionStatus: mocks.getStatus,
@@ -97,6 +100,7 @@ describe("Midtrans payment reconciliation", () => {
       undefined,
     );
     expect(mocks.ensureInvoice).toHaveBeenCalledWith(66);
+    expect(mocks.syncInvoice).toHaveBeenCalledWith(66, "NKC-66-TEST");
     expect(mocks.recordTransaction).toHaveBeenCalledWith(66, "NKC-66-TEST");
   });
 });

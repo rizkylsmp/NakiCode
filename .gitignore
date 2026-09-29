@@ -11,3 +11,4 @@ backend/backups/
 docs/*
 !docs/PROJECT_SUMMARY.md
 !docs/SEO_OPERATIONS.md
+!docs/ORDER_INVOICING.md

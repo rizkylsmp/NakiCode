@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { createPortal } from "react-dom";
 import type { TemplateItem } from "../../domain/content";
+import { formatRupiahInputPreview } from "../../utils/currency";
 import {
   Field,
   PreviewDropZone,
@@ -104,6 +105,7 @@ export function DesignFormModal({
         ? "Simpan draft"
         : "Publikasikan";
   const effectiveSlug = normalizeDesignSlug(form.slug || form.title);
+  const pricePreview = formatRupiahInputPreview(form.price);
   const isSlugUsed = Boolean(
     effectiveSlug &&
       existingSlugs.some(
@@ -360,12 +362,22 @@ export function DesignFormModal({
         {form.sourceAvailable ? (
           <>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="Harga"
-                value={form.price}
-                onChange={(value) => onUpdateField("price", value)}
-                placeholder="Contoh: Rp149K"
-              />
+              <div className="grid gap-1.5">
+                <Field
+                  label="Harga"
+                  value={form.price}
+                  onChange={(value) => onUpdateField("price", value)}
+                  placeholder="Contoh: 5000000"
+                />
+                {pricePreview ? (
+                  <p
+                    aria-live="polite"
+                    className="text-xs font-semibold text-naki-secondary"
+                  >
+                    {pricePreview}
+                  </p>
+                ) : null}
+              </div>
               <Field
                 label="Lynk Checkout URL"
                 value={form.lynkUrl}
