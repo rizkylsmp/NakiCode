@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useState } from "react";
+import { getDisplayLocale } from "../../utils/locale";
 import {
   type BlogPostFormState,
   type BlogPostItem,
@@ -462,7 +463,7 @@ export function BlogAdminPanel({
                     <span>
                       {new Date(
                         previewPost.publishedAt || previewPost.createdAt,
-                      ).toLocaleDateString("en-US", {
+                      ).toLocaleDateString(getDisplayLocale(), {
                         year: "numeric",
                         month: "long",
                         day: "numeric",

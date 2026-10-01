@@ -48,13 +48,9 @@ describe("DesignCard", () => {
     expect(video).toHaveAttribute("poster", template.preview[0].image);
     expect(video).toHaveProperty("muted", true);
     expect(video).toHaveClass("object-contain");
-    expect(screen.getByTestId("design-card-media")).toHaveClass(
-      "aspect-[4/3]",
-    );
+    expect(screen.getByTestId("design-card-media")).toHaveClass("aspect-[4/3]");
     expect(screen.getByText("Video preview")).toHaveClass("z-20");
-    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveClass(
-      "z-20",
-    );
+    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveClass("z-20");
     expect(
       screen.getByRole("button", { name: /simpan studio preview/i })
         .parentElement,
@@ -87,4 +83,47 @@ describe("DesignCard", () => {
     expect(images[1]).toHaveClass("object-contain");
     expect(images[1]).toHaveAttribute("alt", template.title);
   });
+
+  it("shows the configured demo link", () => {
+    render(
+      <MemoryRouter>
+        <DesignCard
+          isAuthenticated={false}
+          isFavorite={false}
+          isFavoriteLoading={false}
+          onToggleFavorite={() => undefined}
+          template={{
+            ...template,
+            videoUrl: null,
+            demoUrl: "https://demo.example.com",
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: /buka demo studio preview/i }),
+    ).toHaveAttribute("href", "https://demo.example.com");
+    expect(screen.getByText("Rp. 149.000,-")).toBeInTheDocument();
+  });
+
+  it.each(["#", "javascript:alert(1)", "https://", ""])(
+    "does not expose an invalid demo URL: %s",
+    (demoUrl) => {
+      render(
+        <MemoryRouter>
+          <DesignCard
+            isAuthenticated={false}
+            isFavorite={false}
+            isFavoriteLoading={false}
+            onToggleFavorite={() => undefined}
+            template={{ ...template, demoUrl }}
+          />
+        </MemoryRouter>,
+      );
+      expect(
+        screen.queryByRole("link", { name: /buka demo/i }),
+      ).not.toBeInTheDocument();
+    },
+  );
 });

@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import { absoluteSiteUrl } from "../utils/seo";
+import { useLanguage, translateText } from "../i18n/language";
+import { privacyEnglish, termsEnglish } from "../i18n/legal-english";
 
 type LegalPageKind = "privacy" | "terms";
 type LegalSection = {
@@ -171,12 +173,13 @@ const termsSections: LegalSection[] = [
 ];
 
 export function LegalPage({ kind }: { kind: LegalPageKind }) {
+  const { language } = useLanguage();
   const isPrivacy = kind === "privacy";
-  const title = isPrivacy ? "Kebijakan Privasi" : "Syarat & Ketentuan";
+  const title = translateText(isPrivacy ? "Kebijakan Privasi" : "Syarat & Ketentuan", language);
   const description = isPrivacy
     ? "Pelajari cara NAKI CODE mengelola data, akun, order, dan aset yang Anda gunakan di website."
     : "Ketentuan penggunaan website, konsultasi, order, pembayaran, coupon, dan layanan NAKI CODE.";
-  const sections = isPrivacy ? privacySections : termsSections;
+  const sections: LegalSection[] = language === "en" ? (isPrivacy ? privacyEnglish : termsEnglish) : (isPrivacy ? privacySections : termsSections);
   const Icon = isPrivacy ? ShieldCheck : Scale;
   const path = isPrivacy ? "kebijakan-privasi" : "syarat-ketentuan";
 

@@ -1,4 +1,5 @@
 import { Clock3 } from "lucide-react";
+import { getDisplayLocale } from "../../utils/locale";
 import { useEffect, useRef, useState } from "react";
 
 type PaymentDeadlineProps = {
@@ -68,7 +69,7 @@ export function PaymentDeadline({ expiresAt, onExpire }: PaymentDeadlineProps) {
 }
 
 export function formatPaymentDeadline(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Jakarta",

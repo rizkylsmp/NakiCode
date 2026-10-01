@@ -8,6 +8,8 @@ import {
   apiPost,
   apiPut,
   getApiErrorMessage,
+  getApiErrorData,
+  getApiErrorStatus,
 } from "../services/api-client";
 import { LoadingOverlay } from "../components/ui/LoadingOverlay";
 import { AdminLayout } from "../components/admin/AdminLayout";
@@ -693,9 +695,7 @@ export function AdminDesignsPage({
     }
   }
 
-  async function submitTemplate(
-    publicationStatus: "draft" | "published",
-  ) {
+  async function submitTemplate(publicationStatus: "draft" | "published") {
     if (!adminToken) {
       setStatus("Login admin diperlukan untuk menyimpan design.");
       return;
@@ -730,6 +730,18 @@ export function AdminDesignsPage({
       setStatus(`Design ${data.template.title} tersimpan.`);
     } catch (error) {
       setStatus(getApiErrorMessage(error, "Gagal menyimpan design."));
+      if (getApiErrorStatus(error) === 409)
+        return { slug: "Slug sudah digunakan oleh design lain." };
+      const details = getApiErrorData<{
+        errors?: { fieldErrors?: Record<string, string[]> };
+      }>(error)?.errors?.fieldErrors;
+      if (details) {
+        return Object.fromEntries(
+          Object.entries(details)
+            .filter(([, messages]) => messages.length)
+            .map(([field, messages]) => [field, messages.join(" ")]),
+        );
+      }
     } finally {
       setIsSaving(false);
       setLoadingMessage(null);

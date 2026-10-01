@@ -1,4 +1,5 @@
 import type { Connection, RowDataPacket } from "mysql2/promise";
+import { clientInvitationSchema } from "./client-invitation-schema";
 
 // Runtime migrations run automatically during API/database initialization.
 // Keep these idempotent because serverless cold starts can invoke them again.
@@ -838,6 +839,12 @@ const runtimeMigrations: Migration[] = [
         UNIQUE KEY uniq_order_email_event (order_id, event_key),
         KEY idx_order_email_pending (status, created_at)
       )`);
+    },
+  },
+  {
+    id: "028_order_client_invitations",
+    async up(connection) {
+      await connection.query(clientInvitationSchema);
     },
   },
 ];

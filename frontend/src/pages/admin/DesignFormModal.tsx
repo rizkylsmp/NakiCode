@@ -16,9 +16,14 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
+import { getDisplayLocale } from "../../utils/locale";
 import { createPortal } from "react-dom";
 import type { TemplateItem } from "../../domain/content";
-import { formatRupiahInputPreview } from "../../utils/currency";
+import {
+  formatRupiahInputPreview,
+  parseRupiahAmount,
+} from "../../utils/currency";
+import { getSafeDemoUrl } from "../../utils/design-url";
 import {
   Field,
   PreviewDropZone,
@@ -51,6 +56,28 @@ const STEPS = [
   icon: React.ComponentType<{ size?: number }>;
 }>;
 export const designDraftStorageKey = "naki-admin-design-draft-v1";
+export type DesignSubmitHandler = (
+  publicationStatus: "draft" | "published",
+) => void | Promise<void | Record<string, string>>;
+const FIELD_STEPS: Record<string, StepKey> = {
+  title: "info",
+  category: "info",
+  slug: "info",
+  description: "info",
+  level: "info",
+  preview: "media",
+  videoUrl: "media",
+  demoUrl: "media",
+  stack: "details",
+  features: "details",
+  includedFiles: "details",
+  suitableFor: "details",
+  price: "sales",
+  lynkUrl: "sales",
+  sourceCode: "sales",
+  license: "sales",
+  support: "sales",
+};
 
 type Props = {
   categoryOptions: string[];
@@ -63,7 +90,7 @@ type Props = {
   adminToken: string | null;
   onClose: () => void;
   onStartCreate: () => void;
-  onSubmitTemplate: (publicationStatus: "draft" | "published") => void;
+  onSubmitTemplate: DesignSubmitHandler;
   onUpdateField: <K extends keyof TemplateFormState>(
     key: K,
     value: TemplateFormState[K],
@@ -85,11 +112,14 @@ export function DesignFormModal({
 }: Props) {
   const [activeStep, setActiveStep] = useState<StepKey>("info");
   const [validationMessage, setValidationMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [focusRequest, setFocusRequest] = useState(0);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [isSaveMenuOpen, setIsSaveMenuOpen] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const initialSnapshot = useRef("");
   const wasOpen = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const [mediaUploadState, setMediaUploadState] = useState<MediaUploadState>({
     isUploading: false,
     message: "",
@@ -108,11 +138,11 @@ export function DesignFormModal({
   const pricePreview = formatRupiahInputPreview(form.price);
   const isSlugUsed = Boolean(
     effectiveSlug &&
-      existingSlugs.some(
-        (design) =>
-          design.id !== form.id &&
-          normalizeDesignSlug(design.slug) === effectiveSlug,
-      ),
+    existingSlugs.some(
+      (design) =>
+        design.id !== form.id &&
+        normalizeDesignSlug(design.slug) === effectiveSlug,
+    ),
   );
   const complete = useMemo(
     () => ({
@@ -138,10 +168,22 @@ export function DesignFormModal({
   const completedCount = Object.values(complete).filter(Boolean).length;
 
   useEffect(() => {
+    if (!validationMessage) return;
+    const invalidField = formRef.current?.querySelector<HTMLElement>(
+      "[aria-invalid='true']",
+    );
+    const target =
+      invalidField ??
+      formRef.current?.querySelector<HTMLElement>("[role='alert']");
+    target?.focus();
+    target?.scrollIntoView?.({ block: "center" });
+  }, [validationMessage, focusRequest, activeStep]);
+  useEffect(() => {
     if (isOpen && !wasOpen.current) {
       initialSnapshot.current = JSON.stringify(form);
       setActiveStep("info");
       setValidationMessage("");
+      setFieldErrors({});
       setShowUnsavedDialog(false);
       setIsSaveMenuOpen(false);
     }
@@ -173,39 +215,83 @@ export function DesignFormModal({
     }
     setShowUnsavedDialog(true);
   }
-  function validate(publicationIntent: "draft" | "published") {
+  function showErrors(errors: Record<string, string>) {
+    setFieldErrors(errors);
+    setActiveStep(FIELD_STEPS[Object.keys(errors)[0]] ?? "info");
+    setValidationMessage("Design belum tersimpan. Perbaiki field berikut.");
+    setFocusRequest((current) => current + 1);
+  }
+  async function validate(publicationIntent: "draft" | "published") {
     setIsSaveMenuOpen(false);
-    if (!form.title.trim() || !form.category || !form.description.trim()) {
-      setActiveStep("info");
-      setValidationMessage("Lengkapi judul, kategori, dan deskripsi.");
-      return;
+    const errors: Record<string, string> = {};
+    if (!form.title.trim()) errors.title = "Judul wajib diisi.";
+    if (!form.category.trim()) errors.category = "Pilih kategori design.";
+    if (!form.description.trim()) errors.description = "Deskripsi wajib diisi.";
+    if (
+      form.demoUrl.trim() &&
+      form.demoUrl.trim() !== "#" &&
+      !getSafeDemoUrl(form.demoUrl)
+    ) {
+      errors.demoUrl = "URL demo harus diawali http:// atau https://.";
+    }
+    if (
+      form.sourceAvailable &&
+      form.lynkUrl.trim() &&
+      (!getSafeDemoUrl(form.lynkUrl) ||
+        !/^https:\/\/(?:www\.)?lynk\.id(?:\/|$)/i.test(form.lynkUrl.trim()))
+    ) {
+      errors.lynkUrl =
+        "URL checkout harus menggunakan HTTPS pada domain lynk.id.";
     }
     if (isSlugUsed) {
-      setActiveStep("info");
-      setValidationMessage(
-        "Slug sudah digunakan. Gunakan slug lain sebelum menyimpan design.",
-      );
-      return;
+      errors.slug =
+        "Slug sudah digunakan. Gunakan slug lain sebelum menyimpan design.";
     }
     if (publicationIntent === "published" && !complete.media) {
-      setActiveStep("media");
-      setValidationMessage(
-        "Design published memerlukan minimal satu gambar atau video.",
-      );
-      return;
+      errors.preview =
+        "Tambahkan minimal satu gambar atau video untuk publikasi.";
     }
-    if (form.sourceAvailable && !form.price.trim()) {
-      setActiveStep("sales");
-      setValidationMessage("Isi harga atau nonaktifkan penjualan source code.");
-      return;
+    if (form.sourceAvailable && (parseRupiahAmount(form.price) ?? 0) <= 0) {
+      errors.price = "Isi harga source code dengan nominal lebih dari Rp. 0,-.";
     }
     if (mediaUploadState.isUploading) {
-      setActiveStep("media");
-      setValidationMessage("Tunggu upload media selesai.");
+      errors.preview = "Tunggu upload media selesai.";
+    }
+    for (const [field, max] of Object.entries({
+      title: 160,
+      category: 80,
+      description: 10000,
+      slug: 180,
+      price: 32,
+      demoUrl: 500,
+      lynkUrl: 500,
+    })) {
+      if (String(form[field as keyof TemplateFormState]).trim().length > max) {
+        errors[field] = `Maksimal ${max} karakter.`;
+      }
+    }
+    if (Object.keys(errors).length) {
+      showErrors(errors);
       return;
     }
     setValidationMessage("");
-    onSubmitTemplate(publicationIntent);
+    setFieldErrors({});
+    const serverErrors = await onSubmitTemplate(publicationIntent);
+    if (serverErrors && Object.keys(serverErrors).length)
+      showErrors(serverErrors);
+  }
+
+  function updateField<K extends keyof TemplateFormState>(
+    key: K,
+    value: TemplateFormState[K],
+  ) {
+    onUpdateField(key, value);
+    setFieldErrors((current) => {
+      if (!current[key as string]) return current;
+      const next = { ...current };
+      delete next[key as string];
+      return next;
+    });
   }
 
   const content: Record<StepKey, React.ReactNode> = {
@@ -221,10 +307,11 @@ export function DesignFormModal({
               label="Judul"
               value={form.title}
               onChange={(value) => {
-                onUpdateField("title", value);
-                if (!isEditing) onUpdateField("slug", slugify(value));
+                updateField("title", value);
+                if (!isEditing) updateField("slug", slugify(value));
               }}
               required
+              error={fieldErrors.title}
             />
           </div>
           <div className="order-3 md:order-2">
@@ -232,7 +319,8 @@ export function DesignFormModal({
               label="Kategori"
               value={form.category}
               options={categoryOptions}
-              onChange={(value) => onUpdateField("category", value)}
+              onChange={(value) => updateField("category", value)}
+              error={fieldErrors.category}
             />
           </div>
           <div className="order-2 md:order-3">
@@ -240,7 +328,8 @@ export function DesignFormModal({
               label="Level"
               value={form.level}
               options={levelOptions}
-              onChange={(value) => onUpdateField("level", value)}
+              onChange={(value) => updateField("level", value)}
+              error={fieldErrors.level}
             />
           </div>
           <div className="order-4 grid gap-1.5">
@@ -248,9 +337,10 @@ export function DesignFormModal({
               label="Slug"
               value={form.slug}
               onChange={(value) =>
-                onUpdateField("slug", normalizeDesignSlug(value))
+                updateField("slug", normalizeDesignSlug(value))
               }
               placeholder="contoh-design"
+              error={fieldErrors.slug}
             />
             <p
               className={`text-xs font-medium ${
@@ -273,9 +363,10 @@ export function DesignFormModal({
         <TextArea
           label="Deskripsi"
           value={form.description}
-          onChange={(value) => onUpdateField("description", value)}
+          onChange={(value) => updateField("description", value)}
           rows={5}
           required
+          error={fieldErrors.description}
         />
       </div>
     ),
@@ -290,15 +381,21 @@ export function DesignFormModal({
           value={form.preview}
           videoValue={form.videoUrl}
           isUploadInProgress={mediaUploadState.isUploading}
-          onChange={(value) => onUpdateField("preview", value)}
-          onVideoChange={(value) => onUpdateField("videoUrl", value)}
+          onChange={(value) => updateField("preview", value)}
+          onVideoChange={(value) => updateField("videoUrl", value)}
           onUploadStateChange={setMediaUploadState}
         />
+        {fieldErrors.preview ? (
+          <p className="text-xs font-medium text-red-700" role="alert">
+            {fieldErrors.preview}
+          </p>
+        ) : null}
         <Field
           label="Demo URL"
           value={form.demoUrl}
-          onChange={(value) => onUpdateField("demoUrl", value)}
+          onChange={(value) => updateField("demoUrl", value)}
           placeholder="https://demo.example.com"
+          error={fieldErrors.demoUrl}
         />
       </div>
     ),
@@ -312,34 +409,34 @@ export function DesignFormModal({
           label="Frontend"
           options={frontendStackOptions}
           value={form.frontendStack}
-          onChange={(value) => onUpdateField("frontendStack", value)}
+          onChange={(value) => updateField("frontendStack", value)}
         />
         <TagSelector
           label="Backend"
           options={backendStackOptions}
           value={form.backendStack}
-          onChange={(value) => onUpdateField("backendStack", value)}
+          onChange={(value) => updateField("backendStack", value)}
         />
         <TagSelector
           label="Database"
           options={databaseStackOptions}
           value={form.databaseStack}
-          onChange={(value) => onUpdateField("databaseStack", value)}
+          onChange={(value) => updateField("databaseStack", value)}
         />
         <TagInput
           label="Fitur"
           value={form.features}
-          onChange={(value) => onUpdateField("features", value)}
+          onChange={(value) => updateField("features", value)}
         />
         <TagInput
           label="Isi paket"
           value={form.includedFiles}
-          onChange={(value) => onUpdateField("includedFiles", value)}
+          onChange={(value) => updateField("includedFiles", value)}
         />
         <TagInput
           label="Cocok untuk"
           value={form.suitableFor}
-          onChange={(value) => onUpdateField("suitableFor", value)}
+          onChange={(value) => updateField("suitableFor", value)}
         />
       </div>
     ),
@@ -352,9 +449,7 @@ export function DesignFormModal({
         <label className="flex min-h-11 items-center gap-3 rounded-xl border border-naki-steel bg-naki-frost px-4 text-sm font-medium text-naki-primary md:w-fit">
           <input
             checked={form.sourceAvailable}
-            onChange={(e) =>
-              onUpdateField("sourceAvailable", e.target.checked)
-            }
+            onChange={(e) => updateField("sourceAvailable", e.target.checked)}
             type="checkbox"
           />
           Source code dijual
@@ -366,8 +461,9 @@ export function DesignFormModal({
                 <Field
                   label="Harga"
                   value={form.price}
-                  onChange={(value) => onUpdateField("price", value)}
+                  onChange={(value) => updateField("price", value)}
                   placeholder="Contoh: 5000000"
+                  error={fieldErrors.price}
                 />
                 {pricePreview ? (
                   <p
@@ -381,26 +477,27 @@ export function DesignFormModal({
               <Field
                 label="Lynk Checkout URL"
                 value={form.lynkUrl}
-                onChange={(value) => onUpdateField("lynkUrl", value)}
+                onChange={(value) => updateField("lynkUrl", value)}
                 placeholder="https://lynk.id/..."
+                error={fieldErrors.lynkUrl}
               />
               <SelectField
                 label="Lisensi"
                 value={form.license}
                 options={licenseOptions}
-                onChange={(value) => onUpdateField("license", value)}
+                onChange={(value) => updateField("license", value)}
               />
               <SelectField
                 label="Support"
                 value={form.support}
                 options={supportOptions}
-                onChange={(value) => onUpdateField("support", value)}
+                onChange={(value) => updateField("support", value)}
               />
             </div>
             <SourceCodeUpload
               adminToken={adminToken}
               value={form.sourceCode}
-              onChange={(value) => onUpdateField("sourceCode", value)}
+              onChange={(value) => updateField("sourceCode", value)}
             />
           </>
         ) : (
@@ -421,174 +518,197 @@ export function DesignFormModal({
         aria-hidden={showUnsavedDialog || undefined}
         aria-labelledby="design-form-title"
       >
-      <div className="min-h-dvh w-full bg-white shadow-sm sm:my-6 sm:min-h-0 sm:max-w-5xl sm:rounded-2xl">
-        <header className="sticky top-0 z-20 border-b border-naki-steel bg-white/95 p-4 backdrop-blur sm:rounded-t-2xl sm:p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2
-                id="design-form-title"
-                className="text-xl font-bold text-naki-primary"
+        <div className="min-h-dvh w-full bg-white shadow-sm sm:my-6 sm:min-h-0 sm:max-w-5xl sm:rounded-2xl">
+          <header className="sticky top-0 z-20 border-b border-naki-steel bg-white/95 p-4 backdrop-blur sm:rounded-t-2xl sm:p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2
+                  id="design-form-title"
+                  className="text-xl font-bold text-naki-primary"
+                >
+                  {isEditing ? "Edit design" : "Tambah design"}
+                </h2>
+                <p className="mt-1 text-xs text-naki-smoke">
+                  Langkah {activeIndex + 1} dari 4 · {completedCount}/4 lengkap
+                  {savedAt && !isEditing
+                    ? ` · Draft tersimpan ${savedAt.toLocaleTimeString(getDisplayLocale(), { hour: "2-digit", minute: "2-digit" })}`
+                    : ""}
+                </p>
+              </div>
+              <button
+                aria-label="Tutup form"
+                className="grid size-11 place-items-center rounded-xl text-naki-smoke hover:bg-naki-frost"
+                onClick={requestClose}
+                type="button"
               >
-                {isEditing ? "Edit design" : "Tambah design"}
-              </h2>
-              <p className="mt-1 text-xs text-naki-smoke">
-                Langkah {activeIndex + 1} dari 4 · {completedCount}/4 lengkap
-                {savedAt && !isEditing
-                  ? ` · Draft tersimpan ${savedAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
-                  : ""}
-              </p>
+                <X size={18} />
+              </button>
             </div>
-            <button
-              aria-label="Tutup form"
-              className="grid size-11 place-items-center rounded-xl text-naki-smoke hover:bg-naki-frost"
-              onClick={requestClose}
-              type="button"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <div
-            className="mt-4 grid grid-cols-4 gap-2"
-            role="tablist"
-            aria-label="Langkah input design"
-          >
-            {STEPS.map((step, index) => {
-              const Icon = step.icon;
-              const active = step.key === activeStep;
-              return (
-                <button
-                  key={step.key}
-                  className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-semibold transition ${active ? "border-naki-secondary bg-naki-secondary text-white" : "border-naki-steel bg-naki-frost text-naki-smoke"}`}
-                  onClick={() => {
-                    setActiveStep(step.key);
-                    setValidationMessage("");
-                  }}
-                  role="tab"
-                  aria-selected={active}
-                  type="button"
-                >
-                  <span className="flex items-center justify-center gap-1.5">
-                    <span className="hidden sm:inline">
-                      {complete[step.key] ? <Check size={14} /> : index + 1}
-                    </span>
-                    <Icon size={15} />
-                    <span className="hidden md:inline">{step.label}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </header>
-        <form
-          className="p-4 sm:p-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            validate(form.publicationStatus);
-          }}
-        >
-          {validationMessage ? (
             <div
-              className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-              aria-live="assertive"
+              className="mt-4 grid grid-cols-4 gap-2"
+              role="tablist"
+              aria-label="Langkah input design"
             >
-              <CircleAlert size={17} />
-              {validationMessage}
-            </div>
-          ) : null}
-          {mediaUploadState.message ? (
-            <p
-              className="mb-4 flex items-center gap-2 text-xs font-medium text-naki-secondary"
-              aria-live="polite"
-            >
-              {mediaUploadState.isUploading ? (
-                <Loader2 className="animate-spin" size={14} />
-              ) : null}
-              {mediaUploadState.message}
-            </p>
-          ) : null}
-          {saveStatus ? (
-            <p
-              className="mb-4 rounded-xl border border-naki-steel bg-naki-frost px-4 py-3 text-sm font-medium text-naki-primary"
-              aria-live="polite"
-            >
-              {saveStatus}
-            </p>
-          ) : null}
-          {content[activeStep]}
-          <footer className="sticky bottom-0 z-20 -mx-4 -mb-4 mt-7 flex flex-col-reverse gap-3 border-t border-naki-steel bg-white/95 px-4 pb-4 pt-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pb-6">
-            <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary disabled:opacity-40"
-              disabled={activeIndex === 0}
-              onClick={() => setActiveStep(STEPS[activeIndex - 1].key)}
-              type="button"
-            >
-              <ChevronLeft size={17} />
-              Sebelumnya
-            </button>
-            <div className="grid grid-cols-2 gap-3 sm:flex">
-              {activeIndex < 3 ? (
-                <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-semibold text-white"
-                  onClick={() => setActiveStep(STEPS[activeIndex + 1].key)}
-                  type="button"
-                >
-                  Berikutnya
-                  <ChevronRight size={17} />
-                </button>
-              ) : null}
-              <div className="relative flex min-w-0 overflow-visible rounded-xl shadow-sm">
-                <button
-                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-l-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                  disabled={isSaving || mediaUploadState.isUploading}
-                  onClick={() => validate(primaryPublicationStatus)}
-                  type="button"
-                >
-                  <Save size={17} />
-                  {primarySaveLabel}
-                </button>
-                <button
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-r-xl border-l border-white/20 bg-naki-primary text-white transition hover:opacity-90 disabled:opacity-50"
-                  disabled={isSaving || mediaUploadState.isUploading}
-                  aria-expanded={isSaveMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="Pilih cara menyimpan"
-                  onClick={() => setIsSaveMenuOpen((current) => !current)}
-                  type="button"
-                >
-                  <ChevronUp
-                    className={`transition ${isSaveMenuOpen ? "rotate-0" : "rotate-180"}`}
-                    size={16}
-                  />
-                </button>
-                {isSaveMenuOpen ? (
-                  <div
-                    className="absolute bottom-full right-0 z-30 mb-2 w-72 overflow-hidden rounded-xl border border-naki-steel bg-white p-1.5 shadow-xl"
-                    role="menu"
-                    aria-label="Pilihan simpan design"
+              {STEPS.map((step, index) => {
+                const Icon = step.icon;
+                const active = step.key === activeStep;
+                return (
+                  <button
+                    key={step.key}
+                    className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-semibold transition ${active ? "border-naki-secondary bg-naki-secondary text-white" : "border-naki-steel bg-naki-frost text-naki-smoke"}`}
+                    onClick={() => {
+                      setActiveStep(step.key);
+                    }}
+                    role="tab"
+                    aria-label={step.label}
+                    aria-selected={active}
+                    type="button"
                   >
-                    <PublicationAction
-                      current={form.publicationStatus === "draft"}
-                      description="Simpan tanpa menampilkan design di katalog."
-                      icon={<FileText size={17} />}
-                      label="Simpan sebagai draft"
-                      onSelect={() => validate("draft")}
-                      status="draft"
-                    />
-                    <PublicationAction
-                      current={form.publicationStatus === "published"}
-                      description="Tampilkan design di katalog setelah validasi."
-                      icon={<Rocket size={17} />}
-                      label="Publikasikan"
-                      onSelect={() => validate("published")}
-                      status="published"
-                    />
-                  </div>
+                    <span className="flex items-center justify-center gap-1.5">
+                      <span className="hidden sm:inline">
+                        {complete[step.key] ? <Check size={14} /> : index + 1}
+                      </span>
+                      <Icon size={15} />
+                      <span className="hidden md:inline">{step.label}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </header>
+          <form
+            ref={formRef}
+            noValidate
+            className="p-4 sm:p-6"
+            onSubmit={(event) => {
+              event.preventDefault();
+              validate(form.publicationStatus);
+            }}
+          >
+            {validationMessage ? (
+              <div
+                className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                role="alert"
+                tabIndex={-1}
+                aria-live="assertive"
+              >
+                <p className="flex items-start gap-2">
+                  <CircleAlert className="shrink-0" size={17} />
+                  {validationMessage}
+                </p>
+                {Object.values(fieldErrors).length ? (
+                  <ul className="mt-2 ml-6 list-disc space-y-1">
+                    {Object.entries(fieldErrors).map(([field, message]) => (
+                      <li key={field}>
+                        <button
+                          className="text-left underline underline-offset-2"
+                          type="button"
+                          onClick={() =>
+                            setActiveStep(FIELD_STEPS[field] ?? "info")
+                          }
+                        >
+                          {message}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
               </div>
-            </div>
-          </footer>
-        </form>
-      </div>
+            ) : null}
+            {mediaUploadState.message ? (
+              <p
+                className="mb-4 flex items-center gap-2 text-xs font-medium text-naki-secondary"
+                aria-live="polite"
+              >
+                {mediaUploadState.isUploading ? (
+                  <Loader2 className="animate-spin" size={14} />
+                ) : null}
+                {mediaUploadState.message}
+              </p>
+            ) : null}
+            {saveStatus ? (
+              <p
+                className="mb-4 rounded-xl border border-naki-steel bg-naki-frost px-4 py-3 text-sm font-medium text-naki-primary"
+                aria-live="polite"
+              >
+                {saveStatus}
+              </p>
+            ) : null}
+            {content[activeStep]}
+            <footer className="sticky bottom-0 z-20 -mx-4 -mb-4 mt-7 flex flex-col-reverse gap-3 border-t border-naki-steel bg-white/95 px-4 pb-4 pt-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pb-6">
+              <button
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-5 text-sm font-medium text-naki-primary disabled:opacity-40"
+                disabled={activeIndex === 0}
+                onClick={() => setActiveStep(STEPS[activeIndex - 1].key)}
+                type="button"
+              >
+                <ChevronLeft size={17} />
+                Sebelumnya
+              </button>
+              <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:gap-3">
+                {activeIndex < 3 ? (
+                  <button
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-naki-secondary px-5 text-sm font-semibold text-white"
+                    onClick={() => setActiveStep(STEPS[activeIndex + 1].key)}
+                    type="button"
+                  >
+                    Berikutnya
+                    <ChevronRight size={17} />
+                  </button>
+                ) : null}
+                <div className="relative flex min-w-0 overflow-visible rounded-xl shadow-sm">
+                  <button
+                    className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-l-xl bg-naki-primary px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    disabled={isSaving || mediaUploadState.isUploading}
+                    onClick={() => validate(primaryPublicationStatus)}
+                    type="button"
+                  >
+                    <Save size={17} />
+                    {primarySaveLabel}
+                  </button>
+                  <button
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-r-xl border-l border-white/20 bg-naki-primary text-white transition hover:opacity-90 disabled:opacity-50"
+                    disabled={isSaving || mediaUploadState.isUploading}
+                    aria-expanded={isSaveMenuOpen}
+                    aria-haspopup="menu"
+                    aria-label="Pilih cara menyimpan"
+                    onClick={() => setIsSaveMenuOpen((current) => !current)}
+                    type="button"
+                  >
+                    <ChevronUp
+                      className={`transition ${isSaveMenuOpen ? "rotate-0" : "rotate-180"}`}
+                      size={16}
+                    />
+                  </button>
+                  {isSaveMenuOpen ? (
+                    <div
+                      className="absolute bottom-full right-0 z-30 mb-2 w-72 overflow-hidden rounded-xl border border-naki-steel bg-white p-1.5 shadow-xl"
+                      role="menu"
+                      aria-label="Pilihan simpan design"
+                    >
+                      <PublicationAction
+                        current={form.publicationStatus === "draft"}
+                        description="Simpan tanpa menampilkan design di katalog."
+                        icon={<FileText size={17} />}
+                        label="Simpan sebagai draft"
+                        onSelect={() => validate("draft")}
+                        status="draft"
+                      />
+                      <PublicationAction
+                        current={form.publicationStatus === "published"}
+                        description="Tampilkan design di katalog setelah validasi."
+                        icon={<Rocket size={17} />}
+                        label="Publikasikan"
+                        onSelect={() => validate("published")}
+                        status="published"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </footer>
+          </form>
+        </div>
       </div>
       {showUnsavedDialog ? (
         <UnsavedChangesDialog

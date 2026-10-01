@@ -4,6 +4,7 @@ import apiClient, {
   apiGet,
   getApiErrorMessage,
 } from "../../services/api-client";
+import { formatRupiahText } from "../../utils/currency";
 
 type Invoice = {
   id: number;
@@ -109,11 +110,9 @@ export function OrderInvoices({
                     {invoice.invoiceNumber}
                   </p>
                   <p className="mt-1 text-xs text-naki-primary">
-                    {new Intl.NumberFormat("id-ID", {
-                      style: "currency",
-                      currency: invoice.currency,
-                      maximumFractionDigits: 0,
-                    }).format(invoice.totalAmount)}{" "}
+                    {invoice.currency === "IDR"
+                      ? formatRupiahText(invoice.totalAmount)
+                      : `${invoice.currency} ${invoice.totalAmount.toLocaleString("id-ID")}`}{" "}
                     ·{" "}
                     {invoice.status === "paid"
                       ? "Lunas"

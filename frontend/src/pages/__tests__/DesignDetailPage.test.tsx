@@ -34,6 +34,35 @@ const design: TemplateItem = {
 };
 
 describe("DesignDetailPage", () => {
+  it("shows the demo action and formats the source price", () => {
+    renderWithProviders(
+      <HelmetProvider>
+        <Routes>
+          <Route
+            path="/design/:slug"
+            element={
+              <DesignDetailPage
+                templates={[
+                  {
+                    ...design,
+                    sourceAvailable: true,
+                    price: "5000000",
+                    demoUrl: "https://demo.example.com",
+                  },
+                ]}
+              />
+            }
+          />
+        </Routes>
+      </HelmetProvider>,
+      { route: `/design/${design.slug}` },
+    );
+    expect(screen.getByRole("link", { name: /Demo/i })).toHaveAttribute(
+      "href",
+      "https://demo.example.com",
+    );
+    expect(screen.getByText("Rp. 5.000.000,-")).toBeInTheDocument();
+  });
   it("menampilkan video di galeri preview dan membuka detail dari paling atas", () => {
     const scrollTo = vi.fn();
     Object.defineProperty(window, "scrollTo", {
@@ -59,9 +88,7 @@ describe("DesignDetailPage", () => {
       behavior: "auto",
     });
 
-    const previewVideo = screen.getByLabelText(
-      `Video preview ${design.title}`,
-    );
+    const previewVideo = screen.getByLabelText(`Video preview ${design.title}`);
 
     expect(previewVideo).toHaveAttribute("src", design.videoUrl);
     expect(previewVideo).toHaveProperty("autoplay", true);

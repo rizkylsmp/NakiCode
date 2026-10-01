@@ -88,6 +88,7 @@ function isSensitiveUpdatePath(pathname: string) {
   return [
     "/admin",
     "/checkout",
+    "/client-invitation",
     "/pesanan-saya",
     "/akun-saya",
     "/profile",

@@ -5,6 +5,7 @@ import {
   Code2,
   Copy,
   CreditCard,
+  ExternalLink,
   FileCode2,
   Heart,
   HeartHandshake,
@@ -43,7 +44,9 @@ import { Header } from "../components/layout/Header";
 import { getTemplateBySlug, type TemplateItem } from "../domain/content";
 import type { OrderItem } from "../domain/order-types";
 import { saveRecentlyViewedTemplate } from "../utils/design-activity";
-import { getTemplateCategoryPath } from "../utils/design-url";
+import { budgetOptions } from "../domain/budget-options";
+import { formatRupiahText, parseRupiahAmount } from "../utils/currency";
+import { getSafeDemoUrl, getTemplateCategoryPath } from "../utils/design-url";
 import { absoluteSiteUrl } from "../utils/seo";
 import { useFavoriteTemplates } from "../hooks/useFavorites";
 import { TechStackBadge } from "../components/ui/TechStackBadge";
@@ -109,7 +112,7 @@ const defaultConsultationForm: ConsultationFormState = {
   customerName: "",
   customerContact: "",
   projectType: "Pembuatan website dari design",
-  budgetRange: "Di bawah Rp500K",
+  budgetRange: budgetOptions[0],
   message: "",
 };
 
@@ -530,10 +533,8 @@ export function DesignDetailPage({
     }
   }
 
-  const extractPrice = (priceString: string): string => {
-    const match = priceString.match(/[\d.]+/g);
-    return match ? match.join("").replace(/\./g, "") : "0";
-  };
+  const demoUrl = getSafeDemoUrl(selectedTemplate.demoUrl);
+  const catalogPrice = parseRupiahAmount(selectedTemplate.price);
 
   const productSchema = {
     "@context": "https://schema.org",
@@ -545,13 +546,17 @@ export function DesignDetailPage({
       ? absoluteSiteUrl(selectedTemplate.preview[0].image)
       : absoluteSiteUrl("/logo.png"),
     brand: { "@type": "Organization", name: "Naki Code" },
-    offers: {
-      "@type": "Offer",
-      price: extractPrice(selectedTemplate.price),
-      priceCurrency: "IDR",
-      availability: "https://schema.org/InStock",
-      url: shareUrl,
-    },
+    ...(catalogPrice !== null && selectedTemplate.sourceAvailable !== false
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: String(catalogPrice),
+            priceCurrency: "IDR",
+            availability: "https://schema.org/InStock",
+            url: shareUrl,
+          },
+        }
+      : {}),
     ...(selectedTemplate.rating > 0 && selectedTemplate.buyerCount > 0
       ? {
           aggregateRating: {
@@ -814,10 +819,10 @@ export function DesignDetailPage({
                   </span>
                 </div>
 
-                <h1 className="mt-3 text-2xl font-bold leading-tight text-naki-primary sm:text-3xl md:text-4xl">
+                <h1 translate="no" className="mt-3 text-2xl font-bold leading-tight text-naki-primary sm:text-3xl md:text-4xl">
                   {selectedTemplate.title}
                 </h1>
-                <p className="mt-4 max-w-3xl text-base leading-relaxed text-naki-smoke">
+                <p translate="no" className="mt-4 max-w-3xl text-base leading-relaxed text-naki-smoke">
                   {selectedTemplate.description}
                 </p>
 
@@ -857,6 +862,16 @@ export function DesignDetailPage({
 
                 {/* Wishlist + Share */}
                 <div className="mt-6 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+                  {demoUrl ? (
+                    <a
+                      className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 sm:px-4"
+                      href={demoUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <ExternalLink size={15} /> Demo
+                    </a>
+                  ) : null}
                   {userToken && (
                     <button
                       className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
@@ -1028,7 +1043,7 @@ export function DesignDetailPage({
                             {item.title}
                           </h3>
                           <p className="mt-1 text-xs text-naki-smoke">
-                            {item.price} · {item.level}
+                            {formatRupiahText(item.price)} · {item.level}
                           </p>
                         </div>
                       </Link>
@@ -1073,8 +1088,8 @@ export function DesignDetailPage({
                   <h2 className="mt-1 text-base font-semibold text-naki-primary">
                     Beli source code design
                   </h2>
-                  <p className="mt-1 text-4xl font-bold text-naki-primary">
-                    {selectedTemplate.price}
+                  <p className="mt-1 break-words text-2xl font-bold text-naki-primary sm:text-3xl">
+                    {formatRupiahText(selectedTemplate.price)}
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-naki-smoke">
                     Opsi ini khusus untuk membeli source code design dan panduan
@@ -1222,10 +1237,7 @@ export function DesignDetailPage({
                             )
                           }
                         >
-                          <option>Di bawah Rp500K</option>
-                          <option>Rp500K - Rp1Jt</option>
-                          <option>Rp1Jt - Rp3Jt</option>
-                          <option>Di atas Rp3Jt</option>
+                          {budgetOptions.map((budget) => <option key={budget} value={budget}>{budget}</option>)}
                         </select>
                       </label>
                       <label className="grid gap-1 text-xs font-medium text-naki-smoke">

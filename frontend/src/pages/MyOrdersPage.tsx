@@ -1,3 +1,4 @@
+import { getDisplayLocale } from "../utils/locale";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -31,6 +32,7 @@ import {
 } from "../services/api-client";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
+import { formatRupiahText } from "../utils/currency";
 import { PaginationControls } from "../components/ui/PaginationControls";
 import { OrderCardSkeletonGrid } from "../components/ui/skeletons/ProfileSkeleton";
 import { PaymentDeadline } from "../components/payment/PaymentDeadline";
@@ -656,11 +658,11 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                     Penawaran harga
                                   </p>
                                   <p className="mt-1 text-xl font-bold text-naki-primary">
-                                    {formatRupiah(order.quoteAmount)}
+                                    {formatRupiahText(order.quoteAmount)}
                                   </p>
                                   <p className="mt-1 text-sm font-medium text-naki-smoke">
                                     DP {order.depositPercent}% · Pembayaran awal{" "}
-                                    {formatRupiah(
+                                    {formatRupiahText(
                                       Math.round(
                                         order.quoteAmount *
                                           (order.depositPercent / 100),
@@ -711,11 +713,13 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                 <div className="mt-4 grid gap-2 border-t border-naki-steel pt-4 sm:grid-cols-2">
                                   <OrderInfo
                                     label="Sudah dibayar"
-                                    value={formatRupiah(order.amountPaid)}
+                                    value={formatRupiahText(order.amountPaid)}
                                   />
                                   <OrderInfo
                                     label="Sisa pelunasan"
-                                    value={formatRupiah(order.remainingAmount)}
+                                    value={formatRupiahText(
+                                      order.remainingAmount,
+                                    )}
                                   />
                                 </div>
                               ) : null}
@@ -745,8 +749,8 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                                   ? `Lunas${order.paidAt ? ` pada ${formatOrderDate(order.paidAt)}` : ""}.`
                                   : order.paymentStatus === "partial_paid"
                                     ? order.status === "awaiting_balance"
-                                      ? `Hasil sudah disetujui. Bayar sisa ${formatRupiah(order.remainingAmount)} untuk menyelesaikan order.`
-                                      : `DP ${formatRupiah(order.amountPaid)} sudah diterima. Proyek sedang diproses; pelunasan dibuka setelah hasil disetujui.`
+                                      ? `Hasil sudah disetujui. Bayar sisa ${formatRupiahText(order.remainingAmount)} untuk menyelesaikan order.`
+                                      : `DP ${formatRupiahText(order.amountPaid)} sudah diterima. Proyek sedang diproses; pelunasan dibuka setelah hasil disetujui.`
                                     : order.paymentStatus === "expired"
                                       ? "Waktu pembayaran sebelumnya sudah habis. Buat pembayaran baru untuk mendapatkan instruksi dan batas waktu baru."
                                       : order.paymentStatus === "failed"
@@ -1096,7 +1100,10 @@ export function MyOrdersPage({ onTemplateUpdate }: MyOrdersPageProps) {
                         </section>
                       ) : null}
 
-                      <OrderInvoices orderId={order.id} version={`${order.paymentReference}-${order.paymentStatus}-${order.status}`} />
+                      <OrderInvoices
+                        orderId={order.id}
+                        version={`${order.paymentReference}-${order.paymentStatus}-${order.status}`}
+                      />
 
                       {canRateOrder(order) ? (
                         <section className="naki-orders-detail-surface mt-4 rounded-xl bg-naki-frost p-4">
@@ -1204,7 +1211,7 @@ function formatOrderDate(value: string) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -1296,14 +1303,6 @@ function getPaymentRetryUnavailableReason(order: OrderItem) {
     return "Setujui penawaran terbaru sebelum mengulang pembayaran.";
   }
   return "Pembayaran ulang belum tersedia untuk order ini.";
-}
-
-function formatRupiah(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 function QuoteStatus({ status }: { status: OrderItem["quoteStatus"] }) {

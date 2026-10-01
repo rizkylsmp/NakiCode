@@ -21,6 +21,20 @@ type SendVerificationOtpEmailInput = {
 
 let transporter: ReturnType<typeof createTransporter> | null = null;
 
+export async function sendClientOrderInvitation(input: { email: string; name: string; projectTitle: string; url: string; existingAccount: boolean; language: "id" | "en" }) {
+  const from = formatFromAddress();
+  if (!from) throw new Error('SMTP sender is not configured');
+  const en = input.language === "en";
+  const title = en ? "Your Naki Code order" : "Pesanan Naki Code untukmu";
+  const message = input.existingAccount
+    ? (en ? "Sign in to your existing account to view this order. Your password has not changed." : "Login ke akun yang sudah terdaftar untuk melihat pesanan ini. Password tidak berubah.")
+    : (en ? "Set a password to create your account and track this order. This private, single-use invitation expires in 72 hours. Do not share it." : "Buat password untuk membuat akun dan melacak pesanan ini. Undangan pribadi ini berlaku 72 jam dan hanya bisa digunakan sekali. Jangan bagikan tautannya.");
+  const action = en ? "View order" : "Lihat pesanan";
+  await getTransporter().sendMail({ from, to: input.email, subject: `${title} — ${input.projectTitle}`,
+    text: `${input.name}\n\n${input.projectTitle}\n\n${message}\n\n${input.url}`,
+    html: `<html lang="${input.language}"><body style="font-family:Arial,sans-serif;color:#172033"><main style="max-width:600px;margin:auto;padding:24px"><h1>${title}</h1><p>${escapeHtml(input.name)},</p><h2>${escapeHtml(input.projectTitle)}</h2><p>${message}</p><a href="${escapeHtml(input.url)}">${action}</a></main></body></html>` });
+}
+
 export async function sendOrderEmail(input: {
   email: string; subject: string; customerName: string; title: string;
   details: string; message: string; url: string;

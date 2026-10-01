@@ -3,8 +3,9 @@ import type React from "react";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { type TemplateItem } from "../../domain/content";
 import { type TemplateFormState } from "./AdminDesignWorkspace.shared";
+import { formatRupiahText } from "../../utils/currency";
 import { CategoryModal } from "./CategoryModal";
-import { DesignFormModal } from "./DesignFormModal";
+import { DesignFormModal, type DesignSubmitHandler } from "./DesignFormModal";
 
 type DesignsPanelProps = {
   templates: TemplateItem[];
@@ -37,7 +38,7 @@ type DesignsPanelProps = {
   onDuplicateTemplate?: (template: TemplateItem) => void;
   onCloseTemplateModal: () => void;
   onDeleteTemplate: (template: TemplateItem) => void;
-  onSubmitTemplate: (publicationStatus: "draft" | "published") => void;
+  onSubmitTemplate: DesignSubmitHandler;
   onUpdateField: <Key extends keyof TemplateFormState>(
     key: Key,
     value: TemplateFormState[Key],
@@ -247,7 +248,7 @@ export function DesignsPanel({
                 </div>
                 <div className="flex w-full items-center justify-between gap-4 sm:ml-4 sm:w-auto sm:justify-end">
                   <p className="text-sm font-semibold text-naki-primary">
-                    {template.price}
+                    {formatRupiahText(template.price)}
                   </p>
                   <div className="flex items-center gap-1">
                     {onDuplicateTemplate ? (

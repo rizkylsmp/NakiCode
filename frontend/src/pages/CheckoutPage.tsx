@@ -16,6 +16,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiGet, apiPost, getApiErrorMessage } from "../services/api-client";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
+import { formatRupiahText } from "../utils/currency";
 import { PaymentDeadline } from "../components/payment/PaymentDeadline";
 import {
   canStartOrderCheckout,
@@ -262,7 +263,7 @@ export function CheckoutPage() {
       });
 
       setCouponStatus(
-        `${data.coupon.description}. Diskon Rp${data.coupon.discountAmount.toLocaleString("id-ID")}, total Rp${data.coupon.finalAmount.toLocaleString("id-ID")}.`,
+        `${data.coupon.description}. Diskon ${formatRupiahText(data.coupon.discountAmount)}, total ${formatRupiahText(data.coupon.finalAmount)}.`,
       );
     } catch {
       setCouponStatus(
@@ -388,13 +389,13 @@ export function CheckoutPage() {
                         {
                           value: "deposit" as const,
                           title: "DP 50%",
-                          description: `Bayar ${formatRupiah((order.quoteAmount ?? 0) * 0.5)} sekarang, sisanya setelah hasil disetujui.`,
+                          description: `Bayar ${formatRupiahText((order.quoteAmount ?? 0) * 0.5)} sekarang, sisanya setelah hasil disetujui.`,
                           icon: WalletCards,
                         },
                         {
                           value: "full" as const,
                           title: "Langsung lunas",
-                          description: `Bayar penuh ${formatRupiah(order.quoteAmount ?? 0)}. Tetap melalui pengerjaan dan review.`,
+                          description: `Bayar penuh ${formatRupiahText(order.quoteAmount ?? 0)}. Tetap melalui pengerjaan dan review.`,
                           icon: BadgeCheck,
                         },
                       ].map((option) => {
@@ -721,12 +722,12 @@ export function CheckoutPage() {
                   {order.orderType === "custom_project" && order.quoteAmount ? (
                     <CheckoutInfo
                       label="Total penawaran"
-                      value={formatRupiah(order.quoteAmount)}
+                      value={formatRupiahText(order.quoteAmount)}
                     />
                   ) : null}
                   <CheckoutInfo
                     label="Tagihan saat ini"
-                    value={formatRupiah(payableAmount)}
+                    value={formatRupiahText(payableAmount)}
                   />
                   <CheckoutInfo
                     label="Tipe"
@@ -788,13 +789,4 @@ function openPaymentPage(url: string, paymentWindow: Window | null) {
   }
 
   window.location.href = url;
-}
-
-function formatRupiah(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return "Belum ditentukan";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
 }

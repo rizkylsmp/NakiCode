@@ -55,8 +55,70 @@ import { reconcileWaitingMidtransOrder } from "../payments/midtrans-reconciliati
 import { parseBody, parseParams } from "../validation";
 import { backfillStageInvoices, findStageInvoice, findStageInvoices, invoiceStageLabels } from "../models/invoice.model";
 import { invoicePdfData, notifyBalanceDue, notifyOrderCreated, syncPaymentInvoice } from "../order-email.service";
+import { createClientOrder, renewClientInvitation, ClientInvitationError } from "../models/client-invitation.model";
+import { sendClientOrderInvitation } from "../email";
 
 export const ordersRouter = Router();
+
+function clientInvitationOrigin(request: import("express").Request) {
+  const origin = request.headers.origin;
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      if (config.clientOrigins.includes(parsed.origin) || (config.sentry.environment !== "production" && ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname))) return parsed.origin;
+    } catch { /* Use the configured origin for malformed/untrusted headers. */ }
+  }
+  return new URL(config.clientOrigin).origin;
+}
+
+ordersRouter.post("/admin-create", requireAdmin, async (request, response) => {
+  response.setHeader("Cache-Control", "no-store");
+  const parsed = z.object({
+    email: z.string().trim().toLowerCase().max(160).pipe(z.email()),
+    customerName: z.string().trim().min(1).max(120),
+    customerContact: z.string().trim().min(1).max(120),
+    projectTitle: z.string().trim().min(3).max(160),
+    message: z.string().trim().min(3).max(5000),
+    budgetRange: z.string().trim().min(1).max(80),
+    language: z.enum(["id", "en"]).default("id"),
+    sendEmail: z.boolean().default(true),
+  }).safeParse(request.body);
+  if (!parsed.success) { response.status(400).json({ error: "Lengkapi nama, email, kontak, judul project, budget, dan brief." }); return; }
+  try {
+    const origin = clientInvitationOrigin(request);
+    const result = await createClientOrder(parsed.data);
+    const url = result.token
+      ? `${origin}/client-invitation#token=${result.token}&lang=${parsed.data.language}`
+      : `${origin}/login?next=${encodeURIComponent("/pesanan-saya")}`;
+    let emailSent = false;
+    if (parsed.data.sendEmail) {
+      try {
+        await sendClientOrderInvitation({ email: parsed.data.email, name: parsed.data.customerName, projectTitle: parsed.data.projectTitle, url, existingAccount: result.existingAccount, language: parsed.data.language });
+        emailSent = true;
+      } catch { /* The saved order remains usable through a manually shared private link. */ }
+    }
+    // Do not persist invitation tokens/URLs in audit logs or telemetry.
+    try { await createAdminAuditLog({ admin: response.locals.admin, action: "create_client_order", entityType: "order", entityId: result.order.id, metadata: { existingAccount: result.existingAccount, emailSent } }); } catch { /* Order creation has already committed. */ }
+    response.status(201).json({ order: result.order, invitationUrl: url, expiresAt: result.expiresAt, existingAccount: result.existingAccount, emailSent });
+  } catch (error) {
+    if (error instanceof ClientInvitationError) { response.status(error.status).json({ error: error.message }); return; }
+    response.status(500).json({ error: "Gagal membuat order klien. Coba lagi." });
+  }
+});
+
+ordersRouter.post("/:id/client-invitation", requireAdmin, async (request, response) => {
+  response.setHeader("Cache-Control", "no-store");
+  const id = Number(request.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) { response.status(400).json({ error: "ID order tidak valid." }); return; }
+  try {
+    const origin = clientInvitationOrigin(request);
+    const result = await renewClientInvitation(id);
+    try { await createAdminAuditLog({ admin: response.locals.admin, action: "renew_client_invitation", entityType: "order", entityId: id }); } catch { /* Never expose the private token in an audit failure. */ }
+    response.json({ invitationUrl: `${origin}/client-invitation#token=${result.token}&lang=${request.body?.language === "en" ? "en" : "id"}`, expiresAt: result.expiresAt });
+  } catch (error) {
+    response.status(error instanceof ClientInvitationError ? error.status : 500).json({ error: error instanceof ClientInvitationError ? error.message : "Gagal memperbarui undangan." });
+  }
+});
 
 function isMidtransPaymentActive() {
   return (

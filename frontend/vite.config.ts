@@ -1,7 +1,8 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import net from 'node:net';
-import { defineConfig } from 'vite';
+import path from 'node:path';
+import { defineConfig, type ResolvedConfig } from 'vite';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 const preferredDevPort = readPort(process.env.VITE_DEV_PORT, 5173);
@@ -12,7 +13,16 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     plugins: [
-      react(),
+      react({ jsxImportSource: '@naki/i18n' }),
+      {
+        name: 'naki-local-i18n-runtime',
+        enforce: 'post' as const,
+        configResolved(config: ResolvedConfig) {
+          // plugin-react explicitly adds both JSX runtimes to include; remove
+          // our local runtime so it cannot bundle a second LanguageContext.
+          config.optimizeDeps.include = config.optimizeDeps.include?.filter((id) => !id.startsWith('@naki/i18n/'));
+        },
+      },
       tailwindcss(),
       mode === 'analyze'
         ? visualizer({
@@ -23,6 +33,10 @@ export default defineConfig(async ({ mode }) => {
           })
         : null,
     ].filter(Boolean),
+    resolve: { alias: { '@naki/i18n': path.resolve(__dirname, 'src/i18n') } },
+    // Keep the local JSX runtime in the same module graph as LanguageProvider.
+    // Prebundling it would create a second, disconnected language context in dev.
+    optimizeDeps: { exclude: ['@naki/i18n/jsx-runtime', '@naki/i18n/jsx-dev-runtime'] },
     build: {
       rollupOptions: {
         output: {

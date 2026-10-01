@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useLanguage } from "../../i18n/language";
 import {
   FileText,
   ShoppingCart,
@@ -95,6 +96,7 @@ export function AdminDashboardPage({
   onNavigate,
   onRefreshOrders,
 }: AdminDashboardPageProps) {
+  const { language } = useLanguage();
   const paidOrders = orders.filter((o) => o.paymentStatus === "paid").length;
 
   // Orders by month (last 6 months)
@@ -104,7 +106,7 @@ export function AdminDashboardPage({
 
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthLabel = d.toLocaleDateString("en-US", { month: "short" });
+      const monthLabel = d.toLocaleDateString(language === "en" ? "en-GB" : "id-ID", { month: "short" });
       const monthOrders = orders.filter((o) => {
         const od = new Date(o.createdAt);
         return (
@@ -119,7 +121,7 @@ export function AdminDashboardPage({
     }
 
     return months;
-  }, [orders]);
+  }, [orders, language]);
 
   // Orders by status
   const ordersByStatus = useMemo(() => {

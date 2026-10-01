@@ -1,3 +1,4 @@
+import { getDisplayLocale } from "../../utils/locale";
 import {
   FileArchive,
   Film,
@@ -69,9 +70,7 @@ export const defaultFormState: TemplateFormState = {
   sourceAvailable: true,
 };
 
-export function updateTemplateFormField<
-  Key extends keyof TemplateFormState,
->(
+export function updateTemplateFormField<Key extends keyof TemplateFormState>(
   current: TemplateFormState,
   key: Key,
   value: TemplateFormState[Key],
@@ -423,6 +422,7 @@ export type FieldProps = {
   type?: string;
   step?: string;
   placeholder?: string;
+  error?: string;
 };
 
 export function Field({
@@ -433,19 +433,29 @@ export function Field({
   type = "text",
   step,
   placeholder,
+  error,
 }: FieldProps) {
+  const errorId = `field-error-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
     <label className="grid gap-1.5">
       <span className="text-xs font-medium text-naki-smoke">{label}</span>
       <input
-        className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
+        className={`h-11 w-full rounded-lg border bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400 ${error ? "border-red-500" : "border-naki-steel"}`}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
         type={type}
         placeholder={placeholder}
         step={step}
+        aria-invalid={Boolean(error)}
+        aria-label={label}
+        aria-describedby={error ? errorId : undefined}
       />
+      {error ? (
+        <span id={errorId} className="text-xs font-medium text-red-700">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -456,6 +466,7 @@ export type TextAreaProps = {
   onChange: (value: string) => void;
   rows?: number;
   required?: boolean;
+  error?: string;
 };
 
 export function TextArea({
@@ -464,17 +475,27 @@ export function TextArea({
   onChange,
   rows = 3,
   required = false,
+  error,
 }: TextAreaProps) {
+  const errorId = `field-error-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
     <label className="grid gap-1.5">
       <span className="text-xs font-medium text-naki-smoke">{label}</span>
       <textarea
-        className="resize-y rounded-lg border border-naki-steel bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-blue-400"
+        className={`resize-y rounded-lg border bg-naki-page-bg px-3 py-2 text-sm text-naki-primary leading-relaxed outline-none transition focus:border-blue-400 ${error ? "border-red-500" : "border-naki-steel"}`}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={rows}
         required={required}
+        aria-invalid={Boolean(error)}
+        aria-label={label}
+        aria-describedby={error ? errorId : undefined}
       />
+      {error ? (
+        <span id={errorId} className="text-xs font-medium text-red-700">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -486,6 +507,7 @@ export type SelectFieldProps = {
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
+  error?: string;
 };
 
 export function SelectField({
@@ -493,15 +515,25 @@ export function SelectField({
   value,
   options,
   onChange,
+  error,
 }: SelectFieldProps) {
+  const errorId = `field-error-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
     <label className="grid gap-1.5">
       <span className="text-xs font-medium text-naki-smoke">{label}</span>
       <select
-        className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400"
+        aria-label={label}
+        className={`h-11 w-full rounded-lg border bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400 ${error ? "border-red-500" : "border-naki-steel"}`}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
       >
+        {!value ? (
+          <option value="" disabled>
+            Pilih {label.toLowerCase()}
+          </option>
+        ) : null}
         {options.map((option) => {
           const optionValue =
             typeof option === "string" ? option : option.value;
@@ -515,6 +547,11 @@ export function SelectField({
           );
         })}
       </select>
+      {error ? (
+        <span id={errorId} className="text-xs font-medium text-red-700">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -1754,7 +1791,7 @@ export function formatOrderDate(value: string) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);

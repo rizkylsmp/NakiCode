@@ -1,3 +1,4 @@
+import { getDisplayLocale } from "../utils/locale";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -895,7 +896,7 @@ function formatDate(value: string) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);

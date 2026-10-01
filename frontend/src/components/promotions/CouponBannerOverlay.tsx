@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiGet } from "../../services/api-client";
 import { couponBannerReopenEvent } from "./coupon-banner-events";
+import { formatRupiahText } from "../../utils/currency";
 
 type CouponBanner = {
   id: number;
@@ -181,7 +182,7 @@ export function CouponBannerOverlay() {
                     Hemat{" "}
                     {banner.discountType === "percent"
                       ? `${banner.discountValue}%`
-                      : `Rp${banner.discountValue.toLocaleString("id-ID")}`}{" "}
+                      : formatRupiahText(banner.discountValue)}{" "}
                     dengan kode <strong>{banner.code}</strong>.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">

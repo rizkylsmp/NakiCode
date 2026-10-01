@@ -16,6 +16,7 @@ import { ToastProvider } from "../components/ui/Toast";
 import { getTemplateCategoryFromSlug } from "../utils/design-url";
 import { FloatingActions } from "../components/layout/FloatingActions";
 import { absoluteSiteUrl, getSiteOrigin } from "../utils/seo";
+import { useLanguage } from "../i18n/language";
 
 /**
  * One-time stale chunk reload guard.
@@ -81,6 +82,7 @@ const HomePage = lazyWithReload(() =>
     default: module.HomePage,
   })),
 );
+const ClientInvitationPage = lazyWithReload(() => import("../pages/ClientInvitationPage").then((module) => ({ default: module.ClientInvitationPage })));
 const DesignDetailPage = lazyWithReload(() =>
   import("../pages/DesignDetailPage").then((module) => ({
     default: module.DesignDetailPage,
@@ -173,6 +175,7 @@ type ProjectsResponse = {
 };
 
 function App() {
+  const { language } = useLanguage();
   const location = useLocation();
   const siteOrigin = getSiteOrigin();
   const googleSiteVerification = import.meta.env.VITE_GOOGLE_SITE_VERIFICATION?.trim();
@@ -182,6 +185,7 @@ function App() {
     "/admin",
     "/akun-saya",
     "/checkout",
+    "/client-invitation",
     "/forgot-password",
     "/login",
     "/pesanan-saya",
@@ -218,7 +222,7 @@ function App() {
   });
 
   useEffect(() => {
-    trackPageView(`${location.pathname}${location.search}${location.hash}`);
+    trackPageView(location.pathname === "/client-invitation" ? location.pathname : `${location.pathname}${location.search}${location.hash}`);
   }, [location.hash, location.pathname, location.search]);
 
   useEffect(() => {
@@ -381,7 +385,7 @@ function App() {
                     "@id": `${siteOrigin}/#website`,
                     url: canonicalHomeUrl,
                     name: "Naki Code",
-                    inLanguage: "id-ID",
+                    inLanguage: language === "en" ? "en-GB" : "id-ID",
                     publisher: { "@id": `${siteOrigin}/#business` },
                     potentialAction: {
                       "@type": "SearchAction",
@@ -438,6 +442,7 @@ function App() {
         <Route path="/templates/:slug" element={<LegacyDesignDetailRedirect />} />
         <Route path="/admin/templates" element={<Navigate replace to="/admin/design" />} />
         <Route path="/login" element={<UserLoginPage />} />
+        <Route path="/client-invitation" element={<ClientInvitationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/blog" element={<BlogListPage />} />

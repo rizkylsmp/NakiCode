@@ -175,7 +175,7 @@ export function BlogDetailPage() {
                 loading="eager"
               />
             ) : null}
-            <div className="mt-8 whitespace-pre-line rounded-xl border border-naki-steel bg-naki-frost p-6 text-base font-semibold leading-8 text-naki-primary shadow-naki-card">
+            <div translate="no" className="mt-8 whitespace-pre-line rounded-xl border border-naki-steel bg-naki-frost p-6 text-base font-semibold leading-8 text-naki-primary shadow-naki-card">
               {post.content}
             </div>
             <aside className="mt-8 rounded-xl border border-naki-steel bg-white p-6 shadow-naki-card">

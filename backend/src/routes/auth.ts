@@ -35,8 +35,32 @@ import {
   type UserAccount,
 } from "../models/user.model";
 import { parseBody } from "../validation";
+import { claimClientInvitation, inspectClientInvitation, ClientInvitationError } from "../models/client-invitation.model";
 
 export const authRouter = Router();
+
+const invitationBodySchema = z.object({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) });
+function respondInvitationError(response: import("express").Response, error: unknown) {
+  response.status(error instanceof ClientInvitationError ? error.status : 500).json({ error: error instanceof ClientInvitationError ? error.message : "Undangan tidak dapat diproses. Coba lagi." });
+}
+authRouter.post("/client-invitations/inspect", async (request, response) => {
+  const body = parseBody(invitationBodySchema, request, response);
+  if (!body) return;
+  response.setHeader("Cache-Control", "no-store");
+  try { response.json(await inspectClientInvitation(body.token)); }
+  catch (error) { respondInvitationError(response, error); }
+});
+authRouter.post("/client-invitations/claim", async (request, response) => {
+  const body = parseBody(invitationBodySchema.extend({ password: z.string().min(8).max(200).optional(), acceptTerms: z.literal(true) }), request, response);
+  if (!body) return;
+  response.setHeader("Cache-Control", "no-store");
+  if (body.password && zxcvbn(body.password).score < 2) { response.status(400).json({ error: "Password terlalu lemah. Gunakan kombinasi yang lebih kuat." }); return; }
+  const bearer = request.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];
+  try {
+    const result = await claimClientInvitation(body.token, body.password, bearer ? verifyUserToken(bearer) : null);
+    response.json({ ...result, token: createUserToken(result.user) });
+  } catch (error) { respondInvitationError(response, error); }
+});
 
 const loginBodySchema = z.object({
   username: z.string().trim().min(1).max(160),

@@ -1,6 +1,7 @@
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { type TemplateItem } from "../../domain/content";
+import { formatRupiahText } from "../../utils/currency";
 
 type DeleteDesignDialogProps = {
   template: TemplateItem | null;
@@ -57,33 +58,41 @@ export function DeleteDesignDialog({
 
         <div className="grid gap-4 p-5">
           <p className="text-sm leading-relaxed text-naki-smoke">
-            Design ini akan dihapus dari katalog referensi. Tindakan ini tidak dapat dibatalkan.
+            Design ini akan dihapus dari katalog referensi. Tindakan ini tidak
+            dapat dibatalkan.
           </p>
 
           <div className="grid gap-2 rounded-xl bg-naki-frost p-3">
             <div className="grid gap-0.5 sm:grid-cols-[120px_1fr] sm:items-center">
-              <p className="text-xs font-medium uppercase text-naki-smoke">Kategori</p>
+              <p className="text-xs font-medium uppercase text-naki-smoke">
+                Kategori
+              </p>
               <p className="min-w-0 truncate text-sm font-medium text-naki-primary">
                 {template.category}
               </p>
             </div>
             <div className="grid gap-0.5 sm:grid-cols-[120px_1fr] sm:items-center">
-              <p className="text-xs font-medium uppercase text-naki-smoke">Slug</p>
+              <p className="text-xs font-medium uppercase text-naki-smoke">
+                Slug
+              </p>
               <p className="min-w-0 truncate text-sm font-medium text-naki-primary">
                 {template.slug}
               </p>
             </div>
             <div className="grid gap-0.5 sm:grid-cols-[120px_1fr] sm:items-center">
-              <p className="text-xs font-medium uppercase text-naki-smoke">Harga</p>
+              <p className="text-xs font-medium uppercase text-naki-smoke">
+                Harga
+              </p>
               <p className="min-w-0 truncate text-sm font-medium text-naki-primary">
-                {template.price}
+                {formatRupiahText(template.price)}
               </p>
             </div>
           </div>
 
           <div className="rounded-xl bg-red-50 px-3 py-2.5 text-xs leading-relaxed text-red-700">
-            <strong>Perhatian:</strong> Design yang sudah dihapus tidak dapat dikembalikan.
-            Pastikan design ini tidak sedang digunakan oleh order aktif.
+            <strong>Perhatian:</strong> Design yang sudah dihapus tidak dapat
+            dikembalikan. Pastikan design ini tidak sedang digunakan oleh order
+            aktif.
           </div>
         </div>
 

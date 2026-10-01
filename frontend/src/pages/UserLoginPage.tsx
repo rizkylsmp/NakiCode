@@ -24,6 +24,7 @@ import {
   type CaptchaState,
 } from "../utils/auth-captcha";
 import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
+import { LanguageSwitch } from "../components/layout/LanguageSwitch";
 import {
   PasswordStrengthIndicator,
   isPasswordStrong,
@@ -335,6 +336,7 @@ export function UserLoginPage() {
     <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <section className="flex min-h-screen items-center px-3 py-3 sm:px-5 sm:py-8 md:px-8 md:py-12 xl:px-12 2xl:px-16">
         <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-2xl border border-naki-steel bg-naki-frost shadow-naki-soft sm:rounded-3xl lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="absolute right-4 top-4 z-30"><LanguageSwitch /></div>
           <Link
             aria-label="Naki Code home"
             className="absolute left-6 top-6 z-20 inline-flex items-center gap-3 rounded-xl text-white focus-visible:ring-2 focus-visible:ring-white sm:left-8 sm:top-8 lg:left-10 lg:top-10"

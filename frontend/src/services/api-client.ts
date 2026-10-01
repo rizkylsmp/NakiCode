@@ -81,7 +81,10 @@ apiClient.interceptors.response.use(
     }`;
 
     if (error.response?.data && typeof error.response.data === "object") {
-      const data = error.response.data as { error?: unknown; message?: unknown };
+      const data = error.response.data as {
+        error?: unknown;
+        message?: unknown;
+      };
       if (typeof data.message === "string") {
         errorMessage = data.message;
       } else if (typeof data.error === "string") {
@@ -108,13 +111,27 @@ export function getApiErrorMessage(
         message?: unknown;
       };
 
-      if (typeof message === "string") {
-        return message;
+      const fieldErrors = (
+        data as {
+          errors?: { fieldErrors?: Record<string, unknown> };
+        }
+      ).errors?.fieldErrors;
+      if (fieldErrors && typeof fieldErrors === "object") {
+        const details = Object.entries(fieldErrors)
+          .flatMap(([field, messages]) =>
+            Array.isArray(messages)
+              ? messages
+                  .filter(
+                    (message): message is string => typeof message === "string",
+                  )
+                  .map((message) => `${field}: ${message}`)
+              : [],
+          )
+          .join("; ");
+        if (details) return `Periksa input: ${details}`;
       }
-
-      if (typeof apiError === "string") {
-        return apiError;
-      }
+      if (typeof message === "string") return message;
+      if (typeof apiError === "string") return apiError;
     }
 
     return error.message || fallback;

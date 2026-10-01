@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { getDisplayLocale } from "../../utils/locale";
 import apiClient, {
   apiDelete,
   apiGet,
@@ -20,7 +21,10 @@ import apiClient, {
   apiPut,
   getApiErrorMessage,
 } from "../../services/api-client";
-import { formatRupiahInputPreview } from "../../utils/currency";
+import {
+  formatRupiahInputPreview,
+  formatRupiahText,
+} from "../../utils/currency";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 
 type TransactionType = "income" | "expense" | "refund";
@@ -477,7 +481,7 @@ export function AdminFinanceSection() {
                         (item.orderId ? `Order #${item.orderId}` : "Transaksi")}
                     </p>
                     <p className="mt-0.5 text-xs text-naki-smoke">
-                      {new Date(item.occurredAt).toLocaleDateString("id-ID")}{" "}
+                      {new Date(item.occurredAt).toLocaleDateString(getDisplayLocale())}{" "}
                       {item.reference ? `• ${item.reference}` : ""}
                     </p>
                   </div>
@@ -556,7 +560,7 @@ export function AdminFinanceSection() {
                     className="text-naki-primary transition hover:bg-naki-frost/60"
                   >
                     <td className="whitespace-nowrap px-4 py-3">
-                      {new Date(item.occurredAt).toLocaleDateString("id-ID")}
+                      {new Date(item.occurredAt).toLocaleDateString(getDisplayLocale())}
                     </td>
                     <td className="px-4 py-3">
                       <TypeBadge type={item.type} />
@@ -838,9 +842,5 @@ function formatDateTimeLocal(date: Date) {
 }
 
 function money(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatRupiahText(value);
 }

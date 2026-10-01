@@ -1,8 +1,19 @@
-import { ArrowRight, Code2, Film, Heart, Star } from "lucide-react";
+import {
+  ArrowRight,
+  Code2,
+  ExternalLink,
+  Film,
+  Heart,
+  Star,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { TemplateItem } from "../../domain/content";
-import { getTemplateCategoryPath } from "../../utils/design-url";
+import {
+  getSafeDemoUrl,
+  getTemplateCategoryPath,
+} from "../../utils/design-url";
+import { formatRupiahText } from "../../utils/currency";
 import { TechStackBadge } from "../ui/TechStackBadge";
 import { ResponsiveImage } from "../ui/ResponsiveImage";
 
@@ -22,6 +33,7 @@ export function DesignCard({
   onToggleFavorite,
 }: DesignCardProps) {
   const [failedVideoUrl, setFailedVideoUrl] = useState<string | null>(null);
+  const demoUrl = getSafeDemoUrl(template.demoUrl);
   const hasVideoPreview =
     Boolean(template.videoUrl) && failedVideoUrl !== template.videoUrl;
 
@@ -135,13 +147,14 @@ export function DesignCard({
         </div>
         <h3 className="text-base font-semibold leading-tight text-naki-primary">
           <Link
+            translate="no"
             className="transition hover:text-blue-500"
             to={`/design/${template.slug}`}
           >
             {template.title}
           </Link>
         </h3>
-        <p className="mt-1 line-clamp-2 text-xs text-naki-smoke">
+        <p translate="no" className="mt-1 line-clamp-2 text-xs text-naki-smoke">
           {template.description}
         </p>
 
@@ -157,7 +170,7 @@ export function DesignCard({
           ) : null}
         </div>
 
-        <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="mt-3 flex flex-col gap-3">
           <div>
             <p className="text-xs text-naki-smoke">
               {template.sourceAvailable === false
@@ -167,17 +180,31 @@ export function DesignCard({
             <p className="text-base font-bold text-naki-primary">
               {template.sourceAvailable === false
                 ? "Konsultasi"
-                : template.price}
+                : formatRupiahText(template.price)}
             </p>
           </div>
-          <Link
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 text-xs font-semibold text-blue-500 transition hover:bg-blue-100"
-            to={`/design/${template.slug}`}
-            aria-label={`Lihat design ${template.title}`}
-          >
-            Lihat Design
-            <ArrowRight size={16} />
-          </Link>
+          <div className="flex w-full flex-wrap gap-2">
+            <Link
+              className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 text-xs font-semibold text-blue-500 transition hover:bg-blue-100"
+              to={`/design/${template.slug}`}
+              aria-label={`Lihat design ${template.title}`}
+            >
+              Lihat Design
+              <ArrowRight size={16} />
+            </Link>
+            {demoUrl ? (
+              <a
+                className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-200 px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-50"
+                href={demoUrl}
+                rel="noreferrer"
+                target="_blank"
+                aria-label={`Buka demo ${template.title}`}
+              >
+                Demo
+                <ExternalLink size={15} />
+              </a>
+            ) : null}
+          </div>
         </div>
       </div>
     </article>

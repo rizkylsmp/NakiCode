@@ -159,10 +159,10 @@ function PortfolioCard({
       </div>
 
       <div className="flex flex-col p-4">
-        <h3 className="line-clamp-1 text-sm font-semibold text-naki-primary">
+        <h3 translate="no" className="line-clamp-1 text-sm font-semibold text-naki-primary">
           {item.title}
         </h3>
-        <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-naki-smoke">
+        <p translate="no" className="mt-1 line-clamp-1 text-xs leading-relaxed text-naki-smoke">
           {item.description}
         </p>
         <div className="mt-3 flex items-center justify-between">

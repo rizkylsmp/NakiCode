@@ -12,6 +12,10 @@ import { registerServiceWorker } from './services/pwa';
 import { userTokenKey, userUsernameKey, userRoleKey, userSessionEvent } from './utils/user-session';
 import { applyTheme, resolveInitialTheme } from './utils/theme';
 import './styles.css';
+import { LanguageProvider } from './i18n/language';
+import { prepareClientInvitation } from './utils/client-invitation';
+
+prepareClientInvitation();
 
 // Apply the saved/system theme before a lazy route can show its loading fallback.
 applyTheme(resolveInitialTheme(), false);
@@ -61,6 +65,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <LanguageProvider>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <HelmetProvider>
@@ -72,5 +77,6 @@ createRoot(document.getElementById('root')!).render(
         </HelmetProvider>
       </QueryClientProvider>
     </ErrorBoundary>
+    </LanguageProvider>
   </StrictMode>,
 );

@@ -1,12 +1,44 @@
 export function formatRupiahInputPreview(value: string | number) {
-  const input = String(value).trim().replace(/^Rp\.?\s*/i, "");
-  if (input && !/^[\d.\s]+$/.test(input)) return "";
+  return formatRupiahText(value, "");
+}
 
-  const digits = input.replace(/\D/g, "");
-  if (!digits) return "";
+/** Parse legacy catalog values such as `Rp149K` as well as plain integers. */
+export function parseRupiahAmount(value: string | number) {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) ? value : null;
+  }
 
-  const amount = Number(digits);
-  if (!Number.isSafeInteger(amount)) return "";
+  const input = value
+    .trim()
+    .toLowerCase()
+    .replace(/^rp\.?\s*/i, "")
+    .replace(/(?:,-|\.-)$/, "");
+  if (!input) return null;
+  const shorthand = input.match(
+    /^(-?[\d]+(?:[.,][\d]+)?)\s*(k|rb|ribu|jt|juta|m|miliar)$/i,
+  );
+  if (shorthand) {
+    const base = Number(shorthand[1].replace(",", "."));
+    const multiplier = ["k", "rb", "ribu"].includes(shorthand[2])
+      ? 1_000
+      : ["m", "miliar"].includes(shorthand[2])
+        ? 1_000_000_000
+        : 1_000_000;
+    const amount = Math.round(base * multiplier);
+    return Number.isSafeInteger(amount) ? amount : null;
+  }
 
-  return `Rp. ${amount.toLocaleString("id-ID")},-`;
+  if (!/^-?(?:\d+|\d{1,3}(?:\.\d{3})+)$/.test(input)) return null;
+  const amount = Number(input.replace(/\./g, ""));
+  return Number.isSafeInteger(amount) ? amount : null;
+}
+
+export function formatRupiahText(
+  value: string | number,
+  fallback = typeof value === "string" && value.trim()
+    ? value.trim()
+    : "Belum ditentukan",
+) {
+  const amount = parseRupiahAmount(value);
+  return amount === null ? fallback : `Rp. ${amount.toLocaleString("id-ID")},-`;
 }

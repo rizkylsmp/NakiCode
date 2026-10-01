@@ -1,10 +1,11 @@
 import { CalendarClock, ImageIcon, Pencil, Plus, RefreshCw, Tag, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut, getApiErrorMessage } from "../../services/api-client";
-import { formatRupiahInputPreview } from "../../utils/currency";
+import { formatRupiahInputPreview, formatRupiahText } from "../../utils/currency";
 import { ImageUploadDropZone } from "./AdminDesignWorkspace.shared";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { useClientPagination } from "../../hooks/useClientPagination";
+import { getDisplayLocale } from "../../utils/locale";
 
 type Coupon = {
   id: number;
@@ -195,11 +196,11 @@ export function AdminCouponsSection({ adminToken }: { adminToken: string | null 
                 const timeExpired = Boolean(coupon.expiresAt && new Date(coupon.expiresAt) <= new Date());
                 const usageExpired = coupon.maxRedemptions !== null && coupon.redemptionCount >= coupon.maxRedemptions;
                 const expired = timeExpired || usageExpired;
-                const limitLabel = coupon.maxRedemptions !== null ? `${coupon.maxRedemptions} pemakaian` : coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "Tanpa batas";
+                const limitLabel = coupon.maxRedemptions !== null ? `${coupon.maxRedemptions} pemakaian` : coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleString(getDisplayLocale(), { dateStyle: "medium", timeStyle: "short" }) : "Tanpa batas";
                 return (
                   <tr key={coupon.id} className="text-sm">
                     <td className="p-4"><p className="font-bold text-naki-primary">{coupon.code}</p><p className="mt-1 max-w-72 text-xs text-naki-smoke">{coupon.description}</p></td>
-                    <td className="p-4 font-semibold text-naki-primary">{coupon.discountType === "percent" ? `${coupon.discountValue}%` : `Rp${coupon.discountValue.toLocaleString("id-ID")}`}</td>
+                    <td className="p-4 font-semibold text-naki-primary">{coupon.discountType === "percent" ? `${coupon.discountValue}%` : formatRupiahText(coupon.discountValue)}</td>
                     <td className="p-4 text-naki-smoke">{limitLabel}</td>
                     <td className="p-4 text-naki-primary">{coupon.maxRedemptions !== null ? `${coupon.redemptionCount}/${coupon.maxRedemptions}` : `${coupon.redemptionCount} order`}</td>
                     <td className="p-4"><span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${coupon.showBanner && coupon.imageUrl ? "bg-blue-50 text-blue-700" : "bg-naki-frost text-naki-smoke"}`}><ImageIcon size={13} />{coupon.showBanner && coupon.imageUrl ? "Tampil" : "Tidak tampil"}</span></td>

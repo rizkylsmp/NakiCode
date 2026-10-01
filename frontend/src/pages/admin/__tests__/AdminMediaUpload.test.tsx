@@ -320,7 +320,7 @@ describe("PreviewDropZone", () => {
 
     expect(onSubmitTemplate).not.toHaveBeenCalled();
     expect(
-      screen.getByText(/Gunakan slug lain sebelum menyimpan design/i),
+      screen.getByRole("button", { name: /Gunakan slug lain sebelum menyimpan design/i }),
     ).toBeInTheDocument();
   });
 
@@ -371,7 +371,7 @@ describe("PreviewDropZone", () => {
     fireEvent.click(publishAction);
     expect(onSubmitTemplate).not.toHaveBeenCalled();
     expect(
-      screen.getByText(/Design published memerlukan minimal satu gambar/i),
+      screen.getByRole("button", { name: /Tambahkan minimal satu gambar atau video untuk publikasi/i }),
     ).toBeInTheDocument();
 
     fireEvent.click(

@@ -19,6 +19,20 @@ Sumber konteks utama untuk AI/dev saat bekerja di aplikasi Naki Code. File ini d
 
 ## Identitas Produk
 
+### Bahasa UI dan order klien eksternal (2026-10-01)
+
+- Bahasa default adalah ID, dengan switch EN/ID di navbar dan login. Preferensi disimpan di `naki-language`; EN tidak mengubah mata uang IDR, nilai form, ID, slug, URL, atau status yang dikirim ke API. Budget konsultasi memakai satu sumber `domain/budget-options.ts`: `< Rp 1Jt`, `Rp 1Jt - Rp 3Jt`, `Rp 3Jt - Rp 5Jt`, `Rp 5Jt - Rp 10Jt`, `Rp 10Jt - Rp 20Jt`, `> Rp 20Jt`.
+- `LanguageProvider` dan runtime JSX lokal `@naki/i18n` menerjemahkan copy UI dan atribut aksesibilitas menggunakan kamus yang ditinjau. Runtime wajib dikecualikan dari dependency prebundling Vite supaya context bahasa tidak terduplikasi. Gunakan `translate="no"` / `data-no-translate` untuk teks bebas pelanggan atau konten editorial. Artikel dan deskripsi yang dikelola admin tidak diterjemahkan mesin; halaman Kebijakan Privasi dan Syarat & Ketentuan memiliki rendering EN dari kebijakan yang sama.
+- Admin Orders menyediakan **Buat order untuk klien** untuk project custom dari WhatsApp atau kanal eksternal. Email klien wajib dan harus diperiksa admin. Jika sudah terdaftar sebagai user, order langsung ditautkan tanpa perubahan password. Email admin tidak boleh menjadi klien. Akun lama tetap harus login untuk mengakses pesanan; tidak ada tautan bypass login.
+- Jika email belum terdaftar, order disimpan tanpa owner dan belum membuat akun. `order_client_invitations` (runtime migration `028_order_client_invitations`) menyimpan hash SHA-256 token acak 32 byte, order/email/nama klien, masa berlaku 72 jam, dan penanda pemakaian. Klaim membuat akun klien, mengikat order, dan memakai token dalam satu transaksi dengan row lock. Akun baru aktif melalui verifikasi undangan privat; admin harus mengirim tautan hanya ke penerima yang dimaksud. Persetujuan ketentuan dan password minimal 8 karakter dengan kekuatan setara registrasi diperlukan.
+- Jika email didaftarkan setelah undangan dibuat, klien harus login ke akun tersebut untuk klaim; token tidak dapat mereset password akun lama atau mengikat ke sesi user yang berbeda. Token expired, consumed, atau order deleted/owned ditolak. Admin dapat memperbarui undangan yang belum diklaim; token lama langsung tidak berlaku.
+- Endpoint: admin `POST /api/orders/admin-create` dan `POST /api/orders/:id/client-invitation`; publik rate-limited `POST /api/auth/client-invitations/inspect` dan `/claim`. Alias `/api/v1` mengikuti router yang sama. Respons inspect/claim memakai `Cache-Control: no-store`.
+- Email undangan dipilih ID/EN dari form admin dan menggunakan SMTP existing. Kegagalan SMTP tidak membatalkan order: UI melaporkan kegagalan dan menyediakan tautan untuk dikirim manual lewat WhatsApp. Tidak ada pengiriman WhatsApp otomatis. Admin harus menyimpan/mengirim tautan sebelum menutup hasil form, atau memperbaruinya dari order yang belum diklaim.
+- Form admin dikunci selama penyimpanan dan request menunggu maksimal 60 detik agar pengiriman SMTP tidak terpotong timeout frontend standar. Jika koneksi terputus setelah submit, periksa daftar order sebelum membuat ulang untuk menghindari duplikasi. Integrasi SMTP dan klaim akun nyata tetap perlu diuji setelah deployment; unit/API tests memakai mock dan tidak mengirim email ke klien.
+- Tautan privat memakai fragment `/client-invitation#token=...&lang=...`. Frontend memindahkan token ke session storage lalu menghapus fragment sebelum analytics/error reporting diinisialisasi. Halaman undangan noindex, referrer no-referrer, dan diperlakukan sebagai halaman sensitif oleh mekanisme update service worker. Token tidak dicatat pada audit/telemetry. Localhost memakai origin frontend yang diizinkan, termasuk port development alternatif; produksi memakai origin terkonfigurasi.
+- Order eksternal mengikuti workflow custom existing: brief → penawaran → DP 50% atau lunas → pengerjaan/revisi → review → pelunasan bila diperlukan → selesai. Fitur ini tidak menetapkan harga, status paid, atau akses source final secara otomatis.
+- Validasi fitur memakai model/route tests dengan database dan SMTP mock, pemeriksaan UI desktop/mobile, lint, typecheck/build, serta SEO check. Pengiriman SMTP nyata dan klaim terhadap database deployment harus diverifikasi sesudah deploy; jangan memakai data pelanggan untuk fixture.
+
 Naki Code adalah penyedia jasa pembuatan website dengan katalog design sebagai referensi awal. Pelanggan memilih arah visual dan fitur yang disukai, lalu tim Naki Code menyesuaikannya dengan identitas brand, konten, dan kebutuhan bisnis pelanggan.
 
 Katalog design berfungsi sebagai inspirasi dan titik awal konsultasi, bukan batas hasil akhir. Pelanggan tetap dapat meminta perubahan tampilan, struktur halaman, fitur, konten, dan integrasi. Source code juga tetap dapat dibeli pada design yang mendukung opsi tersebut.
@@ -366,6 +380,7 @@ Mode:
 - Dropdown native memakai standar global `select:not([multiple])` di `frontend/src/styles.css` agar chevron, border, hover, focus, disabled, dan dark mode konsisten tanpa styling browser bawaan.
 - App harus terasa seperti katalog jasa pembuatan website berbasis design referensi, bukan katalog produk siap pakai atau landing kosong.
 - Form status/error utama perlu `aria-live` region.
+- Nominal rupiah di UI memakai `formatRupiahText` (`Rp. 5.000.000,-`), termasuk nilai nol dan saldo negatif; nilai katalog lama seperti `Rp149K` dinormalisasi saat ditampilkan tanpa mengubah data tersimpan. Form Design menandai field gagal validasi, membuka tab terkait, dan mempertahankan isian saat API gagal. Tombol Demo pada card/detail hanya ditampilkan untuk URL HTTP(S) yang valid.
 
 ---
 

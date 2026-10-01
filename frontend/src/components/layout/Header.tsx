@@ -12,6 +12,7 @@ import { ProfileMenu } from "./header/ProfileMenu";
 import { SiteLogo } from "./header/SiteLogo";
 import { SearchDialog } from "./header/SearchDialog";
 import { ThemeToggle } from "./header/ThemeToggle";
+import { LanguageSwitch } from "./LanguageSwitch";
 import type { HeaderProfile, NotificationsResponse } from "./header/types";
 import { requestCouponBannerReopen } from "../promotions/coupon-banner-events";
 
@@ -158,6 +159,7 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <LanguageSwitch />
           <button
             className="grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:text-naki-secondary"
             type="button"
@@ -213,8 +215,9 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-1 lg:hidden">
+          <LanguageSwitch />
           <button
-            className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary"
+            className="hidden size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary sm:grid"
             aria-label="Cari design"
             onClick={() => setIsSearchOpen(true)}
             type="button"
@@ -222,7 +225,9 @@ export function Header() {
             <Search size={19} />
           </button>
           {hasCouponBanner ? (
-            <PrizeButton mobile onClick={requestCouponBannerReopen} />
+            <span className="hidden sm:block">
+              <PrizeButton mobile onClick={requestCouponBannerReopen} />
+            </span>
           ) : null}
           <button
             className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary"
@@ -237,16 +242,34 @@ export function Header() {
       </div>
 
       {isMobileMenuOpen ? (
-        <MobileMenu
-          activeProfile={activeProfile}
-          isDarkMode={isDarkMode}
-          isActiveNav={isActiveNav}
-          loginNext={loginNext}
-          navItems={headerNavItems}
-          onClose={closeMobileMenu}
-          onLogout={handleLogout}
-          onToggleTheme={() => setIsDarkMode((current) => !current)}
-        />
+        <>
+          <div className="flex items-center justify-end gap-3 border-t border-naki-steel px-4 py-2 sm:hidden">
+            <button
+              type="button"
+              className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-naki-primary"
+              onClick={() => {
+                closeMobileMenu();
+                setIsSearchOpen(true);
+              }}
+            >
+              <Search size={18} />
+              Cari design
+            </button>
+            {hasCouponBanner && (
+              <PrizeButton mobile onClick={requestCouponBannerReopen} />
+            )}
+          </div>
+          <MobileMenu
+            activeProfile={activeProfile}
+            isDarkMode={isDarkMode}
+            isActiveNav={isActiveNav}
+            loginNext={loginNext}
+            navItems={headerNavItems}
+            onClose={closeMobileMenu}
+            onLogout={handleLogout}
+            onToggleTheme={() => setIsDarkMode((current) => !current)}
+          />
+        </>
       ) : null}
       <SearchDialog
         isOpen={isSearchOpen}

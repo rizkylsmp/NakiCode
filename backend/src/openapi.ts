@@ -25,6 +25,18 @@ export const openApiDocument = {
     },
   },
   paths: {
+    "/orders/admin-create": {
+      post: { summary: "Buat order custom untuk klien lama atau undangan klien baru", security: [{ bearerAuth: [] }], responses: { 201: { description: "Order dibuat; respons berisi tautan klien, kedaluwarsa, dan status email" }, 400: { description: "Data klien tidak valid" }, 401: { description: "Admin wajib login" } } },
+    },
+    "/orders/{id}/client-invitation": {
+      post: { summary: "Perbarui undangan yang belum diklaim; tautan lama menjadi tidak berlaku", security: [{ bearerAuth: [] }], parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }], responses: { 200: { description: "Undangan baru berlaku 72 jam" }, 409: { description: "Order tidak memiliki undangan yang dapat diperbarui" } } },
+    },
+    "/auth/client-invitations/inspect": {
+      post: { summary: "Periksa undangan menggunakan token pada request body; respons no-store", responses: { 200: { description: "Informasi undangan dengan email tersamarkan" }, 400: { description: "Token tidak valid" }, 410: { description: "Undangan kedaluwarsa, sudah dipakai, atau order dihapus" } } },
+    },
+    "/auth/client-invitations/claim": {
+      post: { summary: "Klaim undangan sekali pakai dengan password baru atau sesi akun lama yang sesuai; persetujuan ketentuan wajib", responses: { 200: { description: "Akun klien dan order ditautkan; token login dikembalikan" }, 400: { description: "Password/persetujuan tidak valid" }, 409: { description: "Email sudah terdaftar; wajib login ke akun tersebut" }, 410: { description: "Undangan tidak tersedia" } } },
+    },
     "/auth/user/google": {
       post: {
         summary: "Login atau daftar user dengan Google ID token",

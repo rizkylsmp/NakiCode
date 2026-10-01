@@ -60,6 +60,7 @@ async function activateServiceWorker() {
         const isSensitivePage = [
           "/admin",
           "/checkout",
+          "/client-invitation",
           "/pesanan-saya",
           "/akun-saya",
           "/profile",

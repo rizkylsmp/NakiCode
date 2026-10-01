@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { CreateClientOrderModal } from "./CreateClientOrderModal";
+import { useLanguage } from "../../i18n/language";
 import {
   apiDelete,
   apiPatch,
@@ -27,7 +29,10 @@ import {
   getPaymentStatusLabel,
   type OrderItem,
 } from "../../domain/order-types";
-import { formatRupiahInputPreview } from "../../utils/currency";
+import {
+  formatRupiahInputPreview,
+  formatRupiahText,
+} from "../../utils/currency";
 import {
   formatOrderDate,
   orderStatusFilters,
@@ -89,6 +94,16 @@ export function OrdersPanel({
   onUpdateOrderStatus,
   onDeleteOrder,
 }: OrdersPanelProps) {
+  const { language } = useLanguage();
+  const [renewedInvitation, setRenewedInvitation] = useState("");
+  const [renewingInvitation, setRenewingInvitation] = useState<number | null>(null);
+  async function renewInvitation(orderId: number) {
+    if (!window.confirm(language === "en" ? "Create a new invitation? The old link will stop working." : "Buat undangan baru? Tautan lama tidak akan berlaku lagi.")) return;
+    setRenewingInvitation(orderId);
+    try { const result = await apiPost<{ invitationUrl: string }>(`/api/orders/${orderId}/client-invitation`, { language }); setRenewedInvitation(result.invitationUrl); }
+    catch (error) { setActionStatus(getApiErrorMessage(error, "Gagal memperbarui undangan.")); }
+    finally { setRenewingInvitation(null); }
+  }
   const hasActiveFilters =
     orderFilters.status !== "all" || orderFilters.paymentStatus !== "all";
   const [search, setSearch] = useState(orderFilters.search);
@@ -102,6 +117,7 @@ export function OrdersPanel({
   );
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
+  const [isCreatingClientOrder, setIsCreatingClientOrder] = useState(false);
   const [actionDialog, setActionDialog] = useState<OrderActionDialog | null>(
     null,
   );
@@ -357,18 +373,19 @@ export function OrdersPanel({
 
   return (
     <div className="space-y-5">
+      {isCreatingClientOrder && <CreateClientOrderModal onClose={() => setIsCreatingClientOrder(false)} onCreated={onRefreshOrders} />}
+      {renewedInvitation && <div className="rounded-xl border border-naki-steel bg-white p-4 text-sm text-naki-primary"><p>Undangan baru berlaku 72 jam. Tautan lama tidak berlaku lagi.</p><label className="mt-3 block">Tautan klien<input className="mt-2 w-full rounded-lg border border-naki-steel bg-white p-3 font-mono text-xs" value={renewedInvitation} readOnly onFocus={(event) => event.target.select()} /></label><button type="button" className="mt-3 min-h-11 rounded-lg border border-naki-steel px-3" onClick={() => setRenewedInvitation("")}>Tutup</button></div>}
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-naki-primary">
-            Kelola order
-          </h1>
+          <h1 className="text-2xl font-bold text-naki-primary">Kelola order</h1>
           <p className="mt-1 text-sm text-naki-smoke">
             {ordersMeta.total} order • Tindak lanjuti brief, penawaran,
             pembayaran, dan progres project.
           </p>
         </div>
-        <div className="flex w-full justify-end sm:w-auto">
+        <div className="flex w-full justify-end gap-2 sm:w-auto">
+          <button type="button" onClick={() => setIsCreatingClientOrder(true)} className="min-h-11 rounded-xl bg-naki-primary px-4 text-sm font-semibold text-white">Buat order untuk klien</button>
           <button
             className="grid size-11 place-items-center rounded-xl border border-naki-steel bg-white text-naki-smoke transition hover:bg-naki-frost disabled:opacity-50"
             disabled={isLoadingOrders}
@@ -571,9 +588,7 @@ export function OrdersPanel({
                   aria-label="Hapus order terpilih"
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/20"
                   disabled={
-                    isBulkUpdating ||
-                    isBulkDeleting ||
-                    updatingOrderId !== null
+                    isBulkUpdating || isBulkDeleting || updatingOrderId !== null
                   }
                   onClick={() =>
                     setBulkDeleteOrderIds([...selectedVisibleOrderIds])
@@ -640,6 +655,8 @@ export function OrdersPanel({
               onConfirmLynkPayment={confirmLynkPayment}
               onDeleteOrder={onDeleteOrder}
               onOpenAction={setActionDialog}
+              onRenewInvitation={renewInvitation}
+              renewingInvitation={renewingInvitation}
               onToggleOrderSelection={toggleOrderSelection}
               onUpdateOrderStatus={onUpdateOrderStatus}
               orders={visibleOrders}
@@ -692,8 +709,7 @@ export function OrdersPanel({
                       <div className="mt-3 rounded-lg border border-naki-steel bg-naki-frost p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-naki-primary">
-                            Penawaran Rp
-                            {order.quoteAmount.toLocaleString("id-ID")}
+                            Penawaran {formatRupiahText(order.quoteAmount)}
                           </p>
                           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-naki-smoke">
                             {getQuoteStatusLabel(order.quoteStatus)}
@@ -702,8 +718,8 @@ export function OrdersPanel({
                         {order.orderType === "custom_project" ? (
                           <p className="mt-1.5 text-xs font-medium text-naki-smoke">
                             Opsi DP 50% / lunas · Dibayar Rp
-                            {order.amountPaid.toLocaleString("id-ID")} · Sisa Rp
-                            {order.remainingAmount.toLocaleString("id-ID")}
+                            {formatRupiahText(order.amountPaid)} · Sisa{" "}
+                            {formatRupiahText(order.remainingAmount)}
                           </p>
                         ) : null}
                         {order.quoteNotes ? (
@@ -909,6 +925,7 @@ export function OrdersPanel({
                         Catat refund
                       </button>
                     )}
+                    {order.userId === null && order.orderType === "custom_project" && <button type="button" disabled={renewingInvitation === order.id} onClick={() => renewInvitation(order.id)} className="min-h-10 w-full rounded-lg border border-naki-steel px-3 text-xs text-naki-primary">Perbarui undangan</button>}
                     <button
                       className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-xs font-medium text-naki-smoke transition hover:border-naki-steel hover:text-naki-secondary disabled:cursor-not-allowed disabled:text-naki-smoke"
                       disabled={
@@ -1208,6 +1225,8 @@ export function OrdersPanel({
 }
 
 type CompactOrdersTableProps = {
+  onRenewInvitation: (orderId: number) => Promise<void>;
+  renewingInvitation: number | null;
   orders: OrderItem[];
   selectedOrderIds: number[];
   updatingOrderId: number | null;
@@ -1220,6 +1239,8 @@ type CompactOrdersTableProps = {
 };
 
 function CompactOrdersTable({
+  onRenewInvitation,
+  renewingInvitation,
   orders,
   selectedOrderIds,
   updatingOrderId,
@@ -1320,9 +1341,9 @@ function CompactOrdersTable({
                 <td className="px-3 py-2.5">
                   <PaymentBadge status={order.paymentStatus} />
                   <p className="mt-1.5 truncate text-xs font-medium text-naki-smoke">
-                    Dibayar Rp{order.amountPaid.toLocaleString("id-ID")}
+                    Dibayar {formatRupiahText(order.amountPaid)}
                     {order.remainingAmount > 0
-                      ? ` · Sisa Rp${order.remainingAmount.toLocaleString("id-ID")}`
+                      ? ` · Sisa ${formatRupiahText(order.remainingAmount)}`
                       : ""}
                   </p>
                 </td>
@@ -1385,6 +1406,7 @@ function CompactOrdersTable({
                         <RotateCcw size={14} />
                       </button>
                     ) : null}
+                    {order.userId === null && order.orderType === "custom_project" && <button type="button" title="Perbarui undangan" aria-label="Perbarui undangan" disabled={renewingInvitation === order.id} onClick={() => onRenewInvitation(order.id)} className="grid size-8 place-items-center rounded-lg border border-naki-steel bg-white text-naki-primary"><MessageSquareText size={14} /></button>}
                     <button
                       aria-label={`Hapus order #${order.id}`}
                       className="grid size-8 place-items-center rounded-lg border border-naki-steel bg-white text-naki-smoke transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"

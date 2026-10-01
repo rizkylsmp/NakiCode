@@ -1,4 +1,5 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import type { PoolConnection } from "mysql2/promise";
 import { pool } from "../db";
 
 type OrderRow = RowDataPacket & {
@@ -398,8 +399,8 @@ async function reconcileExpiredPaymentDeadlines(userId?: number) {
   );
 }
 
-export async function createOrder(payload: OrderPayload) {
-  const [result] = await pool.query<ResultSetHeader>(
+export async function createOrder(payload: OrderPayload, executor: Pick<PoolConnection, "query"> = pool) {
+  const [result] = await executor.query<ResultSetHeader>(
     `INSERT INTO orders (
       user_id,
       design_id,

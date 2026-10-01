@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GoogleBrandIcon } from "../ui/BrandIcons";
+import { useLanguage } from "../../i18n/language";
 
 type GoogleSignInButtonProps = {
   disabled?: boolean;
@@ -29,7 +30,7 @@ declare global {
               text: "continue_with";
               shape: "pill";
               logo_alignment: "left";
-              locale: "id";
+              locale: "id" | "en";
               width: number;
             },
           ) => void;
@@ -77,6 +78,7 @@ export function GoogleSignInButton({
   onCredential,
   onError,
 }: GoogleSignInButtonProps) {
+  const { language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(Boolean(window.google));
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
@@ -100,7 +102,7 @@ export function GoogleSignInButton({
 
     if (!existingScript) {
       script.id = googleScriptId;
-      script.src = "https://accounts.google.com/gsi/client?hl=id";
+      script.src = `https://accounts.google.com/gsi/client?hl=${language}`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
@@ -110,7 +112,7 @@ export function GoogleSignInButton({
       script.removeEventListener("load", handleLoad);
       script.removeEventListener("error", handleError);
     };
-  }, [clientId, onError]);
+  }, [clientId, onError, language]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -131,7 +133,7 @@ export function GoogleSignInButton({
         text: "continue_with",
         shape: "pill",
         logo_alignment: "left",
-        locale: "id",
+        locale: language,
         width: Math.max(220, Math.min(400, container.clientWidth)),
       });
     };
@@ -150,7 +152,7 @@ export function GoogleSignInButton({
         activeErrorHandler = null;
       }
     };
-  }, [clientId, disabled, isReady, onCredential, onError]);
+  }, [clientId, disabled, isReady, onCredential, onError, language]);
 
   if (!clientId) {
     return (

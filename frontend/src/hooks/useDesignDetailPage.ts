@@ -22,6 +22,7 @@ import {
   userUsernameKey,
 } from "../utils/user-session";
 import type { TemplateItem } from "../domain/content";
+import { budgetOptions } from "../domain/budget-options";
 
 export type ConsultationFormState = {
   customerName: string;
@@ -59,7 +60,7 @@ const defaultConsultationForm: ConsultationFormState = {
   customerName: "",
   customerContact: "",
   projectType: "Pembuatan website dari design",
-  budgetRange: "Di bawah Rp500K",
+  budgetRange: budgetOptions[0],
   message: "",
 };
 

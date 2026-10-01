@@ -1,4 +1,5 @@
 import { ArrowRight, Calendar, User } from "lucide-react";
+import { getDisplayLocale } from "../../utils/locale";
 import { BlogCardSkeletonGrid } from "../ui/skeletons/BlogCardSkeleton";
 import { ResponsiveImage } from "../ui/ResponsiveImage";
 
@@ -25,7 +26,7 @@ export function LearningSection({
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
     const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
+    return date.toLocaleDateString(getDisplayLocale(), {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -99,10 +100,10 @@ export function LearningSection({
                       </>
                     )}
                   </div>
-                  <h3 className="mb-2 line-clamp-2 text-lg font-semibold text-naki-primary group-hover:text-blue-500">
+                  <h3 translate="no" className="mb-2 line-clamp-2 text-lg font-semibold text-naki-primary group-hover:text-blue-500">
                     {post.title}
                   </h3>
-                  <p className="line-clamp-2 text-sm text-naki-smoke">
+                  <p translate="no" className="line-clamp-2 text-sm text-naki-smoke">
                     {post.excerpt}
                   </p>
                   <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-blue-500 group-hover:gap-3">
