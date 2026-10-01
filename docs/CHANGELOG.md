@@ -2,6 +2,10 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-01 - Tambahkan Buka WhatsApp pada Admin Client Outreach untuk membuka draf personal tanpa Cloud API, dengan validasi nomor/bukti persetujuan tersimpan, pemblokiran status antrean dan penolakan kontak, encoding pesan, serta penjelasan bahwa pengiriman dikonfirmasi di WhatsApp dan status tidak berubah otomatis - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/utils/outreach-whatsapp.ts, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/i18n/additional-messages.ts, docs/PROJECT_SUMMARY.md
+
+  Validasi: 9 tes frontend terfokus, lint, build/typecheck dan SEO lulus; browser simulasi 1440px/320px memeriksa draf, perubahan nomor, loading/kosong/error, penolakan kontak, dan overflow. Tidak ada pesan WhatsApp atau perubahan data produksi pada pemeriksaan. Pengiriman nyata tetap dikonfirmasi pengguna di WhatsApp.
+
 - [x] 2026-10-01 - Tambahkan enam rentang budget konsultasi, switch EN/ID dengan preferensi tersimpan dan terjemahan UI publik/admin, serta pembuatan order custom untuk klien eksternal: akun lama ditautkan, klien baru memakai undangan sekali pakai 72 jam untuk membuat password, email bilingual dan tautan manual WhatsApp, renewal undangan, dan pengamanan klaim transaksional - files: frontend/src/domain/budget-options.ts, frontend/src/i18n/, frontend/src/components/layout/LanguageSwitch.tsx, frontend/src/pages/admin/CreateClientOrderModal.tsx, frontend/src/pages/admin/OrdersPanel.tsx, frontend/src/pages/ClientInvitationPage.tsx, backend/src/models/client-invitation.model.ts, backend/src/routes/orders.ts, backend/src/routes/auth.ts, backend/src/email.ts, backend/src/runtime-migrations.ts, docs/PROJECT_SUMMARY.md
 
   Validasi: seluruh 118 tes frontend saat pemeriksaan penuh serta 7 tes tambahan halaman undangan/locale Google (125 tes unik), 24 tes backend terfokus, lint, typecheck/build frontend/backend, pemeriksaan SEO, dan UI simulasi desktop 1440px/mobile 320px. SMTP nyata, migration produksi, serta klaim akun nyata belum dieksekusi pada task ini.

@@ -164,6 +164,7 @@ Jangan commit `.env`.
 - `/portofolio` - seluruh portfolio publik dengan pagination server-side dan URL halaman yang dapat dibagikan
 - `/admin/dashboard`, `/admin/design`, `/admin/orders`, `/admin/coupons`, `/admin/portfolio` - admin panel, butuh role admin
 - `/admin/outreach` - daftar prospek, status, observasi, draf, dan bukti opt-in WhatsApp; butuh role admin
+- Client Outreach menyediakan **Buka WhatsApp** tanpa kredensial Cloud API: nomor internasional dan bukti persetujuan yang valid harus sudah tersimpan; draf terkini di-encode ke tautan `wa.me`. Admin menekan Kirim di WhatsApp dan mencatat hasil percakapan sendiri. Pembukaan tautan tidak mengubah status/sent_at atau mengirim request API. Status `ready` diblokir pada alur manual agar tidak bertabrakan dengan antrean otomatis; gunakan `reviewed`. Kontak `do_not_contact`, `sending`, `lost`, dan `won` juga diblokir.
 
 ---
 

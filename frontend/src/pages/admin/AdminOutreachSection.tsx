@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPatch, apiPost, getApiErrorMessage } from "../../services/api-client";
+import { getOutreachWhatsAppLink } from "../../utils/outreach-whatsapp";
 
 type LeadStatus = "new" | "reviewed" | "ready" | "sending" | "sent" | "replied" | "qualified" | "won" | "lost" | "failed" | "do_not_contact";
 type Lead = {
@@ -68,6 +69,15 @@ export function AdminOutreachSection() {
   const [optInAt, setOptInAt] = useState("");
   const [optInSource, setOptInSource] = useState("");
   const selected = leads.find((lead) => lead.id === selectedId) ?? null;
+  const contactDirty = selected && (
+    whatsappNumber !== (selected.whatsapp_number ?? "") ||
+    optInSource !== (selected.opt_in_source ?? "") ||
+    optInAt !== (selected.opt_in_at ? new Date(selected.opt_in_at).toISOString().slice(0, 16) : "") ||
+    status !== selected.status
+  );
+  const manualWhatsApp = selected ? getOutreachWhatsAppLink(selected, draft) : null;
+  const manualReason = contactDirty ? "Simpan perubahan kontak dan status sebelum membuka WhatsApp." : manualWhatsApp?.reason;
+  const manualHref = !busy && !loading && !manualReason ? manualWhatsApp?.href : null;
   const visible = useMemo(() => leads.filter((lead) => {
     const q = search.trim().toLowerCase();
     return (filter === "all" || lead.status === filter) && (!q || [lead.business_name, lead.category, lead.city].join(" ").toLowerCase().includes(q));
@@ -133,7 +143,7 @@ export function AdminOutreachSection() {
       <div><h1 className="text-2xl font-bold text-naki-primary">Client Outreach</h1><p className="mt-1 text-sm text-naki-smoke">Riset prospek, tinjau peluang, dan kelola percakapan.</p></div>
       <div className="flex gap-2"><button className="rounded-xl border border-naki-steel bg-white px-4 py-2 text-sm font-semibold text-naki-primary" onClick={() => void load()} type="button">Muat ulang</button><button className="rounded-xl bg-naki-primary px-4 py-2 text-sm font-semibold text-white" onClick={() => setCreating((value) => !value)} type="button">{creating ? "Tutup formulir" : "Tambah manual"}</button></div>
     </header>
-    <p className="rounded-xl border border-naki-steel bg-naki-frost p-3 text-sm text-naki-primary">Pencarian prospek, observasi, draf pesan personal, dan sinkronisasi ke sini dijadwalkan otomatis setiap hari kerja pukul 09.00 WIB. Formulir tambah manual hanya untuk kandidat tambahan. WhatsApp Cloud API hanya dapat mengirim ke kontak yang memberi nomor dan persetujuan menerima pesan dari NAKI, dengan template yang disetujui. {whatsappConfigured ? "Integrasi WhatsApp terkonfigurasi." : "Integrasi WhatsApp belum dikonfigurasi."}</p>
+    <div className="space-y-2 rounded-xl border border-naki-steel bg-naki-frost p-3 text-sm text-naki-primary"><p>Pencarian prospek, observasi, draf pesan personal, dan sinkronisasi ke sini dijadwalkan otomatis setiap hari kerja pukul 09.00 WIB. Formulir tambah manual hanya untuk kandidat tambahan.</p><p>Untuk kontak yang sudah menyetujui komunikasi, gunakan Buka WhatsApp untuk membuka draf pesan, lalu tekan Kirim di WhatsApp. Pilih status Ditinjau untuk alur manual. Status Siap kirim (opt-in) mengantrekan pengiriman melalui Cloud API.</p><p>{whatsappConfigured ? "Kredensial Cloud API terisi; aktivasi nomor dan persetujuan template tetap perlu diperiksa di Meta." : "Cloud API belum dikonfigurasi. Buka WhatsApp tetap tersedia untuk kontak yang sudah memberi persetujuan."}</p></div>
     {message && <p aria-live="polite" className="rounded-xl border border-naki-steel bg-white p-3 text-sm text-naki-primary">{message}</p>}
     {creating && <form className="grid gap-3 rounded-2xl border border-naki-steel bg-white p-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); void create(); }}>
       {([ ["businessName", "Nama bisnis"], ["externalKey", "ID unik (domain/handle)"], ["category", "Kategori"], ["city", "Kota"], ["sourceUrl", "URL profil bisnis"], ["evidenceUrl", "URL bukti kebutuhan"], ["contactUrl", "URL kontak bisnis"] ] as const).map(([key, label]) => <label className="text-xs font-semibold text-naki-primary" key={key}>{label}<input className={`${inputClass} mt-1`} required={!["category", "city"].includes(key)} type={key.endsWith("Url") ? "url" : "text"} value={newLead[key]} onChange={(event) => setNewLead((current) => ({ ...current, [key]: event.target.value }))} /></label>)}
@@ -155,7 +165,14 @@ export function AdminOutreachSection() {
         <label className="block text-sm font-semibold text-naki-primary">Catatan<textarea className={`${inputClass} mt-1 min-h-20`} onChange={(event) => setNotes(event.target.value)} value={notes} /></label>
         <fieldset className="grid gap-3 border-t border-naki-steel pt-4 sm:grid-cols-2"><legend className="text-sm font-bold text-naki-primary">Persetujuan WhatsApp</legend><p className="text-xs text-naki-smoke sm:col-span-2">Isi hanya jika penerima memberikan nomor dan setuju menerima pesan dari NAKI melalui WhatsApp. Simpan URL sumber persetujuannya.</p><label className="text-sm font-semibold text-naki-primary">Nomor WhatsApp<input className={`${inputClass} mt-1`} onChange={(event) => setWhatsappNumber(event.target.value)} placeholder="628..." value={whatsappNumber} /></label><label className="text-sm font-semibold text-naki-primary">Waktu persetujuan<input className={`${inputClass} mt-1`} onChange={(event) => setOptInAt(event.target.value)} type="datetime-local" value={optInAt} /></label><label className="text-sm font-semibold text-naki-primary sm:col-span-2">URL bukti persetujuan<input className={`${inputClass} mt-1`} onChange={(event) => setOptInSource(event.target.value)} placeholder="https://..." type="url" value={optInSource} /></label></fieldset>
         {selected.last_error && <p className="text-sm text-red-700">Pengiriman terakhir gagal: {selected.last_error}</p>}
-        <div className="flex flex-wrap gap-2"><button className="min-h-11 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={() => void save()} type="button">Simpan perubahan</button><button className="min-h-11 rounded-xl border border-naki-secondary px-5 text-sm font-semibold text-naki-secondary disabled:opacity-50" disabled={busy || !whatsappConfigured || selected.status !== "ready" || status !== "ready"} onClick={() => void send()} type="button">Kirim template WhatsApp</button></div>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button className="min-h-11 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={() => void save()} type="button">Simpan perubahan</button>
+            {manualHref ? <a className="inline-flex min-h-11 items-center rounded-xl border border-naki-secondary px-5 text-sm font-semibold text-naki-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary" href={manualHref} target="_blank" rel="noopener noreferrer" onClick={() => setMessage("Draf dibuka di WhatsApp. Tekan Kirim di WhatsApp untuk mengirim pesan. Status prospek belum berubah.")}>Buka WhatsApp</a> : <button className="min-h-11 rounded-xl border border-naki-steel px-5 text-sm font-semibold text-naki-smoke opacity-50" disabled aria-describedby="manual-whatsapp-help" type="button">Buka WhatsApp</button>}
+            <button className="min-h-11 rounded-xl border border-naki-secondary px-5 text-sm font-semibold text-naki-secondary disabled:opacity-50" disabled={busy || !whatsappConfigured || selected.status !== "ready" || status !== "ready"} onClick={() => void send()} type="button">Kirim template WhatsApp</button>
+          </div>
+          <p id="manual-whatsapp-help" className="text-xs text-naki-smoke">{manualReason || "Buka WhatsApp memakai draf di atas. Pembukaan draf tidak menandai pesan sebagai terkirim; catat hasil percakapan setelah mengirim."}</p>
+        </div>
       </div>}</section>
     </div>
   </div>;
