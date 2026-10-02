@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-02 - Siklus riset Maps menambahkan empat prospek laundry Pasuruan/Pohjentrek/Kejayan dengan observasi faktual, peluang design website, dan draf personal berisi https://nakicode.xyz/; CSV 15 baris valid dan sinkronisasi database berhasil menambahkan empat prospek berstatus new. Nomor Maps tidak diasumsikan WhatsApp dan tidak ada pesan dikirim - files: ../MARKETING/CLIENT_OUTREACH/LEADS.csv
+
 - [x] 2026-10-02 - Sederhanakan Client Outreach menjadi riset dan pencatatan: tambahkan Hapus prospek dengan konfirmasi dan deduplikasi identitas yang dihapus; pertahankan nomor WhatsApp opsional tanpa field persetujuan; hapus tombol WhatsApp, banner jadwal/Meta, dan status antrean dari UI. Nonaktifkan pengiriman API/job serta webhook WhatsApp; perbarui otomasi pencarian dan dokumentasi - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/i18n/additional-messages.ts, backend/src/models/outreach.model.ts, backend/src/routes/outreach.ts, backend/src/outreach.service.ts, backend/src/server.ts, backend/src/scripts/outreach-cycle.ts, docs/PROJECT_SUMMARY.md, ../MARKETING/CLIENT_OUTREACH/README.md; automation: prospek-client-naki-code
 
   Validasi: 14 tes frontend/backend terfokus, lint frontend, build/typecheck frontend/backend, dan pemeriksaan SEO lulus. Browser lokal dengan data uji memeriksa penyimpanan nomor, penghapusan, daftar panjang, filter kosong, serta layout desktop/mobile 320px. Tidak ada prospek produksi dihapus saat pengujian.
