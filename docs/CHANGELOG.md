@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-02 - Perbaiki tinggi area scroll daftar prospek Client Outreach agar mengisi panel desktop sampai bawah dan prospek terakhir tetap terjangkau; satukan switch ID/EN di sebelah kiri tombol Kembali pada login tanpa overlap mobile - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/UserLoginPage.tsx, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/pages/__tests__/UserLoginPage.test.tsx
+
 - [x] 2026-10-01 - Tambahkan Buka WhatsApp pada Admin Client Outreach untuk membuka draf personal tanpa Cloud API, dengan validasi nomor/bukti persetujuan tersimpan, pemblokiran status antrean dan penolakan kontak, encoding pesan, serta penjelasan bahwa pengiriman dikonfirmasi di WhatsApp dan status tidak berubah otomatis - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/utils/outreach-whatsapp.ts, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/i18n/additional-messages.ts, docs/PROJECT_SUMMARY.md
 
   Validasi: 9 tes frontend terfokus, lint, build/typecheck dan SEO lulus; browser simulasi 1440px/320px memeriksa draf, perubahan nomor, loading/kosong/error, penolakan kontak, dan overflow. Tidak ada pesan WhatsApp atau perubahan data produksi pada pemeriksaan. Pengiriman nyata tetap dikonfirmasi pengguna di WhatsApp.

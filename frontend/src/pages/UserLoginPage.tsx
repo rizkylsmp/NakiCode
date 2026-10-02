@@ -336,7 +336,6 @@ export function UserLoginPage() {
     <main className="naki-frosted-grid min-h-screen bg-naki-page-bg text-naki-primary">
       <section className="flex min-h-screen items-center px-3 py-3 sm:px-5 sm:py-8 md:px-8 md:py-12 xl:px-12 2xl:px-16">
         <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-2xl border border-naki-steel bg-naki-frost shadow-naki-soft sm:rounded-3xl lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="absolute right-4 top-4 z-30"><LanguageSwitch /></div>
           <Link
             aria-label="Naki Code home"
             className="absolute left-6 top-6 z-20 inline-flex items-center gap-3 rounded-xl text-white focus-visible:ring-2 focus-visible:ring-white sm:left-8 sm:top-8 lg:left-10 lg:top-10"
@@ -349,19 +348,22 @@ export function UserLoginPage() {
                 src="/logo.png"
               />
             </span>
-            <span className="hidden text-sm font-bold tracking-[0.16em] min-[380px]:inline">
+            <span className="hidden text-sm font-bold tracking-[0.16em] sm:inline">
               NAKI CODE
             </span>
           </Link>
 
-          <button
-            className="naki-auth-secondary-action absolute right-6 top-6 z-20 inline-flex h-10 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white sm:right-8 sm:top-8 lg:right-10 lg:top-10 lg:border-naki-steel lg:bg-naki-page-bg lg:text-naki-primary lg:hover:border-naki-secondary lg:hover:text-naki-secondary lg:focus-visible:ring-naki-secondary"
-            onClick={handleBack}
-            type="button"
-          >
-            <ArrowLeft size={16} />
-            Kembali
-          </button>
+          <div className="absolute right-6 top-6 z-20 flex items-center gap-2 sm:right-8 sm:top-8 lg:right-10 lg:top-10">
+            <LanguageSwitch />
+            <button
+              className="naki-auth-secondary-action inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white lg:border-naki-steel lg:bg-naki-page-bg lg:text-naki-primary lg:hover:border-naki-secondary lg:hover:text-naki-secondary lg:focus-visible:ring-naki-secondary"
+              onClick={handleBack}
+              type="button"
+            >
+              <ArrowLeft size={16} />
+              Kembali
+            </button>
+          </div>
           <div className="relative isolate flex min-h-72 flex-col justify-between overflow-hidden bg-gradient-to-br from-naki-primary via-naki-primary to-naki-secondary p-7 text-white sm:p-10 lg:min-h-[650px] lg:p-12">
             <div className="absolute -left-16 -top-16 size-52 rounded-full border border-white/10" />
             <div className="absolute -bottom-24 -right-16 size-72 rounded-full border border-white/10" />

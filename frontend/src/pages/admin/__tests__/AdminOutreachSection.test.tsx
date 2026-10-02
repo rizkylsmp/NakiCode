@@ -22,6 +22,16 @@ beforeEach(() => {
 });
 
 describe("manual outreach WhatsApp", () => {
+  it("lets the prospect list fill the bounded desktop panel and keeps the final prospect selectable", async () => {
+    vi.mocked(apiGet).mockResolvedValue({ leads: Array.from({ length: 30 }, (_, index) => ({ ...lead, id: index + 1, business_name: `Bisnis Uji ${index + 1}` })), whatsappConfigured: false });
+    render(<AdminOutreachSection />);
+    const last = await screen.findByRole("button", { name: /Bisnis Uji 30/ });
+    const panel = screen.getByRole("region", { name: "Daftar prospek" });
+    expect(panel).toHaveClass("lg:h-[calc(100dvh-7rem)]", "lg:self-start", "flex-col");
+    expect(last.parentElement).toHaveClass("min-h-0", "flex-1", "overflow-y-auto", "lg:max-h-none");
+    fireEvent.click(last);
+    expect(screen.getByRole("heading", { name: "Bisnis Uji 30" })).toBeInTheDocument();
+  });
   it("opens an encoded draft without Cloud API or a send/status mutation", async () => {
     render(<AdminOutreachSection />);
     const link = await screen.findByRole("link", { name: "Buka WhatsApp" });

@@ -40,6 +40,14 @@ describe("UserLoginPage", () => {
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
+  it("keeps the language switch immediately before Back in one toolbar", () => {
+    renderLoginPage();
+    const back = screen.getByRole("button", { name: /^Kembali$/i });
+    const language = screen.getByRole("group", { name: "Bahasa" });
+    expect(back.parentElement).toBe(language.parentElement);
+    expect(language.nextElementSibling).toBe(back);
+    expect(back).not.toHaveClass("absolute");
+  });
 
   it("shows password strength indicator in register mode", async () => {
     renderLoginPage();
