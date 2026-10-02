@@ -847,6 +847,21 @@ const runtimeMigrations: Migration[] = [
       await connection.query(clientInvitationSchema);
     },
   },
+  {
+    id: "029_design_niche",
+    async up(connection) {
+      await connection.query("CREATE TABLE IF NOT EXISTS niches (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120) NOT NULL UNIQUE)");
+      if (!(await hasColumn(connection, "designs", "niche_id"))) {
+        await connection.query("ALTER TABLE designs ADD COLUMN niche_id INT NULL AFTER category_id");
+      }
+      if (!(await hasForeignKey(connection, "designs", "fk_designs_niche_id"))) {
+        await connection.query("ALTER TABLE designs ADD CONSTRAINT fk_designs_niche_id FOREIGN KEY (niche_id) REFERENCES niches(id) ON DELETE RESTRICT");
+      }
+      if (!(await hasColumn(connection, "orders", "niche"))) {
+        await connection.query("ALTER TABLE orders ADD COLUMN niche VARCHAR(120) NOT NULL DEFAULT '' AFTER project_type");
+      }
+    },
+  },
 ];
 
 export async function runRuntimeMigrations(connection: Connection) {

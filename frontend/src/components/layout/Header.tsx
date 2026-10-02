@@ -5,14 +5,19 @@ import { Link, useLocation } from "react-router-dom";
 import { apiGet, apiPatch } from "../../services/api-client";
 import { useAuth } from "../../contexts/auth-context";
 import { headerNavItems } from "./header/header-data";
-import { applyTheme, resolveInitialTheme } from "../../utils/theme";
+import {
+  applyTheme,
+  readThemePreference,
+  resolveTheme,
+  themeStorageKey,
+  type ThemePreference,
+} from "../../utils/theme";
 import { MobileMenu } from "./header/MobileMenu";
 import { NotificationMenu } from "./header/NotificationMenu";
 import { ProfileMenu } from "./header/ProfileMenu";
 import { SiteLogo } from "./header/SiteLogo";
 import { SearchDialog } from "./header/SearchDialog";
-import { ThemeToggle } from "./header/ThemeToggle";
-import { LanguageSwitch } from "./LanguageSwitch";
+import { PreferencesMenu } from "./header/PreferencesMenu";
 import type { HeaderProfile, NotificationsResponse } from "./header/types";
 import { requestCouponBannerReopen } from "../promotions/coupon-banner-events";
 
@@ -33,11 +38,10 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [hasMainContent, setHasMainContent] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(
-    () => resolveInitialTheme() === "dark",
-  );
+  const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileNotificationMenuRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
   const isAdminPage = location.pathname.startsWith("/admin");
 
@@ -110,7 +114,8 @@ export function Header() {
       }
       if (
         notificationMenuRef.current &&
-        !notificationMenuRef.current.contains(event.target as Node)
+        !notificationMenuRef.current.contains(event.target as Node) &&
+        !mobileNotificationMenuRef.current?.contains(event.target as Node)
       ) {
         closeNotificationMenu();
       }
@@ -122,8 +127,17 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    applyTheme(isDarkMode ? "dark" : "light");
-  }, [isDarkMode]);
+    const update = () => applyTheme(resolveTheme(theme), false);
+    update();
+    try {
+      localStorage.setItem(themeStorageKey, theme);
+    } catch {
+      /* Storage is optional. */
+    }
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    if (theme === "system") media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [theme]);
 
   useEffect(() => {
     setHasMainContent(Boolean(document.getElementById("main-content")));
@@ -159,7 +173,6 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <LanguageSwitch />
           <button
             className="grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:text-naki-secondary"
             type="button"
@@ -169,14 +182,7 @@ export function Header() {
             <Search size={18} />
           </button>
 
-          <ThemeToggle
-            isDarkMode={isDarkMode}
-            onToggle={() => setIsDarkMode((current) => !current)}
-          />
-
-          {hasCouponBanner ? (
-            <PrizeButton onClick={requestCouponBannerReopen} />
-          ) : null}
+          <PreferencesMenu theme={theme} onThemeChange={setTheme} />
 
           {activeProfile ? (
             <>
@@ -192,6 +198,9 @@ export function Header() {
                   setIsNotificationMenuOpen((current) => !current)
                 }
               />
+              {hasCouponBanner && (
+                <PrizeButton onClick={requestCouponBannerReopen} />
+              )}
               <ProfileMenu
                 activeProfile={activeProfile}
                 isOpen={isProfileMenuOpen}
@@ -202,20 +211,24 @@ export function Header() {
               />
             </>
           ) : (
-            <Link
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-sm font-medium text-naki-primary transition hover:border-naki-steel/80 hover:bg-naki-frost"
-              to={loginNext}
-            >
-              <span className="grid size-7 place-items-center rounded-md bg-blue-500/10 text-blue-500">
-                <LogIn size={14} />
-              </span>
-              <span>Login</span>
-            </Link>
+            <>
+              {hasCouponBanner && (
+                <PrizeButton onClick={requestCouponBannerReopen} />
+              )}
+              <Link
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-naki-steel bg-white px-3 text-sm font-medium text-naki-primary transition hover:border-naki-steel/80 hover:bg-naki-frost"
+                to={loginNext}
+              >
+                <span className="grid size-7 place-items-center rounded-md bg-blue-500/10 text-blue-500">
+                  <LogIn size={14} />
+                </span>
+                <span>Login</span>
+              </Link>
+            </>
           )}
         </div>
 
         <div className="flex items-center gap-1 lg:hidden">
-          <LanguageSwitch />
           <button
             className="hidden size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary sm:grid"
             aria-label="Cari design"
@@ -224,11 +237,6 @@ export function Header() {
           >
             <Search size={19} />
           </button>
-          {hasCouponBanner ? (
-            <span className="hidden sm:block">
-              <PrizeButton mobile onClick={requestCouponBannerReopen} />
-            </span>
-          ) : null}
           <button
             className="grid size-11 place-items-center rounded-lg text-naki-primary transition hover:text-naki-secondary"
             aria-expanded={isMobileMenuOpen}
@@ -243,7 +251,7 @@ export function Header() {
 
       {isMobileMenuOpen ? (
         <>
-          <div className="flex items-center justify-end gap-3 border-t border-naki-steel px-4 py-2 sm:hidden">
+          <div className="relative flex items-center justify-end gap-2 border-t border-naki-steel px-4 py-2 lg:hidden">
             <button
               type="button"
               className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-naki-primary"
@@ -255,19 +263,34 @@ export function Header() {
               <Search size={18} />
               Cari design
             </button>
+            {activeProfile && (
+              <NotificationMenu
+                mobile
+                isOpen={isNotificationMenuOpen}
+                isMarkingRead={markAllReadMutation.isPending}
+                menuRef={mobileNotificationMenuRef}
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onClose={closeNotificationMenu}
+                onMarkAllRead={() => markAllReadMutation.mutate()}
+                onToggle={() =>
+                  setIsNotificationMenuOpen((current) => !current)
+                }
+              />
+            )}
             {hasCouponBanner && (
               <PrizeButton mobile onClick={requestCouponBannerReopen} />
             )}
           </div>
           <MobileMenu
             activeProfile={activeProfile}
-            isDarkMode={isDarkMode}
+            theme={theme}
             isActiveNav={isActiveNav}
             loginNext={loginNext}
             navItems={headerNavItems}
             onClose={closeMobileMenu}
             onLogout={handleLogout}
-            onToggleTheme={() => setIsDarkMode((current) => !current)}
+            onThemeChange={setTheme}
           />
         </>
       ) : null}

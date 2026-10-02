@@ -81,6 +81,7 @@ export async function createClientOrder(input: {
   projectTitle: string;
   message: string;
   budgetRange: string;
+  niche?: string;
 }) {
   const connection = await pool.getConnection();
   try {

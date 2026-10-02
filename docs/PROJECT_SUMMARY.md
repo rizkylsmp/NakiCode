@@ -21,7 +21,7 @@ Sumber konteks utama untuk AI/dev saat bekerja di aplikasi Naki Code. File ini d
 
 ### Bahasa UI dan order klien eksternal (2026-10-01)
 
-- Bahasa default adalah ID, dengan switch EN/ID di navbar dan login. Preferensi disimpan di `naki-language`; EN tidak mengubah mata uang IDR, nilai form, ID, slug, URL, atau status yang dikirim ke API. Budget konsultasi memakai satu sumber `domain/budget-options.ts`: `< Rp 1Jt`, `Rp 1Jt - Rp 3Jt`, `Rp 3Jt - Rp 5Jt`, `Rp 5Jt - Rp 10Jt`, `Rp 10Jt - Rp 20Jt`, `> Rp 20Jt`.
+- Bahasa default adalah ID, dengan switch EN/ID dalam menu Preferensi navbar desktop/menu hamburger mobile dan header form login. Preferensi disimpan di `naki-language`; EN tidak mengubah mata uang IDR, nilai form, ID, slug, URL, atau status yang dikirim ke API. Budget konsultasi memakai satu sumber `domain/budget-options.ts`: `< Rp 1Jt`, `Rp 1Jt - Rp 3Jt`, `Rp 3Jt - Rp 5Jt`, `Rp 5Jt - Rp 10Jt`, `Rp 10Jt - Rp 20Jt`, `> Rp 20Jt`.
 - `LanguageProvider` dan runtime JSX lokal `@naki/i18n` menerjemahkan copy UI dan atribut aksesibilitas menggunakan kamus yang ditinjau. Runtime wajib dikecualikan dari dependency prebundling Vite supaya context bahasa tidak terduplikasi. Gunakan `translate="no"` / `data-no-translate` untuk teks bebas pelanggan atau konten editorial. Artikel dan deskripsi yang dikelola admin tidak diterjemahkan mesin; halaman Kebijakan Privasi dan Syarat & Ketentuan memiliki rendering EN dari kebijakan yang sama.
 - Admin Orders menyediakan **Buat order untuk klien** untuk project custom dari WhatsApp atau kanal eksternal. Email klien wajib dan harus diperiksa admin. Jika sudah terdaftar sebagai user, order langsung ditautkan tanpa perubahan password. Email admin tidak boleh menjadi klien. Akun lama tetap harus login untuk mengakses pesanan; tidak ada tautan bypass login.
 - Jika email belum terdaftar, order disimpan tanpa owner dan belum membuat akun. `order_client_invitations` (runtime migration `028_order_client_invitations`) menyimpan hash SHA-256 token acak 32 byte, order/email/nama klien, masa berlaku 72 jam, dan penanda pemakaian. Klaim membuat akun klien, mengikat order, dan memakai token dalam satu transaksi dengan row lock. Akun baru aktif melalui verifikasi undangan privat; admin harus mengirim tautan hanya ke penerima yang dimaksud. Persetujuan ketentuan dan password minimal 8 karakter dengan kekuatan setara registrasi diperlukan.
@@ -362,6 +362,7 @@ Mode:
 
 ## UI / Styling Rules
 
+- Navbar desktop memakai satu ikon Preferensi setelah Search, berisi bahasa ID/EN dan tema Terang/Gelap/Sistem; kontrol yang sama berada di menu hamburger pada mobile. `naki-theme` menyimpan pilihan `light|dark|system`, dengan fallback Sistem dan listener perubahan OS ketika dipilih. Coupon berada tepat setelah notifikasi untuk akun login; tamu tetap dapat membuka promo dan preferensi tanpa akun. Preferensi mendukung Tab, Escape, klik di luar, dan fokus kembali ke pemicu.
 - Responsive dimulai dari lebar 320px. Layout publik memakai padding mobile ringkas, media tidak boleh melewati container, dan judul/aksi harus dapat wrap tanpa horizontal page scroll.
 - Admin memakai sidebar tetap mulai breakpoint `lg`, dengan tombol collapse/expand menjadi navigasi ikon selebar 80px, tooltip nama menu, dan area konten yang mengikuti lebarnya. Preferensi disimpan lokal pada `naki-admin-sidebar-collapsed`; kegagalan storage tidak menghalangi navigasi. Pada layar lebih kecil navigasi tetap memakai tombol sticky yang membuka drawer ber-overlay dengan label lengkap, indikator menu aktif, profil admin, dan dukungan Escape. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
 - Layout full width, jangan max-width sempit kecuali konten spesifik butuh.
@@ -507,6 +508,14 @@ Improvement backlog:
 - [ ] Task 6 - Perkuat observability production dengan release tagging, request ID, structured logs, dan health dashboard kecil.
 
 ---
+
+## Niche Design dan Order
+
+Client Outreach menampilkan label niche otomatis pada daftar dan detail prospek berdasarkan `category` hasil riset, menggunakan aturan `frontend/src/utils/outreach-niche.ts`. Nama dicocokkan ke niche terdaftar dengan padanan eksplisit; jika belum terdaftar/tidak dapat dimuat atau ada beberapa padanan, tampil sebagai **Usulan niche**. Kategori generik atau lintas bidang yang ambigu tampil **Belum diklasifikasikan**. Pencarian mencakup label niche. Label dihitung saat ditampilkan, bukan relasi niche tersimpan pada prospek; tidak mengubah database/CSV, kategori asli, atau daftar niche. Kategori hasil riset baru perlu tetap spesifik agar label relevan.
+
+Admin → Kategori mengelola daftar niche melalui `/api/categories/niches` (akses admin). Form tambah/edit Design dan pembuatan Order untuk klien memakai dropdown dari daftar yang sama; pilihan opsional `Tanpa niche` menjaga kompatibilitas data lama. Tidak ada niche bawaan yang diisi otomatis.
+
+Migrasi runtime `029_design_niche` menambahkan tabel `niches`, relasi nullable `designs.niche_id`, dan snapshot nama `orders.niche` dengan default kosong. Perubahan nama niche mengikuti semua design melalui relasi ID dan invalidasi cache katalog/detail. Order menyimpan nama pada saat dibuat untuk mempertahankan riwayat. Niche yang terhubung ke design, termasuk arsip, tidak bisa dihapus; foreign key memakai `ON DELETE RESTRICT`. Niche dapat ditambah, diedit, atau dihapus jika belum digunakan. Nama dibatasi 120 karakter dan harus terdaftar sebelum dipilih pada Design/Order.
 
 ## Commands
 

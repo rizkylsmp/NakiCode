@@ -7,6 +7,16 @@ vi.mock("../../../services/api-client", () => ({ apiGet: vi.fn(), apiPatch: vi.f
 const lead = { id: 1, business_name: "Bisnis Uji", category: "Jasa", city: "Kota Uji", external_key: "fixture.example", source_url: "https://fixture.example", evidence_url: "https://fixture.example/services", contact_url: "https://fixture.example/contact", observation: "Informasi layanan bisnis uji.", opportunity: "Halaman layanan dengan design yang jelas.", score: 3, draft_message: "Halo, boleh berdiskusi tentang design website? https://nakicode.xyz/", status: "reviewed", whatsapp_number: null, notes: null, checked_at: null, updated_at: "2026-01-01T01:00:00.000Z" };
 beforeEach(() => { vi.restoreAllMocks(); vi.mocked(apiGet).mockResolvedValue({ leads: [lead] }); vi.mocked(apiDelete).mockResolvedValue({}); });
 describe("research-only outreach", () => {
+  it("labels prospects from their category and searches by the registered niche", async () => {
+    vi.mocked(apiGet).mockImplementation(async (path) => path === "/api/categories/niches" ? { niches: [{ name: "Laundry" }] } : { leads: [{ ...lead, category: "Jasa laundry" }] });
+    render(<AdminOutreachSection />);
+    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    const list = screen.getByRole("region", { name: "Daftar prospek" });
+    expect(list).toHaveTextContent("Laundry");
+    expect(screen.getByRole("region", { name: "Detail prospek" })).toHaveTextContent("Niche:");
+    fireEvent.change(screen.getByRole("textbox", { name: "Cari prospek" }), { target: { value: "Laundry" } });
+    expect(screen.getByRole("button", { name: /Bisnis Uji/ })).toBeInTheDocument();
+  });
   it("keeps the bounded scroll panel and final prospect selectable", async () => {
     vi.mocked(apiGet).mockResolvedValue({ leads: Array.from({ length: 30 }, (_, index) => ({ ...lead, id: index + 1, business_name: `Bisnis Uji ${index + 1}` })) });
     render(<AdminOutreachSection />);

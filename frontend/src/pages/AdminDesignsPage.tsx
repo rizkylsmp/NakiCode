@@ -421,7 +421,7 @@ export function AdminDesignsPage({
         template.category === templateCategoryFilter;
       const matchesSearch =
         !normalizedSearch ||
-        [template.title, template.slug, template.category, template.price]
+        [template.title, template.slug, template.category, template.niche ?? "", template.price]
           .join(" ")
           .toLowerCase()
           .includes(normalizedSearch);

@@ -28,6 +28,7 @@ export type TemplateItem = {
   slug: string;
   title: string;
   category: string;
+  niche?: string;
   description: string;
   price: string;
   stack: string[];

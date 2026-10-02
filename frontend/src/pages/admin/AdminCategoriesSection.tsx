@@ -6,6 +6,7 @@ import { useToast } from "../../components/ui/Toast";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { useClientPagination } from "../../hooks/useClientPagination";
 import type { AdminCategory } from "./AdminDesignWorkspace.shared";
+import { AdminNichesSection } from "./AdminNichesSection";
 
 type CategoryMutationResponse = {
   categories?: string[];
@@ -470,6 +471,7 @@ export function AdminCategoriesSection({
         </div>
       )}
 
+      <AdminNichesSection />
       {/* Delete Confirmation */}
       {isDeleteOpen && deleteTarget && (
         <div

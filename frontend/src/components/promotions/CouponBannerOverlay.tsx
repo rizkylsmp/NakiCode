@@ -127,7 +127,7 @@ export function CouponBannerOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-80 grid place-items-center bg-black/65 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-80 grid place-items-center bg-black/65 p-3 backdrop-blur-sm sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) setVisibleSignature(null);
       }}
@@ -163,32 +163,32 @@ export function CouponBannerOverlay() {
             {banners.map((banner, index) => (
               <article
                 aria-hidden={index !== activeIndex}
-                className="relative min-w-full"
+                className="relative min-w-full bg-naki-primary"
                 key={banner.id}
               >
                 <img
                   alt={`Banner promo ${banner.code}`}
-                  className="aspect-4/5 w-full object-cover sm:aspect-16/9"
+                  className="aspect-3/2 w-full bg-naki-primary object-contain sm:aspect-16/9 sm:object-cover"
                   src={banner.imageUrl}
                 />
-                <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black via-black/75 to-transparent px-5 pb-6 pt-20 text-white sm:px-8 sm:pb-8">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/75">
+                <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black via-black/80 to-transparent px-4 pb-4 pt-12 text-white sm:px-8 sm:pb-8 sm:pt-20">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75 sm:text-xs sm:tracking-[0.22em]">
                     Promo Naki Code
                   </p>
-                  <h2 className="mt-2 text-2xl font-bold sm:text-4xl">
+                  <h2 className="mt-1 text-lg font-bold leading-tight sm:mt-2 sm:text-4xl">
                     {banner.description}
                   </h2>
-                  <p className="mt-2 text-sm text-white/85 sm:text-base">
+                  <p className="mt-1 text-xs text-white/85 sm:mt-2 sm:text-base">
                     Hemat{" "}
                     {banner.discountType === "percent"
                       ? `${banner.discountValue}%`
                       : formatRupiahText(banner.discountValue)}{" "}
                     dengan kode <strong>{banner.code}</strong>.
                   </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <div className="mt-3 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
                     <button
                       aria-label={`Salin kode coupon ${banner.code}`}
-                      className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-naki-primary hover:bg-naki-frost"
+                      className="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-xs font-bold text-naki-primary hover:bg-naki-frost sm:h-11 sm:px-4 sm:text-sm"
                       onClick={() => void copyCode()}
                       type="button"
                     >
@@ -198,7 +198,7 @@ export function CouponBannerOverlay() {
                         : `Salin ${banner.code}`}
                     </button>
                     <Link
-                      className="inline-flex h-11 items-center rounded-lg border border-white/50 px-4 text-sm font-semibold text-white hover:bg-white/10"
+                      className="inline-flex h-9 items-center rounded-lg border border-white/50 px-3 text-xs font-semibold text-white hover:bg-white/10 sm:h-11 sm:px-4 sm:text-sm"
                       onClick={() => setVisibleSignature(null)}
                       to="/design"
                     >

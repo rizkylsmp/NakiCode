@@ -11,6 +11,7 @@ type OrderRow = RowDataPacket & {
   customer_name: string;
   customer_contact: string;
   project_type: string;
+  niche?: string;
   budget_range: string;
   message: string;
   order_type?: string;
@@ -71,6 +72,7 @@ export type OrderItem = {
   customerName: string;
   customerContact: string;
   projectType: string;
+  niche?: string;
   budgetRange: string;
   message: string;
   orderType: "source_purchase" | "custom_project";
@@ -222,6 +224,7 @@ const orderSelect = `SELECT
   orders.customer_name,
   orders.customer_contact,
   orders.project_type,
+  orders.niche,
   orders.budget_range,
   orders.message,
   orders.order_type,
@@ -409,6 +412,7 @@ export async function createOrder(payload: OrderPayload, executor: Pick<PoolConn
       customer_name,
       customer_contact,
       project_type,
+      niche,
       budget_range,
       message,
       order_type,
@@ -426,7 +430,7 @@ export async function createOrder(payload: OrderPayload, executor: Pick<PoolConn
       deposit_percent,
       amount_paid,
       payment_stage
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.userId,
       payload.templateId,
@@ -435,6 +439,7 @@ export async function createOrder(payload: OrderPayload, executor: Pick<PoolConn
       payload.customerName,
       payload.customerContact,
       payload.projectType,
+      payload.niche ?? "",
       payload.budgetRange,
       payload.message,
       payload.orderType,
@@ -1023,6 +1028,7 @@ export function normalizeOrderPayload(
     customerName: String(body.customerName ?? "").trim(),
     customerContact: String(body.customerContact ?? "").trim(),
     projectType: String(body.projectType ?? "Konsultasi custom").trim(),
+    niche: String(body.niche ?? "").trim(),
     budgetRange: String(body.budgetRange ?? "Belum ditentukan").trim(),
     message: String(body.message ?? "").trim(),
     orderType:
@@ -1104,6 +1110,7 @@ function normalizeOrderRow(row: OrderRow): OrderItem {
     customerName: row.customer_name,
     customerContact: row.customer_contact,
     projectType: row.project_type,
+    niche: row.niche ?? "",
     budgetRange: row.budget_range,
     message: row.message,
     orderType,

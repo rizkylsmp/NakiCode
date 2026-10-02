@@ -2,6 +2,12 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ create: vi.fn(), renew: vi.fn(), inspect: vi.fn(), claim: vi.fn(), email: vi.fn() }));
+vi.mock("../models/niche.model", async () => ({ ...(await vi.importActual<typeof import("../models/niche.model")>("../models/niche.model")), resolveNiche: vi.fn(async (name: string) => {
+  if (!name) return null;
+  if (name === "Laundry") return { id: 1, name };
+  const { NicheError } = await vi.importActual<typeof import("../models/niche.model")>("../models/niche.model");
+  throw new NicheError(400, "Niche tidak tersedia.");
+}) }));
 vi.mock("../db", () => ({ pool: { query: vi.fn(), getConnection: vi.fn() } }));
 vi.mock("../models/client-invitation.model", async () => {
   const actual = await vi.importActual<typeof import("../models/client-invitation.model")>("../models/client-invitation.model");
@@ -19,6 +25,14 @@ const client = createUserToken({ id: 7, username: "client", role: "user" });
 beforeEach(() => { vi.clearAllMocks(); mocks.create.mockResolvedValue({ order: { id: 23 }, token, expiresAt: new Date().toISOString(), existingAccount: false }); mocks.email.mockResolvedValue(undefined); mocks.inspect.mockResolvedValue({ emailHint: "cl***@example.com", existingAccount: false }); mocks.claim.mockResolvedValue({ orderId: 23, user: { id: 7, username: "client", role: "user" } }); });
 const payload = { customerName: "Client", email: "CLIENT@example.com", customerContact: "6281234", projectTitle: "Company site", budgetRange: "Rp 3Jt - Rp 5Jt", message: "Company site brief" };
 describe("client invitation API", () => {
+  it("accepts a registered niche and rejects arbitrary niche before order creation", async () => {
+    const valid = await request(app).post("/api/orders/admin-create").set("Authorization", `Bearer ${admin}`).send({ ...payload, niche: "Laundry", sendEmail: false });
+    expect(valid.status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ niche: "Laundry" }));
+    mocks.create.mockClear();
+    const invalid = await request(app).post("/api/orders/admin-create").set("Authorization", `Bearer ${admin}`).send({ ...payload, niche: "Unknown niche" });
+    expect(invalid.status).toBe(400); expect(mocks.create).not.toHaveBeenCalled();
+  });
   it("requires an administrator to create external orders", async () => {
     expect((await request(app).post("/api/orders/admin-create").send(payload)).status).toBe(401);
     expect((await request(app).post("/api/orders/admin-create").set("Authorization", `Bearer ${client}`).send(payload)).status).toBe(401);

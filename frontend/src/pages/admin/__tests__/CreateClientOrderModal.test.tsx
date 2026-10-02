@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiPost } from "../../../services/api-client";
 import { CreateClientOrderModal } from "../CreateClientOrderModal";
 import { LanguageProvider } from "../../../i18n/language";
-vi.mock("../../../services/api-client", () => ({ apiPost: vi.fn(), getApiErrorMessage: (_error: unknown, fallback: string) => fallback }));
+vi.mock("../../../services/api-client", () => ({ apiGet: vi.fn(async () => ({ niches: [{ id: 1, name: "Laundry", designCount: 0 }] })), apiPost: vi.fn(), getApiErrorMessage: (_error: unknown, fallback: string) => fallback }));
 beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
 function fill() {
   fireEvent.change(screen.getByLabelText("Nama klien"), { target: { value: "QA Client" } });
@@ -17,10 +17,13 @@ describe("external client order form", () => {
     vi.mocked(apiPost).mockResolvedValue({ order: { id: 1 }, invitationUrl: "https://example.com/client-invitation#token=private", existingAccount: false, emailSent: false, expiresAt: "2026-10-04" });
     const created = vi.fn();
     render(<LanguageProvider><CreateClientOrderModal onClose={vi.fn()} onCreated={created} /></LanguageProvider>);
-    expect(screen.getAllByRole("option")).toHaveLength(8);
+    expect(screen.getByLabelText("Budget").querySelectorAll("option")).toHaveLength(6);
     expect(screen.getByLabelText("Budget")).toHaveValue("< Rp 1Jt");
+    await waitFor(() => expect(screen.getByLabelText("Niche")).toBeEnabled());
+    fireEvent.change(screen.getByLabelText("Niche"), { target: { value: "Laundry" } });
     fill(); fireEvent.click(screen.getByRole("button", { name: "Buat order dan undangan" }));
     await waitFor(() => expect(created).toHaveBeenCalledOnce());
+    expect(apiPost).toHaveBeenCalledWith("/api/orders/admin-create", expect.objectContaining({ niche: "Laundry" }), { timeout: 60000 });
     expect(screen.getByText("Email gagal dikirim. Salin tautan untuk dikirim manual ke klien.")).toBeInTheDocument();
     expect(screen.getByLabelText("Tautan klien")).toHaveValue("https://example.com/client-invitation#token=private");
   });

@@ -128,6 +128,19 @@ describe('Design CRUD API', () => {
     }
     expect(mocks.create).not.toHaveBeenCalled();
   });
+  it('stores trimmed niche, rejects excessive length, and preserves omitted niche on legacy updates', async () => {
+    const auth = { Authorization: `Bearer ${adminToken}` };
+    const created = await request(app).post('/api/designs').set(auth).send({ ...validPayload, niche: '  Laundry  ' });
+    expect(created.status).toBe(201);
+    expect(mocks.create).toHaveBeenLastCalledWith(expect.objectContaining({ niche: 'Laundry' }));
+    const invalid = await request(app).post('/api/designs').set(auth).send({ ...validPayload, niche: 'x'.repeat(121) });
+    expect(invalid.status).toBe(400);
+    mocks.findBySlugOrId.mockResolvedValue({ ...design, niche: 'Interior' });
+    await request(app).put(`/api/designs/${design.id}`).set(auth).send(validPayload);
+    expect(mocks.update).toHaveBeenLastCalledWith(design.id, expect.objectContaining({ niche: 'Interior' }));
+    await request(app).put(`/api/designs/${design.id}`).set(auth).send({ ...validPayload, niche: '' });
+    expect(mocks.update).toHaveBeenLastCalledWith(design.id, expect.objectContaining({ niche: '' }));
+  });
 
   it('returns 409 for a duplicate slug', async () => {
     mocks.create.mockRejectedValueOnce(Object.assign(new Error('duplicate'), { code: 'ER_DUP_ENTRY' }));

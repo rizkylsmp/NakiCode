@@ -51,6 +51,15 @@ describe("CouponBannerOverlay", () => {
     expect(
       screen.getByRole("heading", { name: "Promo pertama" }),
     ).toBeInTheDocument();
+    expect(screen.getByAltText("Banner promo NAKI10")).toHaveClass(
+      "aspect-3/2",
+      "object-contain",
+      "sm:aspect-16/9",
+      "sm:object-cover",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Promo pertama" }).parentElement,
+    ).toHaveClass("absolute", "bottom-0");
 
     fireEvent.click(screen.getByRole("button", { name: /banner berikutnya/i }));
     expect(

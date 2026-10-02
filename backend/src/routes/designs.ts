@@ -20,6 +20,7 @@ import {
 import type { TemplateItem } from "../models/design.model";
 import { deleteCacheKeys, getJsonCache, setJsonCache } from "../redis-cache";
 import { parseBody, parseParams } from "../validation";
+import { NicheError } from "../models/niche.model";
 
 export const templatesRouter = Router();
 
@@ -60,6 +61,7 @@ const templateBodySchema = z.object({
   slug: z.string().trim().max(180).optional(),
   title: z.string().trim().min(1).max(160),
   category: z.string().trim().min(1).max(80),
+  niche: z.string().trim().max(120).optional(),
   description: z.string().trim().min(1).max(10000),
   price: z.string().trim().min(1).max(32).optional(),
   stack: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
@@ -180,6 +182,7 @@ templatesRouter.post("/", requireAdmin, async (request, response) => {
       template,
     });
   } catch (error) {
+    if (error instanceof NicheError) { response.status(error.status).json({ message: error.message }); return; }
     if (isDuplicateEntryError(error)) {
       response.status(409).json({ message: "Slug design sudah digunakan" });
       return;
@@ -309,6 +312,7 @@ templatesRouter.put("/:id", requireAdmin, async (request, response) => {
       String(params.id),
       true,
     );
+    if (body.niche === undefined) payload.niche = previousTemplate?.niche ?? "";
     const template = await updateTemplate(params.id, payload);
 
     if (!template) {
@@ -339,6 +343,7 @@ templatesRouter.put("/:id", requireAdmin, async (request, response) => {
       template,
     });
   } catch (error) {
+    if (error instanceof NicheError) { response.status(error.status).json({ message: error.message }); return; }
     if (isDuplicateEntryError(error)) {
       response.status(409).json({ message: "Slug design sudah digunakan" });
       return;

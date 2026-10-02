@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { getDisplayLocale } from "../../utils/locale";
+import { NicheSelect } from "./NicheSelect";
 import { createPortal } from "react-dom";
 import type { TemplateItem } from "../../domain/content";
 import {
@@ -62,6 +63,7 @@ export type DesignSubmitHandler = (
 const FIELD_STEPS: Record<string, StepKey> = {
   title: "info",
   category: "info",
+  niche: "info",
   slug: "info",
   description: "info",
   level: "info",
@@ -260,6 +262,7 @@ export function DesignFormModal({
     for (const [field, max] of Object.entries({
       title: 160,
       category: 80,
+      niche: 120,
       description: 10000,
       slug: 180,
       price: 32,
@@ -359,6 +362,10 @@ export function DesignFormModal({
                   : "Slug otomatis mengikuti judul dan tetap bisa diedit."}
             </p>
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <NicheSelect value={form.niche ?? ""} onChange={(value) => updateField("niche", value)} disabled={isSaving} />
+          {fieldErrors.niche && <p role="status" className="text-xs text-red-700">{fieldErrors.niche}</p>}
         </div>
         <TextArea
           label="Deskripsi"

@@ -18,6 +18,7 @@ export type OrderItem = {
   customerName: string;
   customerContact: string;
   projectType: string;
+  niche?: string;
   budgetRange: string;
   message: string;
   orderType: "source_purchase" | "custom_project";

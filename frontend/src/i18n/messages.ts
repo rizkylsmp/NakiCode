@@ -1,5 +1,11 @@
 /** Reviewed UI copy. User-authored content and identifiers are not machine-translated. */
 export const english: Record<string, string> = {
+  Preferensi: "Preferences",
+  "Preferensi tampilan": "Appearance preferences",
+  Tema: "Theme",
+  Terang: "Light",
+  Gelap: "Dark",
+  Sistem: "System",
   "Ciutkan sidebar": "Collapse sidebar",
   "Perluas sidebar": "Expand sidebar",
   "Navigasi admin": "Admin navigation",

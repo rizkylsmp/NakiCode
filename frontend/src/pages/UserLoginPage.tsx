@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  Globe2,
   LockKeyhole,
   LogIn,
   Mail,
@@ -286,7 +287,8 @@ export function UserLoginPage() {
         );
         setVerificationUrl(nextVerificationUrl);
         setStatus({
-          message: "Akun berhasil dibuat. OTP sudah dikirim ke email pendaftar.",
+          message:
+            "Akun berhasil dibuat. OTP sudah dikirim ke email pendaftar.",
           tone: "success",
         });
         navigate(nextVerificationUrl, { replace: true });
@@ -294,7 +296,8 @@ export function UserLoginPage() {
       }
 
       setStatus({
-        message: "Akun berhasil diproses. OTP verifikasi sudah dikirim ke email.",
+        message:
+          "Akun berhasil diproses. OTP verifikasi sudah dikirim ke email.",
         tone: "success",
       });
     } catch (error) {
@@ -354,7 +357,6 @@ export function UserLoginPage() {
           </Link>
 
           <div className="absolute right-6 top-6 z-20 flex items-center gap-2 sm:right-8 sm:top-8 lg:right-10 lg:top-10">
-            <LanguageSwitch />
             <button
               className="naki-auth-secondary-action inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white lg:border-naki-steel lg:bg-naki-page-bg lg:text-naki-primary lg:hover:border-naki-secondary lg:hover:text-naki-secondary lg:focus-visible:ring-naki-secondary"
               onClick={handleBack}
@@ -419,11 +421,23 @@ export function UserLoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center px-6 pb-9 pt-24 sm:px-10 lg:px-16 lg:pb-12 lg:pt-28">
+          <div
+            id="login-form-panel"
+            className="flex items-center px-6 pb-9 pt-8 sm:px-10 sm:pt-10 lg:px-16 lg:pb-12 lg:pt-28"
+          >
             <div className="mx-auto w-full max-w-md">
               <div className="mb-7">
-                <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-naki-primary text-white shadow-naki-card">
-                  <LockKeyhole size={22} />
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-naki-primary text-white shadow-naki-card">
+                    <LockKeyhole size={22} />
+                  </div>
+                  <div className="flex items-center gap-2 text-naki-smoke">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                      <Globe2 size={15} aria-hidden="true" />
+                      <span className="hidden min-[380px]:inline">Bahasa</span>
+                    </span>
+                    <LanguageSwitch />
+                  </div>
                 </div>
                 <h2 className="text-2xl font-bold sm:text-3xl">
                   {mode === "login" ? "Login user" : "Buat akun baru"}
@@ -455,8 +469,8 @@ export function UserLoginPage() {
                       setStatus({
                         message:
                           item === "login"
-                          ? "Masuk untuk melanjutkan ke akunmu."
-                          : "Lengkapi data untuk membuat akun baru.",
+                            ? "Masuk untuk melanjutkan ke akunmu."
+                            : "Lengkapi data untuk membuat akun baru.",
                         tone: "neutral",
                       });
                     }}

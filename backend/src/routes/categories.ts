@@ -11,8 +11,34 @@ import {
   deleteTemplateCategory,
 } from "../models/category.model";
 import { parseBody, parseParams } from "../validation";
+import { deleteNiche, findNiches, findNicheDesignSlugs, NicheError, saveNiche } from "../models/niche.model";
+import { deleteCacheKeys } from "../redis-cache";
 
 export const categoriesRouter = Router();
+const nicheBodySchema = z.object({ name: z.string().trim().min(2).max(120) });
+const nicheIdSchema = z.object({ id: z.coerce.number().int().positive() });
+categoriesRouter.get("/niches", requireAdmin, async (_request, response) => {
+  try { response.json({ niches: await findNiches() }); }
+  catch { response.status(503).json({ message: "Gagal memuat niche." }); }
+});
+for (const method of ["post", "put", "delete"] as const) {
+  categoriesRouter[method](method === "post" ? "/niches" : "/niches/:id", requireAdmin, async (request, response) => {
+    const body = method === "delete" ? null : parseBody(nicheBodySchema, request, response);
+    const params = method === "post" ? null : parseParams(nicheIdSchema, request, response);
+    if ((method !== "delete" && !body) || (method !== "post" && !params)) return;
+    try {
+      const designs = params ? await findNicheDesignSlugs(params.id) : [];
+      const niches = method === "delete" ? await deleteNiche(params!.id) : await saveNiche(body!.name, params?.id);
+      // Renaming a niche changes design metadata; invalidate cached public reads.
+      await deleteCacheKeys(["templates:list", ...designs.flatMap(design => [`templates:detail:${design.slug}`, `templates:detail:${design.id}`])]);
+      try { await createAdminAuditLog({ admin: response.locals.admin, action: `niche.${method}`, entityType: "niche", entityId: params?.id ?? null, metadata: body ?? {} }); }
+      catch (error) { Sentry.captureException(error); }
+      response.status(method === "post" ? 201 : 200).json({ niches });
+    } catch (error) {
+      response.status(error instanceof NicheError ? error.status : 500).json({ message: error instanceof NicheError ? error.message : "Gagal menyimpan niche." });
+    }
+  });
+}
 
 const categoryBodySchema = z.object({
   name: z.string().trim().min(2).max(80),

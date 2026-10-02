@@ -23,6 +23,7 @@ export type TemplateFormState = {
   slug: string;
   title: string;
   category: TemplateItem["category"];
+  niche: string;
   description: string;
   price: string;
   frontendStack: string;
@@ -48,6 +49,7 @@ export const defaultFormState: TemplateFormState = {
   slug: "",
   title: "",
   category: "Portfolio",
+  niche: "",
   description: "",
   price: "Rp149K",
   frontendStack: "",
@@ -1503,6 +1505,7 @@ export function templateToForm(template: TemplateItem): TemplateFormState {
     slug: template.slug,
     title: template.title,
     category: template.category,
+    niche: template.niche ?? "",
     description: template.description,
     price: template.price,
     frontendStack: [...frontend, ...other].join(", "),
@@ -1538,6 +1541,7 @@ export function formToPayload(
     slug: form.slug || slugify(form.title),
     title: form.title.trim(),
     category: form.category,
+    niche: (form.niche ?? "").trim(),
     description: form.description.trim(),
     price: form.sourceAvailable ? form.price.trim() : "Hubungi kami",
     stack: allStack,

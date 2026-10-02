@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { apiPost, getApiErrorMessage } from "../../services/api-client";
 import { budgetOptions } from "../../domain/budget-options";
 import { useLanguage } from "../../i18n/language";
+import { NicheSelect } from "./NicheSelect";
 
 type Result = {
   order: { id: number };
@@ -25,6 +26,7 @@ export function CreateClientOrderModal({
     email: "",
     customerContact: "",
     projectTitle: "",
+    niche: "",
     message: "",
     budgetRange: budgetOptions[0] as string,
     language,
@@ -238,6 +240,7 @@ export function CreateClientOrderModal({
                   ))}
                 </select>
               </label>
+              <NicheSelect value={form.niche} onChange={niche => setForm({ ...form, niche })} disabled={saving} />
               <label className="block text-sm font-medium text-naki-primary">
                 Brief project
                 <textarea

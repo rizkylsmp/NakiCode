@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { NotificationItem } from "./types";
 
 type NotificationMenuProps = {
+  mobile?: boolean;
   isOpen: boolean;
   isMarkingRead: boolean;
   menuRef: RefObject<HTMLDivElement | null>;
@@ -15,6 +16,7 @@ type NotificationMenuProps = {
 };
 
 export function NotificationMenu({
+  mobile = false,
   isOpen,
   isMarkingRead,
   menuRef,
@@ -25,7 +27,7 @@ export function NotificationMenu({
   onToggle,
 }: NotificationMenuProps) {
   return (
-    <div className="relative" ref={menuRef}>
+    <div className={mobile ? "static" : "relative"} ref={menuRef}>
       <button
         className="relative grid size-10 place-items-center rounded-lg text-naki-smoke transition hover:text-naki-secondary"
         aria-expanded={isOpen}
@@ -43,7 +45,9 @@ export function NotificationMenu({
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-full z-[95] w-80 pt-3">
+        <div
+          className={`absolute top-full z-[95] pt-3 ${mobile ? "right-3 w-[min(20rem,calc(100vw-1.5rem))]" : "right-0 w-80"}`}
+        >
           <div className="overflow-hidden rounded-xl border border-naki-steel bg-white shadow-lg">
             <div className="flex items-center justify-between gap-3 border-b border-naki-steel p-4">
               <div>

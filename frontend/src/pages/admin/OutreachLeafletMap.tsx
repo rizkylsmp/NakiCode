@@ -64,7 +64,12 @@ export default function OutreachLeafletMap({ points, selectedId, selectionVersio
     map.once("moveend", open);
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     map.flyTo(marker.getLatLng(), 16, { duration: 0.65, animate: !reducedMotion });
-    return () => { map.off("moveend", open); map.stop(); };
+    return () => {
+      map.off("moveend", open);
+      // The map setup effect cleans up first during unmount/StrictMode replay.
+      // Leaflet stop() accesses panes that no longer exist after remove().
+      if (mapRef.current === map) map.stop();
+    };
   }, [selectedId, selectionVersion, points, language]);
   return <>
     <div ref={container} role="region" aria-label="Peta lokasi prospek" className="outreach-map relative isolate z-0 h-72 w-full rounded-xl bg-naki-frost sm:h-80" />

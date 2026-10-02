@@ -1,10 +1,18 @@
 import { act, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import OutreachLeafletMap from "../OutreachLeafletMap";
 
 const fixture = vi.hoisted(() => ({ popups: [] as HTMLElement[], events: {} as Record<string, () => void>, markerClicks: [] as Array<() => void>, markerKeys: [] as Array<(event: { originalEvent: { key: string } }) => void>, openPopup: vi.fn(), flyTo: vi.fn(), stop: vi.fn(), remove: vi.fn(), disconnect: vi.fn(), options: {} as Record<string, unknown> }));
 vi.mock("leaflet", () => ({ default: {
-  map: (_container: HTMLElement, options: Record<string, unknown>) => { fixture.options = options; return { setView() { return this; }, fitBounds: vi.fn(), invalidateSize: vi.fn(), remove: fixture.remove, stop: fixture.stop, closePopup: vi.fn(), flyTo: fixture.flyTo, once(name: string, callback: () => void) { fixture.events[name] = callback; }, off: vi.fn() }; },
+  map: (_container: HTMLElement, options: Record<string, unknown>) => {
+    let removed = false;
+    fixture.options = options;
+    return { setView() { return this; }, fitBounds: vi.fn(), invalidateSize: vi.fn(),
+      remove() { removed = true; fixture.remove(); },
+      stop() { if (removed) throw new Error("Leaflet panes were removed"); fixture.stop(); },
+      closePopup: vi.fn(), flyTo: fixture.flyTo, once(name: string, callback: () => void) { fixture.events[name] = callback; }, off: vi.fn() };
+  },
   tileLayer: () => ({ addTo() { return this; }, on(name: string, callback: () => void) { fixture.events[name] = callback; return this; } }),
   divIcon: vi.fn(), latLngBounds: vi.fn(),
   marker: (position: number[]) => ({ addTo() { return this; }, bindPopup(popup: HTMLElement) { fixture.popups.push(popup); return this; }, on(name: string, callback: () => void) { if (name === "click") fixture.markerClicks.push(callback); else fixture.markerKeys.push(callback); }, getLatLng: () => position, openPopup: fixture.openPopup }),
@@ -15,6 +23,12 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect = fixture.disconnect; });
 });
 describe("outreach map popup and lifecycle", () => {
+  it("does not stop a removed map during StrictMode replay or unmount", () => {
+    const view = render(<StrictMode><OutreachLeafletMap points={[point]} selectedId={1} selectionVersion={0} onSelect={vi.fn()} /></StrictMode>);
+    expect(fixture.remove).toHaveBeenCalledOnce();
+    expect(() => view.unmount()).not.toThrow();
+    expect(fixture.remove).toHaveBeenCalledTimes(2);
+  });
   it("renders business text safely and links to its profile in a separate tab", () => {
     const view = render(<OutreachLeafletMap points={[point]} selectedId={null} selectionVersion={0} onSelect={vi.fn()} />);
     const popup = fixture.popups[0];

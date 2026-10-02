@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost, getApiErrorMessage } from "../../services/api-client";
 import { getOutreachMapPoints } from "../../utils/outreach-map";
+import { getOutreachNiche, matchRegisteredNiche } from "../../utils/outreach-niche";
 const OutreachLeafletMap = lazy(() => import("./OutreachLeafletMap"));
 
 type LeadStatus = "new" | "reviewed" | "ready" | "sending" | "sent" | "replied" | "qualified" | "won" | "lost" | "failed" | "do_not_contact";
@@ -51,6 +52,8 @@ const inputClass = "min-h-11 w-full rounded-xl border border-naki-steel bg-white
 
 export function AdminOutreachSection() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [niches, setNiches] = useState<Array<{ name: string }>>([]);
+  const [nicheRegistryFailed, setNicheRegistryFailed] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectionVersion, setSelectionVersion] = useState(0);
   const [search, setSearch] = useState("");
@@ -67,8 +70,14 @@ export function AdminOutreachSection() {
   const selected = leads.find((lead) => lead.id === selectedId) ?? null;
   const visible = useMemo(() => leads.filter((lead) => {
     const q = search.trim().toLowerCase();
-    return (filter === "all" || lead.status === filter) && (!q || [lead.business_name, lead.category, lead.city].join(" ").toLowerCase().includes(q));
-  }), [leads, search, filter]);
+    const inferred = getOutreachNiche(lead.category);
+    return (filter === "all" || lead.status === filter) && (!q || [lead.business_name, lead.category, lead.city, inferred, matchRegisteredNiche(inferred, niches)].join(" ").toLowerCase().includes(q));
+  }), [leads, search, filter, niches]);
+  function nicheLabel(lead: Lead) {
+    const inferred = getOutreachNiche(lead.category);
+    const registered = matchRegisteredNiche(inferred, niches);
+    return <span className="mt-2 inline-flex max-w-full rounded-lg border border-naki-steel bg-naki-frost px-2 py-1 text-xs font-semibold text-naki-primary"><span>{registered ? "Niche:" : inferred ? "Usulan niche:" : "Niche:"}</span>&nbsp;<span data-no-translate>{registered ?? inferred ?? "Belum diklasifikasikan"}</span></span>;
+  }
   const mapPoints = useMemo(() => getOutreachMapPoints(visible), [visible]);
   const selectLead = useCallback((id: number) => {
     if (busy) return;
@@ -87,6 +96,13 @@ export function AdminOutreachSection() {
     finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    let active = true;
+    void apiGet<{ niches: Array<{ name: string }> }>("/api/categories/niches")
+      .then(data => { if (active) setNiches(data.niches ?? []); })
+      .catch(() => { if (active) setNicheRegistryFailed(true); });
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     if (!selected) return;
     setStatus(["ready", "sending", "failed"].includes(selected.status) ? "reviewed" : selected.status); setDraft(selected.draft_message); setNotes(selected.notes ?? "");
@@ -144,7 +160,7 @@ export function AdminOutreachSection() {
     <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-naki-steel bg-white p-3 lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)] lg:self-start" aria-label="Daftar prospek">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><input aria-label="Cari prospek" className={inputClass} onChange={(event) => setSearch(event.target.value)} placeholder="Cari bisnis, kota, kategori" value={search} /><select aria-label="Filter status" className={inputClass} onChange={(event) => setFilter(event.target.value)} value={filter}><option value="all">Semua</option>{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-        <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => selectLead(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · {statuses.find((item) => item.value === lead.status)?.label ?? "Ditinjau"} · Skor {lead.score}/5</span></button>)}</div>
+        <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => selectLead(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · {statuses.find((item) => item.value === lead.status)?.label ?? "Ditinjau"} · Skor {lead.score}/5</span>{nicheLabel(lead)}</button>)}</div>
       </section>
       <div className="min-w-0 space-y-4">
         <section aria-label="Peta prospek" className="min-w-0 rounded-2xl border border-naki-steel bg-white p-3 sm:p-4">
@@ -153,7 +169,7 @@ export function AdminOutreachSection() {
           {!loading && <p className="mt-3 text-xs text-naki-smoke"><span data-no-translate>{mapPoints.length} / {visible.length}</span> <span>prospek ditampilkan di peta. Pilih prospek atau marker untuk melihat lokasi dan detailnya.</span></p>}
         </section>
       <section className="min-w-0 rounded-2xl border border-naki-steel bg-white p-4 sm:p-5" aria-label="Detail prospek">{!selected ? <p className="text-sm text-naki-smoke">Pilih prospek untuk melihat detailnya.</p> : <div className="space-y-5">
-        <div><h2 className="text-xl font-bold text-naki-primary">{selected.business_name}</h2><p className="text-sm text-naki-smoke">{selected.category} · {selected.city} · Skor {selected.score}/5</p></div>
+        <div><h2 className="text-xl font-bold text-naki-primary">{selected.business_name}</h2><p className="text-sm text-naki-smoke">{selected.category} · {selected.city} · Skor {selected.score}/5</p>{nicheLabel(selected)}<p className="mt-2 text-xs text-naki-smoke">Label otomatis berdasarkan kategori usaha hasil riset. Usulan niche dapat ditambahkan melalui Admin → Kategori.</p>{nicheRegistryFailed && <p role="status" className="mt-1 text-xs text-naki-smoke">Daftar niche belum dapat dimuat; label sementara ditampilkan sebagai usulan.</p>}</div>
         <div className="flex flex-wrap gap-3 text-sm font-semibold text-naki-secondary">{([ [selected.source_url, "Sumber"], [selected.evidence_url, "Bukti"], [selected.contact_url, "Kontak bisnis"] ] as const).map(([href, label]) => <a href={href} key={label} rel="noopener noreferrer" target="_blank" className="underline underline-offset-2">{label}</a>)}</div>
         <div className="grid gap-3 sm:grid-cols-2"><div><h3 className="text-xs font-semibold uppercase text-naki-smoke">Observasi</h3><p className="mt-1 text-sm text-naki-primary">{selected.observation}</p></div><div><h3 className="text-xs font-semibold uppercase text-naki-smoke">Peluang</h3><p className="mt-1 text-sm text-naki-primary">{selected.opportunity}</p></div></div>
         <label className="block text-sm font-semibold text-naki-primary">Status<select className={`${inputClass} mt-1`} disabled={selected.status === "do_not_contact"} onChange={(event) => setStatus(event.target.value as LeadStatus)} value={status}>{statuses.filter((item) => item.value !== "sending").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>

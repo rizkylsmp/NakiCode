@@ -1,30 +1,32 @@
-import { LogIn, Moon, Sun } from "lucide-react";
+import { LogIn } from "lucide-react";
+import { PreferencesControls } from "./PreferencesMenu";
+import type { ThemePreference } from "../../../utils/theme";
 import { Link } from "react-router-dom";
 import type { HeaderNavItem, HeaderProfile } from "./types";
 
 type MobileMenuProps = {
   activeProfile: HeaderProfile | null;
-  isDarkMode: boolean;
+  theme: ThemePreference;
   isActiveNav: (href: string) => boolean;
   loginNext: string;
   navItems: HeaderNavItem[];
   onClose: () => void;
   onLogout: () => void;
-  onToggleTheme: () => void;
+  onThemeChange: (theme: ThemePreference) => void;
 };
 
 export function MobileMenu({
   activeProfile,
-  isDarkMode,
+  theme,
   isActiveNav,
   loginNext,
   navItems,
   onClose,
   onLogout,
-  onToggleTheme,
+  onThemeChange,
 }: MobileMenuProps) {
   return (
-    <div className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-naki-steel bg-white px-4 py-4 sm:px-5 lg:hidden">
+    <div className="max-h-[calc(100dvh-8.5rem)] overflow-y-auto overscroll-contain border-t border-naki-steel bg-white px-4 py-4 sm:px-5 lg:hidden">
       <nav className="grid gap-1 text-sm font-medium text-naki-primary">
         {navItems.map((item) => (
           <Link
@@ -43,15 +45,12 @@ export function MobileMenu({
       </nav>
 
       <div className="mt-4 border-t border-naki-steel pt-4">
-        <button
-          className="mb-3 inline-flex h-11 w-full items-center justify-between rounded-lg bg-naki-frost px-3 text-left text-sm font-medium text-naki-primary transition hover:bg-naki-steel/60"
-          type="button"
-          aria-pressed={isDarkMode}
-          onClick={onToggleTheme}
+        <section
+          aria-label="Preferensi"
+          className="mb-4 rounded-xl bg-naki-frost/60 p-3"
         >
-          <span>{isDarkMode ? "Light mode" : "Dark mode"}</span>
-          {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
+          <PreferencesControls theme={theme} onThemeChange={onThemeChange} />
+        </section>
 
         {activeProfile ? (
           <AuthenticatedMobileMenu

@@ -57,6 +57,7 @@ import { backfillStageInvoices, findStageInvoice, findStageInvoices, invoiceStag
 import { invoicePdfData, notifyBalanceDue, notifyOrderCreated, syncPaymentInvoice } from "../order-email.service";
 import { createClientOrder, renewClientInvitation, ClientInvitationError } from "../models/client-invitation.model";
 import { sendClientOrderInvitation } from "../email";
+import { NicheError, resolveNiche } from "../models/niche.model";
 
 export const ordersRouter = Router();
 
@@ -78,6 +79,7 @@ ordersRouter.post("/admin-create", requireAdmin, async (request, response) => {
     customerName: z.string().trim().min(1).max(120),
     customerContact: z.string().trim().min(1).max(120),
     projectTitle: z.string().trim().min(3).max(160),
+    niche: z.string().trim().max(120).optional(),
     message: z.string().trim().min(3).max(5000),
     budgetRange: z.string().trim().min(1).max(80),
     language: z.enum(["id", "en"]).default("id"),
@@ -86,7 +88,8 @@ ordersRouter.post("/admin-create", requireAdmin, async (request, response) => {
   if (!parsed.success) { response.status(400).json({ error: "Lengkapi nama, email, kontak, judul project, budget, dan brief." }); return; }
   try {
     const origin = clientInvitationOrigin(request);
-    const result = await createClientOrder(parsed.data);
+    const niche = await resolveNiche(parsed.data.niche ?? "");
+    const result = await createClientOrder({ ...parsed.data, niche: niche?.name ?? "" });
     const url = result.token
       ? `${origin}/client-invitation#token=${result.token}&lang=${parsed.data.language}`
       : `${origin}/login?next=${encodeURIComponent("/pesanan-saya")}`;
@@ -101,7 +104,7 @@ ordersRouter.post("/admin-create", requireAdmin, async (request, response) => {
     try { await createAdminAuditLog({ admin: response.locals.admin, action: "create_client_order", entityType: "order", entityId: result.order.id, metadata: { existingAccount: result.existingAccount, emailSent } }); } catch { /* Order creation has already committed. */ }
     response.status(201).json({ order: result.order, invitationUrl: url, expiresAt: result.expiresAt, existingAccount: result.existingAccount, emailSent });
   } catch (error) {
-    if (error instanceof ClientInvitationError) { response.status(error.status).json({ error: error.message }); return; }
+    if (error instanceof ClientInvitationError || error instanceof NicheError) { response.status(error.status).json({ error: error.message }); return; }
     response.status(500).json({ error: "Gagal membuat order klien. Coba lagi." });
   }
 });

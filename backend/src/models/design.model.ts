@@ -1,5 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { pool } from "../db";
+import { resolveNiche } from "./niche.model";
 import {
   findRecentTemplateReviews,
   type TemplateReviewItem,
@@ -11,6 +12,7 @@ type TemplateRow = RowDataPacket & {
   title: string;
   category: string;
   category_id?: number | null;
+  niche?: string | null;
   description: string;
   price: string;
   stack: string | string[];
@@ -53,6 +55,7 @@ export type TemplateItem = {
   title: string;
   category: string;
   categoryId?: number | null;
+  niche?: string;
   description: string;
   price: string;
   stack: string[];
@@ -86,6 +89,7 @@ const templateSelect = `SELECT
   designs.title,
   COALESCE(categories.name, designs.category) AS category,
   designs.category_id,
+  COALESCE(niches.name, '') AS niche,
   designs.description,
   designs.price,
   designs.stack,
@@ -108,6 +112,7 @@ const templateSelect = `SELECT
   designs.support
 FROM designs
 LEFT JOIN categories ON categories.id = designs.category_id
+LEFT JOIN niches ON niches.id = designs.niche_id
 LEFT JOIN (
   SELECT design_id, ROUND(AVG(rating), 1) AS rating, COUNT(*) AS rating_count
   FROM design_ratings
@@ -154,6 +159,7 @@ export async function findTemplateBySlugOrId(
 
 export async function createTemplate(payload: TemplatePayload) {
   const category = await resolveTemplateCategory(payload.category);
+  const niche = await resolveNiche(payload.niche ?? "");
   await releaseDeletedTemplateSlug(payload.slug);
   const [result] = await pool.query<ResultSetHeader>(
     `INSERT INTO designs (
@@ -161,6 +167,7 @@ export async function createTemplate(payload: TemplatePayload) {
       title,
       category,
       category_id,
+      niche_id,
       description,
       price,
       stack,
@@ -178,8 +185,8 @@ export async function createTemplate(payload: TemplatePayload) {
       support,
       publication_status,
       source_available
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    serializeTemplatePayload(payload, category),
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    serializeTemplatePayload(payload, category, niche?.id ?? null),
   );
 
   return findTemplateBySlugOrId(String(result.insertId), true);
@@ -187,6 +194,7 @@ export async function createTemplate(payload: TemplatePayload) {
 
 export async function updateTemplate(id: number, payload: TemplatePayload) {
   const category = await resolveTemplateCategory(payload.category);
+  const niche = await resolveNiche(payload.niche ?? "");
   await releaseDeletedTemplateSlug(payload.slug);
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE designs SET
@@ -194,6 +202,7 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
       title = ?,
       category = ?,
       category_id = ?,
+      niche_id = ?,
       description = ?,
       price = ?,
       stack = ?,
@@ -212,7 +221,7 @@ export async function updateTemplate(id: number, payload: TemplatePayload) {
       publication_status = ?,
       source_available = ?
     WHERE id = ? AND deleted_at IS NULL`,
-    [...serializeTemplatePayload(payload, category), id],
+    [...serializeTemplatePayload(payload, category, niche?.id ?? null), id],
   );
 
   if (result.affectedRows === 0) {
@@ -252,6 +261,7 @@ export function normalizeTemplatePayload(
     slug: sanitizeSlug(body.slug) || slugify(title),
     title,
     category: String(body.category ?? "").trim(),
+    niche: String(body.niche ?? "").trim(),
     description: String(body.description ?? "").trim(),
     price: String(body.price ?? "Rp0").trim(),
     stack: normalizeArray(body.stack),
@@ -284,6 +294,7 @@ function normalizeTemplateRow(row: TemplateRow): TemplateItem {
     title: row.title,
     category: row.category,
     categoryId: row.category_id ?? null,
+    niche: row.niche ?? "",
     description: row.description,
     price: row.price,
     stack: parseStringArray(row.stack),
@@ -325,12 +336,14 @@ async function attachTemplateReviews(templates: TemplateItem[]) {
 function serializeTemplatePayload(
   payload: TemplatePayload,
   category: { id: number; name: string },
+  nicheId: number | null,
 ) {
   return [
     payload.slug,
     payload.title,
     category.name,
     category.id,
+    nicheId,
     payload.description,
     payload.price,
     JSON.stringify(payload.stack),

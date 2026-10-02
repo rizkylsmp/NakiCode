@@ -695,6 +695,7 @@ export function OrdersPanel({
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
                       <OrderMeta label="Kontak" value={order.customerContact} />
                       <OrderMeta label="Design" value={order.templateTitle} />
+                      {order.niche && <OrderMeta label="Niche" value={order.niche} />}
                       <OrderMeta label="Budget" value={order.budgetRange} />
                       <OrderMeta
                         label="Pembayaran"

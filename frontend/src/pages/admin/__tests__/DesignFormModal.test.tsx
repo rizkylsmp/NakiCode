@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { defaultFormState } from "../AdminDesignWorkspace.shared";
+import { defaultFormState, formToPayload, templateToForm } from "../AdminDesignWorkspace.shared";
 import { DesignFormModal } from "../DesignFormModal";
+vi.mock("../../../services/api-client", () => ({ apiGet: vi.fn(async () => ({ niches: [{ id: 1, name: "Laundry", designCount: 0 }] })), apiPost: vi.fn(), apiUpload: vi.fn() }));
 
 function PriceForm() {
   const [form, setForm] = useState({
@@ -30,6 +31,15 @@ function PriceForm() {
 }
 
 describe("DesignFormModal price preview", () => {
+  it("edits niche and retains it through payload, editing and duplication", async () => {
+    render(<PriceForm />);
+    await waitFor(() => expect(screen.getByLabelText("Niche")).not.toBeDisabled());
+    fireEvent.change(screen.getByLabelText("Niche"), { target: { value: "Laundry" } });
+    expect(screen.getByLabelText("Niche")).toHaveValue("Laundry");
+    const payload = formToPayload({ ...defaultFormState, niche: "  Laundry  " });
+    expect(payload.niche).toBe("Laundry");
+    expect(templateToForm({ ...payload, id: 1, rating: 0, buyerCount: 0, reviews: [] }).niche).toBe("Laundry");
+  });
   it("shows the rupiah amount below Harga while typing", () => {
     render(<PriceForm />);
     fireEvent.click(screen.getByRole("tab", { name: /Penjualan/ }));

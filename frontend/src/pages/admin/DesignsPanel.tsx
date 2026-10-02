@@ -245,6 +245,7 @@ export function DesignsPanel({
                   <p className="mt-0.5 truncate text-xs text-naki-smoke">
                     /design/{template.slug}
                   </p>
+                  <p className="mt-1 break-words text-xs text-naki-smoke"><span>Niche</span>: <span data-no-translate>{template.niche || "—"}</span></p>
                 </div>
                 <div className="flex w-full items-center justify-between gap-4 sm:ml-4 sm:w-auto sm:justify-end">
                   <p className="text-sm font-semibold text-naki-primary">

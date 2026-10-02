@@ -40,12 +40,17 @@ describe("UserLoginPage", () => {
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
-  it("keeps the language switch immediately before Back in one toolbar", () => {
-    renderLoginPage();
+  it("places language controls inside the form header, separate from Back", () => {
+    const { container } = renderLoginPage();
     const back = screen.getByRole("button", { name: /^Kembali$/i });
     const language = screen.getByRole("group", { name: "Bahasa" });
-    expect(back.parentElement).toBe(language.parentElement);
-    expect(language.nextElementSibling).toBe(back);
+    expect(container.querySelector("#login-form-panel")).toContainElement(
+      language,
+    );
+    expect(container.querySelector("#login-form-panel")).not.toContainElement(
+      back,
+    );
+    expect(language.parentElement).toHaveClass("flex", "items-center", "gap-2");
     expect(back).not.toHaveClass("absolute");
   });
 
