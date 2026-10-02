@@ -1,13 +1,11 @@
 import express from 'express';
 import { z } from 'zod';
 import { requireAdmin, type UserTokenPayload } from '../auth';
-import { config } from '../config';
 import { createAdminAuditLog } from '../models/audit-log.model';
 import {
-  findOutreachLead,
+  deleteOutreachLead, findOutreachLead,
   insertOutreachLead, listOutreachLeads, outreachStatuses, updateOutreachLead,
 } from '../models/outreach.model';
-import { sendOutreachTemplate } from '../outreach.service';
 
 export const outreachRouter = express.Router();
 outreachRouter.use(requireAdmin);
@@ -38,12 +36,10 @@ const updateSchema = z.object({
   draftMessage: z.string().trim().min(10).max(3000).optional(),
   notes: z.string().max(3000).optional(),
   whatsappNumber: z.string().regex(/^\+?[1-9]\d{7,14}$/).optional().nullable(),
-  optInAt: z.iso.datetime({ offset: true }).optional().nullable(),
-  optInSource: url.optional().nullable(),
 });
 
 outreachRouter.get('/', async (_req, res) => {
-  try { res.json({ leads: await listOutreachLeads(), whatsappConfigured: Boolean(config.outreach.accessToken && config.outreach.phoneNumberId && config.outreach.template) }); }
+  try { res.json({ leads: await listOutreachLeads() }); }
   catch { res.status(500).json({ message: 'Gagal mengambil prospek.' }); }
 });
 
@@ -67,25 +63,26 @@ outreachRouter.patch('/:id', async (req, res) => {
     if (current.status === 'do_not_contact' && parsed.data.status !== 'do_not_contact') return res.status(409).json({ message: 'Prospek ini menolak kontak.' });
     const optedOut = parsed.data.status === 'do_not_contact';
     const whatsappNumber = optedOut ? null : parsed.data.whatsappNumber !== undefined ? parsed.data.whatsappNumber : current.whatsapp_number;
-    const optInAt = optedOut ? null : parsed.data.optInAt !== undefined ? parsed.data.optInAt : current.opt_in_at?.toISOString() ?? null;
-    const optInSource = optedOut ? null : parsed.data.optInSource !== undefined ? parsed.data.optInSource : current.opt_in_source;
-    if (parsed.data.status === 'ready' && (!whatsappNumber || !optInAt || !optInSource)) return res.status(400).json({ message: 'Nomor dan bukti opt-in WhatsApp wajib diisi sebelum siap kirim.' });
-    if (parsed.data.status === 'ready' && current.sent_at) return res.status(409).json({ message: 'Kontak ini sudah pernah dikirim template. Jangan antrekan ulang.' });
-    await updateOutreachLead(id, { ...parsed.data, whatsappNumber, optInAt, optInSource });
+    if (['ready', 'sending', 'failed'].includes(parsed.data.status)) return res.status(400).json({ message: 'Status pengiriman otomatis tidak lagi digunakan.' });
+    const updated = await updateOutreachLead(id, { ...parsed.data, whatsappNumber,
+      optInAt: optedOut ? null : current.opt_in_at?.toISOString() ?? null,
+      optInSource: optedOut ? null : current.opt_in_source });
+    if (!updated) return res.status(404).json({ message: 'Prospek tidak ditemukan.' });
     await audit(req, 'outreach.update', id);
     return res.json({ lead: await findOutreachLead(id) });
   } catch { return res.status(500).json({ message: 'Gagal memperbarui prospek.' }); }
 });
 
-outreachRouter.post('/:id/send', async (req, res) => {
+outreachRouter.delete('/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ message: 'ID tidak valid.' });
   try {
-    const lead = await sendOutreachTemplate(id);
-    await audit(req, 'outreach.send_template', id);
-    return res.json({ lead });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Pengiriman gagal.';
-    return res.status(message.includes('belum dikonfigurasi') ? 503 : message.includes('opt-in') ? 409 : 502).json({ message });
-  }
+    if (!(await deleteOutreachLead(id))) return res.status(404).json({ message: 'Prospek tidak ditemukan.' });
+    await audit(req, 'outreach.delete', id);
+    return res.json({ message: 'Prospek dihapus dari daftar.' });
+  } catch { return res.status(500).json({ message: 'Gagal menghapus prospek.' }); }
+});
+
+outreachRouter.post('/:id/send', (_req, res) => {
+  res.status(410).json({ message: 'Pengiriman WhatsApp dinonaktifkan. Client Outreach hanya untuk riset dan pencatatan.' });
 });

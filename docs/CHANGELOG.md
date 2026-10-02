@@ -2,7 +2,13 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-02 - Sederhanakan Client Outreach menjadi riset dan pencatatan: tambahkan Hapus prospek dengan konfirmasi dan deduplikasi identitas yang dihapus; pertahankan nomor WhatsApp opsional tanpa field persetujuan; hapus tombol WhatsApp, banner jadwal/Meta, dan status antrean dari UI. Nonaktifkan pengiriman API/job serta webhook WhatsApp; perbarui otomasi pencarian dan dokumentasi - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/i18n/additional-messages.ts, backend/src/models/outreach.model.ts, backend/src/routes/outreach.ts, backend/src/outreach.service.ts, backend/src/server.ts, backend/src/scripts/outreach-cycle.ts, docs/PROJECT_SUMMARY.md, ../MARKETING/CLIENT_OUTREACH/README.md; automation: prospek-client-naki-code
+
+  Validasi: 14 tes frontend/backend terfokus, lint frontend, build/typecheck frontend/backend, dan pemeriksaan SEO lulus. Browser lokal dengan data uji memeriksa penyimpanan nomor, penghapusan, daftar panjang, filter kosong, serta layout desktop/mobile 320px. Tidak ada prospek produksi dihapus saat pengujian.
+
 - [x] 2026-10-02 - Perbaiki tinggi area scroll daftar prospek Client Outreach agar mengisi panel desktop sampai bawah dan prospek terakhir tetap terjangkau; satukan switch ID/EN di sebelah kiri tombol Kembali pada login tanpa overlap mobile - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/UserLoginPage.tsx, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/pages/__tests__/UserLoginPage.test.tsx
+
+- [x] 2026-10-01 - Ubah fokus otomasi prospek ke Google Maps Pasuruan dan sekitar, mencakup UMKM sampai perusahaan dengan website yang belum ditemukan setelah pemeriksaan tambahan; wajibkan URL https://nakicode.xyz/ pada draf baru, hentikan dispatch job sesuai alur WhatsApp manual, dan siapkan kandidat awal Cuci Mobil Karya Usaha Motor - files: ../MARKETING/CLIENT_OUTREACH/README.md, ../MARKETING/CLIENT_OUTREACH/LEADS.csv, docs/PROJECT_SUMMARY.md; automation: prospek-client-naki-code
 
 - [x] 2026-10-01 - Tambahkan Buka WhatsApp pada Admin Client Outreach untuk membuka draf personal tanpa Cloud API, dengan validasi nomor/bukti persetujuan tersimpan, pemblokiran status antrean dan penolakan kontak, encoding pesan, serta penjelasan bahwa pengiriman dikonfirmasi di WhatsApp dan status tidak berubah otomatis - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/utils/outreach-whatsapp.ts, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/i18n/additional-messages.ts, docs/PROJECT_SUMMARY.md
 

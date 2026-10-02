@@ -20,7 +20,6 @@ import { healthRouter } from './routes/health';
 import { notificationsRouter } from './routes/notifications';
 import { ordersRouter } from './routes/orders';
 import { outreachRouter } from './routes/outreach';
-import { outreachWebhookRouter } from './routes/outreach-webhook';
 import { router as ordersStatsRouter } from './routes/orders-stats';
 import { paymentsRouter } from './routes/payments';
 import { projectsRouter } from './routes/projects';
@@ -56,7 +55,6 @@ app.use(securityHeaders);
 app.use(permissionsPolicyHeaders);
 app.use(corsMiddleware);
 app.use(apiRateLimit);
-app.use('/api/webhooks/whatsapp', express.raw({ type: 'application/json', limit: '1mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cacheHeaders);
 
@@ -140,7 +138,6 @@ function mountApiRoutes(prefix: string) {
   app.use(`${prefix}/auth`, authRateLimit, authRouter);
   app.use(`${prefix}/admin/stats`, adminStatsRouter);
   app.use(`${prefix}/admin/outreach`, outreachRouter);
-  if (prefix === '/api') app.use(`${prefix}/webhooks/whatsapp`, outreachWebhookRouter);
   app.use(`${prefix}/projects`, projectsRouter);
   app.use(`${prefix}/templates`, templatesRouter);
   app.use(`${prefix}/designs`, templatesRouter);

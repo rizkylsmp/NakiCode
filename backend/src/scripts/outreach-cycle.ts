@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { closeDatabasePool, pingDatabase, pool } from '../db';
-import { insertOutreachLead, listOutreachIdentities, listOutreachLeads } from '../models/outreach.model';
-import { sendOutreachTemplate } from '../outreach.service';
+import { insertOutreachLead, listOutreachIdentities } from '../models/outreach.model';
 
 function parseCsv(source: string) {
   const rows: string[][] = [];
@@ -34,6 +33,7 @@ function parseCsv(source: string) {
 async function sync() {
   const filePath = path.resolve(process.cwd(), '../../MARKETING/CLIENT_OUTREACH/LEADS.csv');
   const rows = parseCsv(await readFile(filePath, 'utf8'));
+  const known = new Set((await listOutreachIdentities()).map((lead) => lead.external_key));
   let created = 0;
   for (const row of rows) {
     if (!row.id || !row.business_name || !row.source_url || !row.evidence_url || !row.contact_url || !row.observation || !row.opportunity || !row.draft_message) continue;
@@ -52,19 +52,14 @@ async function sync() {
       checkedAt: row.checked_at || null,
       notes: row.notes || null,
     });
-    if (result.created) created += 1;
+    if (result.created && !known.has(row.id)) created += 1;
+    known.add(row.id);
   }
   console.log(`Sinkronisasi selesai: ${created} prospek baru dari ${rows.length} baris.`);
 }
 
 async function dispatch() {
-  const ready = (await listOutreachLeads()).filter((lead) => lead.status === 'ready').slice(0, 5);
-  let sent = 0;
-  for (const lead of ready) {
-    try { await sendOutreachTemplate(lead.id); sent += 1; }
-    catch (error) { console.error(`Prospek ${lead.id}: ${error instanceof Error ? error.message : 'gagal'}`); }
-  }
-  console.log(`Pengiriman selesai: ${sent}/${ready.length} kontak opt-in.`);
+  throw new Error('Pengiriman WhatsApp dinonaktifkan. Client Outreach hanya untuk riset dan pencatatan.');
 }
 
 async function migrate() {
@@ -78,6 +73,7 @@ async function migrate() {
 
 async function main() {
   const action = process.argv[2];
+  if (action === 'dispatch') return dispatch();
   if (action === 'dry-run') {
     const filePath = path.resolve(process.cwd(), '../../MARKETING/CLIENT_OUTREACH/LEADS.csv');
     const rows = parseCsv(await readFile(filePath, 'utf8'));
@@ -85,12 +81,11 @@ async function main() {
     await closeDatabasePool();
     return;
   }
-  if (action !== 'migrate' && action !== 'sync' && action !== 'dispatch' && action !== 'status') throw new Error('Pilih migrate, sync, dispatch, status, atau dry-run.');
+  if (action !== 'migrate' && action !== 'sync' && action !== 'status') throw new Error('Pilih migrate, sync, status, atau dry-run.');
   await pingDatabase();
   try {
     if (action === 'migrate') await migrate();
     else if (action === 'sync') await sync();
-    else if (action === 'dispatch') await dispatch();
     else console.log(JSON.stringify(await listOutreachIdentities()));
   }
   finally { await closeDatabasePool(); }

@@ -132,7 +132,7 @@ Optional:
 - `CLOUDINARY_FOLDER`
 - `SENTRY_DSN`
 - `GOOGLE_CLIENT_ID` untuk verifikasi ID token login Google; nilainya sama dengan `VITE_GOOGLE_CLIENT_ID` di frontend
-- `WHATSAPP_CLOUD_ACCESS_TOKEN`, `WHATSAPP_CLOUD_PHONE_NUMBER_ID`, `WHATSAPP_OUTREACH_TEMPLATE`, `WHATSAPP_OUTREACH_TEMPLATE_LANGUAGE` untuk Client Outreach admin; tanpa tiga nilai pertama fitur kirim tidak aktif. Template harus sudah disetujui Meta. `WHATSAPP_META_APP_SECRET` dan `WHATSAPP_WEBHOOK_VERIFY_TOKEN` diperlukan untuk webhook balasan.
+- Variabel WhatsApp Cloud API lama tidak diperlukan untuk Client Outreach; pengiriman dan webhook fitur tersebut sudah dinonaktifkan.
 
 Frontend optional:
 
@@ -163,8 +163,9 @@ Jangan commit `.env`.
 - `/wishlist` - design favorit user
 - `/portofolio` - seluruh portfolio publik dengan pagination server-side dan URL halaman yang dapat dibagikan
 - `/admin/dashboard`, `/admin/design`, `/admin/orders`, `/admin/coupons`, `/admin/portfolio` - admin panel, butuh role admin
-- `/admin/outreach` - daftar prospek, status, observasi, draf, dan bukti opt-in WhatsApp; butuh role admin
-- Client Outreach menyediakan **Buka WhatsApp** tanpa kredensial Cloud API: nomor internasional dan bukti persetujuan yang valid harus sudah tersimpan; draf terkini di-encode ke tautan `wa.me`. Admin menekan Kirim di WhatsApp dan mencatat hasil percakapan sendiri. Pembukaan tautan tidak mengubah status/sent_at atau mengirim request API. Status `ready` diblokir pada alur manual agar tidak bertabrakan dengan antrean otomatis; gunakan `reviewed`. Kontak `do_not_contact`, `sending`, `lost`, dan `won` juga diblokir.
+- `/admin/outreach` - riset prospek, status, observasi, draf pesan, nomor WhatsApp opsional, dan hapus prospek; butuh role admin.
+- Client Outreach hanya untuk pencarian dan pencatatan. Tidak ada tombol Buka WhatsApp/kirim, field bukti atau waktu persetujuan, maupun banner konfigurasi Meta. Nomor WhatsApp dapat disimpan tanpa bukti persetujuan. Hapus prospek menandai status internal `deleted`, mengosongkan kontak, dan menyembunyikan baris; identitas tetap tersimpan untuk mencegah impor ulang otomatis. Status antrean lama ditampilkan sebagai Ditinjau saat mengedit dan tidak dapat dipilih lagi.
+- Fokus riset mulai 2026-10-01: profil Google Maps di Kota/Kabupaten Pasuruan dan sekitarnya, dari UMKM sampai perusahaan, dengan prioritas website mandiri yang belum ditemukan setelah pemeriksaan Maps dan pencarian kanal resmi. Draf baru wajib memuat `https://nakicode.xyz/`. Job hari kerja 09.00 WIB tetap menambah maksimal lima prospek; `outreach:dispatch` dinonaktifkan; job hanya mencari dan menyinkronkan prospek. Maps tanpa tautan website belum membuktikan bisnis tidak punya website; catat sumber dan tanggal pemeriksaan. Riwayat lama dan perubahan admin dipertahankan.
 
 ---
 
@@ -227,8 +228,8 @@ Admin:
 - `POST /api/orders/:id/payment/confirm-lynk` (admin)
 - Design/category/project/blog CRUD routes; design memakai `/api/designs` dengan `/api/templates` sebagai alias kompatibilitas sementara
 - `GET /api/admin/stats`
-- `GET|POST /api/admin/outreach`, `PATCH /api/admin/outreach/:id`, `POST /api/admin/outreach/:id/send` - pengelolaan prospek admin. Pengiriman hanya untuk status `ready` dengan nomor dan bukti opt-in.
-- `GET|POST /api/webhooks/whatsapp` - verifikasi webhook Meta dan penerimaan balasan bertanda tangan; balasan dari kontak yang sudah pernah dikirim menandai prospek `replied`.
+- `GET|POST /api/admin/outreach`, `PATCH|DELETE /api/admin/outreach/:id` - pengelolaan prospek admin. DELETE menyimpan identitas penghapusan agar sinkronisasi tidak mengembalikan prospek; endpoint lama `POST /api/admin/outreach/:id/send` mengembalikan HTTP 410 tanpa mengirim pesan.
+- Webhook WhatsApp tidak dipasang pada server; fitur outreach tidak membutuhkan koneksi Meta.
 - `POST /api/uploads/images` (admin)
 - `POST /api/uploads/video` (admin, satu video MP4/WebM/MOV maksimal 50 MB)
 - `POST /api/uploads/source` (admin, satu arsip ZIP/RAR valid maksimal 100 MB)
@@ -436,7 +437,7 @@ Admin:
 - Invoice bernomor stabil dengan snapshot pelanggan dan total order; proyek custom berstatus parsial setelah DP dan lunas setelah pelunasan, serta order bertransaksi tidak dapat dihapus
 - Soft delete design/order/project/blog
 - Audit trail admin
-- Client Outreach admin: prospek hasil riset disimpan di `outreach_leads` (MySQL), bukan tabel pelanggan/order. Job Codex hari kerja meneliti kandidat publik dan menulis `MARKETING/CLIENT_OUTREACH/LEADS.csv`; `npm run outreach:migrate --workspace backend` menyiapkan hanya tabel outreach, lalu `npm run outreach:sync --workspace backend` memasukkan baris baru tanpa menimpa status admin. `npm run outreach:dispatch --workspace backend` memproses maksimal lima kontak opt-in `ready` per putaran lewat template WhatsApp Cloud API. Webhook Meta dapat memperbarui status balasan. Sumber riset, status persetujuan, dan riwayat kirim tetap terpisah dari katalog design.
+- Client Outreach admin: prospek hasil riset disimpan di `outreach_leads` (MySQL), terpisah dari pelanggan/order. Job hari kerja meneliti Google Maps dan menulis `MARKETING/CLIENT_OUTREACH/LEADS.csv`; `rtk npm run outreach:sync --workspace backend` memasukkan prospek baru tanpa menimpa status admin atau mengembalikan prospek `deleted`. `rtk npm run outreach:status --workspace backend` mencakup identitas yang dihapus untuk deduplikasi. Job hanya riset/draf/sinkronisasi; pengiriman WhatsApp dinonaktifkan.
 - Admin stats endpoint: total orders, revenue, orders by status, top designs, recent orders, weekly revenue
 
 Backend/platform:
@@ -536,6 +537,6 @@ npm run outreach:check --workspace backend
 npm run outreach:migrate --workspace backend
 npm run outreach:status --workspace backend
 npm run outreach:sync --workspace backend
-npm run outreach:dispatch --workspace backend
+# outreach:dispatch dinonaktifkan (riset dan pencatatan saja)
 npm run email:retry-orders --workspace backend
 ```

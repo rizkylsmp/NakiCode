@@ -5,7 +5,7 @@ export const outreachStatuses = [
   'new', 'reviewed', 'ready', 'sending', 'sent', 'replied',
   'qualified', 'won', 'lost', 'failed', 'do_not_contact',
 ] as const;
-export type OutreachStatus = (typeof outreachStatuses)[number];
+export type OutreachStatus = (typeof outreachStatuses)[number] | 'deleted';
 
 export type OutreachLeadInput = {
   externalKey: string;
@@ -50,7 +50,7 @@ export type OutreachLead = RowDataPacket & {
 
 export async function listOutreachLeads() {
   const [rows] = await pool.query<OutreachLead[]>(
-    `SELECT * FROM outreach_leads ORDER BY
+    `SELECT * FROM outreach_leads WHERE status <> 'deleted' ORDER BY
       CASE status WHEN 'ready' THEN 0 WHEN 'new' THEN 1 WHEN 'reviewed' THEN 2 ELSE 3 END,
       score DESC, created_at DESC LIMIT 200`,
   );
@@ -66,7 +66,7 @@ export async function listOutreachIdentities() {
 
 export async function findOutreachLead(id: number) {
   const [rows] = await pool.query<OutreachLead[]>(
-    'SELECT * FROM outreach_leads WHERE id = ? LIMIT 1', [id],
+    "SELECT * FROM outreach_leads WHERE id = ? AND status <> 'deleted' LIMIT 1", [id],
   );
   return rows[0] ?? null;
 }
@@ -102,7 +102,7 @@ export async function updateOutreachLead(
       draft_message = COALESCE(?, draft_message),
       notes = COALESCE(?, notes),
       whatsapp_number = ?, opt_in_at = ?, opt_in_source = ?
-     WHERE id = ?`,
+     WHERE id = ? AND status <> 'deleted'`,
     [input.status, input.draftMessage ?? null, input.notes ?? null,
       input.whatsappNumber || null, input.optInAt ? new Date(input.optInAt) : null,
       input.optInSource || null, id],
@@ -118,6 +118,15 @@ export async function claimOutreachLead(id: number) {
        AND opt_in_source IS NOT NULL`, [id],
   );
   return result.affectedRows === 1;
+}
+
+export async function deleteOutreachLead(id: number) {
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE outreach_leads SET status = 'deleted', whatsapp_number = NULL,
+      opt_in_at = NULL, opt_in_source = NULL
+     WHERE id = ? AND status <> 'deleted'`, [id],
+  );
+  return result.affectedRows > 0;
 }
 
 export async function finishOutreachSend(id: number, error?: string) {

@@ -1,4 +1,9 @@
 export const additionalEnglish: Record<string, string> = {
+  "Prospek sudah pernah dihapus.": "This lead was previously deleted.",
+  "Hapus prospek": "Delete lead",
+  "Prospek dihapus dari daftar.": "The lead was removed from the list.",
+  "Gagal menghapus prospek.": "Could not delete the lead.",
+  "Riset prospek, tinjau peluang, dan siapkan draf pesan.": "Research leads, review opportunities, and prepare message drafts.",
   "Buka WhatsApp": "Open WhatsApp",
   "Status prospek ini tidak mengizinkan kontak WhatsApp.": "This lead's status does not allow WhatsApp contact.",
   "Pilih status Ditinjau dan simpan untuk memakai alur manual tanpa antrean Cloud API.": "Select Reviewed and save to use the manual flow without queuing a Cloud API message.",
