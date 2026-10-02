@@ -1,4 +1,12 @@
 export const additionalEnglish: Record<string, string> = {
+  "Peta prospek": "Lead map",
+  "Peta lokasi prospek": "Lead location map",
+  "Memuat lokasi prospek...": "Loading lead locations...",
+  "Memuat peta...": "Loading map...",
+  "Lihat di Google Maps": "View on Google Maps",
+  "Belum ada lokasi dengan koordinat Google Maps pada prospek yang ditampilkan.": "No Google Maps coordinates are available for the displayed leads.",
+  "prospek ditampilkan di peta. Klik marker untuk membuka tautan Google Maps.": "leads shown on the map. Click a marker to open its Google Maps link.",
+  "Latar peta gagal dimuat. Marker dan tautan Google Maps tetap dapat digunakan.": "The map background could not load. Markers and Google Maps links remain available.",
   "Prospek sudah pernah dihapus.": "This lead was previously deleted.",
   "Hapus prospek": "Delete lead",
   "Prospek dihapus dari daftar.": "The lead was removed from the list.",

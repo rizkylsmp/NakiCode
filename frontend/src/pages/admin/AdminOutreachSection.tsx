@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost, getApiErrorMessage } from "../../services/api-client";
+import { getOutreachMapPoints } from "../../utils/outreach-map";
+const OutreachLeafletMap = lazy(() => import("./OutreachLeafletMap"));
 
 type LeadStatus = "new" | "reviewed" | "ready" | "sending" | "sent" | "replied" | "qualified" | "won" | "lost" | "failed" | "do_not_contact";
 type Lead = {
@@ -66,6 +68,7 @@ export function AdminOutreachSection() {
     const q = search.trim().toLowerCase();
     return (filter === "all" || lead.status === filter) && (!q || [lead.business_name, lead.category, lead.city].join(" ").toLowerCase().includes(q));
   }), [leads, search, filter]);
+  const mapPoints = useMemo(() => getOutreachMapPoints(visible), [visible]);
 
   async function load() {
     setLoading(true);
@@ -132,6 +135,11 @@ export function AdminOutreachSection() {
       <label className="text-xs font-semibold text-naki-primary">Skor 0–5<input className={`${inputClass} mt-1`} max={5} min={0} type="number" value={newLead.score} onChange={(event) => setNewLead((current) => ({ ...current, score: Number(event.target.value) }))} /></label>
       <div className="self-end"><button className="min-h-11 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} type="submit">Simpan prospek</button></div>
     </form>}
+    <section aria-label="Peta prospek" className="min-w-0 rounded-2xl border border-naki-steel bg-white p-3 sm:p-4">
+      <h2 className="mb-2 text-lg font-semibold text-naki-primary">Peta prospek</h2>
+      {loading ? <p role="status" className="py-6 text-sm text-naki-smoke">Memuat lokasi prospek...</p> : mapPoints.length ? <Suspense fallback={<p role="status" className="py-6 text-sm text-naki-smoke">Memuat peta...</p>}><OutreachLeafletMap points={mapPoints} /></Suspense> : <p className="py-6 text-sm text-naki-smoke">Belum ada lokasi dengan koordinat Google Maps pada prospek yang ditampilkan.</p>}
+      {!loading && <p className="mt-3 text-xs text-naki-smoke"><span data-no-translate>{mapPoints.length} / {visible.length}</span> <span>prospek ditampilkan di peta. Klik marker untuk membuka tautan Google Maps.</span></p>}
+    </section>
     <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-naki-steel bg-white p-3 lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)] lg:self-start" aria-label="Daftar prospek">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><input aria-label="Cari prospek" className={inputClass} onChange={(event) => setSearch(event.target.value)} placeholder="Cari bisnis, kota, kategori" value={search} /><select aria-label="Filter status" className={inputClass} onChange={(event) => setFilter(event.target.value)} value={filter}><option value="all">Semua</option>{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>

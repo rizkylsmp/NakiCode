@@ -2,6 +2,10 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-02 - Tambahkan peta Leaflet pada Client Outreach dengan marker mengikuti filter, popup nama/kota dan tautan Google Maps, pemuatan terpisah, serta state tanpa koordinat dan kegagalan tile. Koordinat diambil dari URL tempat resmi tanpa memakai posisi kamera - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/OutreachLeafletMap.tsx, frontend/src/pages/admin/outreach-map.css, frontend/src/utils/outreach-map.ts, frontend/src/i18n/additional-messages.ts, frontend/package.json, package-lock.json, docs/PROJECT_SUMMARY.md
+
+  Validasi: 21 pengujian terfokus lulus (parser URL, keamanan popup, cleanup, kegagalan tile, dan regresi outreach); lint dan build/SEO frontend lulus. Browser lokal dengan data uji memverifikasi loading, popup, filter status/pencarian, tanpa koordinat, kegagalan koneksi, desktop, dan mobile 320px. Tidak ada perubahan data prospek produksi.
+
 - [x] 2026-10-02 - Siklus riset Maps menambahkan empat prospek laundry Pasuruan/Pohjentrek/Kejayan dengan observasi faktual, peluang design website, dan draf personal berisi https://nakicode.xyz/; CSV 15 baris valid dan sinkronisasi database berhasil menambahkan empat prospek berstatus new. Nomor Maps tidak diasumsikan WhatsApp dan tidak ada pesan dikirim - files: ../MARKETING/CLIENT_OUTREACH/LEADS.csv
 
 - [x] 2026-10-02 - Sederhanakan Client Outreach menjadi riset dan pencatatan: tambahkan Hapus prospek dengan konfirmasi dan deduplikasi identitas yang dihapus; pertahankan nomor WhatsApp opsional tanpa field persetujuan; hapus tombol WhatsApp, banner jadwal/Meta, dan status antrean dari UI. Nonaktifkan pengiriman API/job serta webhook WhatsApp; perbarui otomasi pencarian dan dokumentasi - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/i18n/additional-messages.ts, backend/src/models/outreach.model.ts, backend/src/routes/outreach.ts, backend/src/outreach.service.ts, backend/src/server.ts, backend/src/scripts/outreach-cycle.ts, docs/PROJECT_SUMMARY.md, ../MARKETING/CLIENT_OUTREACH/README.md; automation: prospek-client-naki-code
