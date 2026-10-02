@@ -1,5 +1,8 @@
 /** Reviewed UI copy. User-authored content and identifiers are not machine-translated. */
 export const english: Record<string, string> = {
+  "Ciutkan sidebar": "Collapse sidebar",
+  "Perluas sidebar": "Expand sidebar",
+  "Navigasi admin": "Admin navigation",
   Bahasa: "Language",
   "Bahasa Indonesia": "Indonesian",
   Beranda: "Home",

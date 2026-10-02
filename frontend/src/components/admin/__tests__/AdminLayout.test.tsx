@@ -16,6 +16,72 @@ vi.mock("../../../services/api-client", async () => {
 });
 
 describe("AdminLayout responsive navigation", () => {
+  it("collapses to accessible icons, widens content, and remembers the preference", () => {
+    const onNavigate = vi.fn();
+    const onLogout = vi.fn();
+    const layout = (key: string) => (
+      <AdminLayout
+        key={key}
+        activeView="orders"
+        adminUsername="admin"
+        onLogout={onLogout}
+        onNavigate={onNavigate}
+      >
+        <p>Konten admin</p>
+      </AdminLayout>
+    );
+    const { container, rerender } = renderWithProviders(layout("first"), {
+      auth: { token: "admin-token", username: "admin", role: "admin" },
+      route: "/admin/orders",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ciutkan sidebar" }));
+    const sidebar = screen.getByRole("complementary", {
+      name: "Navigasi admin",
+    });
+    expect(sidebar).toHaveClass("w-20");
+    expect(container.querySelector("main")).toHaveClass("lg:ml-20");
+    expect(container.querySelector("main")).not.toHaveClass(
+      "lg:ml-56",
+      "xl:ml-60",
+    );
+    expect(
+      screen.getByRole("button", { name: "Perluas sidebar" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    const orders = within(sidebar).getByRole("button", { name: "Orders" });
+    expect(orders).toHaveAttribute("title", "Orders");
+    expect(orders).toHaveAttribute("aria-current", "page");
+    expect(orders).not.toHaveTextContent("Orders");
+    fireEvent.click(within(sidebar).getByRole("button", { name: "Portfolio" }));
+    expect(onNavigate).toHaveBeenCalledWith("portfolio");
+    fireEvent.click(
+      within(sidebar).getByRole("button", { name: "Logout admin" }),
+    );
+    expect(onLogout).toHaveBeenCalledOnce();
+    expect(localStorage.getItem("naki-admin-sidebar-collapsed")).toBe("true");
+
+    rerender(layout("remounted"));
+    expect(
+      screen.getByRole("button", { name: "Perluas sidebar" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Buka menu admin" }));
+    const drawer = screen.getByRole("dialog", {
+      name: "Navigasi admin mobile",
+    });
+    expect(
+      within(drawer).getByRole("button", { name: "Orders" }),
+    ).toHaveTextContent("Orders");
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Perluas sidebar" }));
+    expect(container.querySelector("main")).toHaveClass("lg:ml-56", "xl:ml-60");
+    expect(
+      within(
+        screen.getByRole("complementary", { name: "Navigasi admin" }),
+      ).getByRole("button", { name: "Orders" }),
+    ).toHaveTextContent("Orders");
+    expect(localStorage.getItem("naki-admin-sidebar-collapsed")).toBe("false");
+  });
+
   it("uses an accessible mobile drawer and keeps desktop offset breakpoint-only", () => {
     const onNavigate = vi.fn();
     const { container } = renderWithProviders(

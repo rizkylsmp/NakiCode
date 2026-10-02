@@ -363,7 +363,7 @@ Mode:
 ## UI / Styling Rules
 
 - Responsive dimulai dari lebar 320px. Layout publik memakai padding mobile ringkas, media tidak boleh melewati container, dan judul/aksi harus dapat wrap tanpa horizontal page scroll.
-- Admin memakai sidebar tetap mulai breakpoint `lg`; pada layar lebih kecil navigasi memakai tombol sticky yang membuka drawer ber-overlay lengkap dengan indikator menu aktif, profil admin, dan dukungan Escape. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
+- Admin memakai sidebar tetap mulai breakpoint `lg`, dengan tombol collapse/expand menjadi navigasi ikon selebar 80px, tooltip nama menu, dan area konten yang mengikuti lebarnya. Preferensi disimpan lokal pada `naki-admin-sidebar-collapsed`; kegagalan storage tidak menghalangi navigasi. Pada layar lebih kecil navigasi tetap memakai tombol sticky yang membuka drawer ber-overlay dengan label lengkap, indikator menu aktif, profil admin, dan dukungan Escape. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
 - Layout full width, jangan max-width sempit kecuali konten spesifik butuh.
 - Palette warna tinggal di `frontend/src/styles.css` lewat `@theme`.
 - Jangan hardcode hex color di `className`.

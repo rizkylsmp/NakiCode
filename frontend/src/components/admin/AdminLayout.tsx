@@ -17,6 +17,16 @@ type AdminLayoutProps = {
   onLogout: () => void;
 };
 
+const sidebarStorageKey = "naki-admin-sidebar-collapsed";
+
+function readSidebarCollapsed() {
+  try {
+    return localStorage.getItem(sidebarStorageKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
 export function AdminLayout({
   children,
   activeView,
@@ -25,11 +35,21 @@ export function AdminLayout({
   onLogout,
 }: AdminLayoutProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] =
+    useState(readSidebarCollapsed);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const activeMenuItem =
     ADMIN_MENU_ITEMS.find((item) => item.key === activeView) ??
     ADMIN_MENU_ITEMS[0];
   const ActiveMenuIcon = activeMenuItem.icon;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(sidebarStorageKey, String(isSidebarCollapsed));
+    } catch {
+      // The sidebar remains usable when browser storage is unavailable.
+    }
+  }, [isSidebarCollapsed]);
 
   useEffect(() => {
     if (!isMobileSidebarOpen) {
@@ -68,6 +88,8 @@ export function AdminLayout({
         onNavigate={onNavigate}
         adminUsername={adminUsername}
         onLogout={onLogout}
+        collapsed={isSidebarCollapsed}
+        onToggle={() => setIsSidebarCollapsed((current) => !current)}
       />
       <AdminMobileSidebar
         activeView={activeView}
@@ -110,7 +132,9 @@ export function AdminLayout({
           />
         </button>
       </div>
-      <main className="min-w-0 lg:ml-56 xl:ml-60">
+      <main
+        className={`min-w-0 transition-[margin-left] duration-200 motion-reduce:transition-none ${isSidebarCollapsed ? "lg:ml-20" : "lg:ml-56 xl:ml-60"}`}
+      >
         <div className="p-3 sm:p-4 lg:p-5 xl:p-6">{children}</div>
       </main>
     </div>

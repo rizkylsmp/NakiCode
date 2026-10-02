@@ -10,6 +10,8 @@ import {
   WalletCards,
   ContactRound,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
 } from "lucide-react";
 import { type DashboardView } from "../../pages/admin/AdminDesignWorkspace.shared";
@@ -24,6 +26,11 @@ type AdminSidebarProps = {
 type AdminMobileSidebarProps = AdminSidebarProps & {
   isOpen: boolean;
   onClose: () => void;
+};
+
+type AdminDesktopSidebarProps = AdminSidebarProps & {
+  collapsed: boolean;
+  onToggle: () => void;
 };
 
 type MenuItem = {
@@ -65,16 +72,20 @@ type AdminNavigationProps = Pick<
   "activeView" | "onNavigate"
 > & {
   mobile?: boolean;
+  collapsed?: boolean;
 };
 
 function AdminNavigation({
   activeView,
   onNavigate,
   mobile = false,
+  collapsed = false,
 }: AdminNavigationProps) {
   return NAV_SECTIONS.map((section) => (
     <div key={section.label} className="mb-5 last:mb-0">
-      <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-naki-smoke">
+      <p
+        className={`${collapsed ? "sr-only" : "mb-1.5 px-3"} text-[10px] font-semibold uppercase tracking-[0.16em] text-naki-smoke`}
+      >
         {section.label}
       </p>
       <ul className="space-y-1">
@@ -85,10 +96,12 @@ function AdminNavigation({
           return (
             <li key={item.key}>
               <button
+                aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
+                title={collapsed ? item.label : undefined}
                 onClick={() => onNavigate(item.key)}
                 type="button"
-                className={`group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13px] font-semibold transition focus-visible:ring-2 focus-visible:ring-naki-secondary ${
+                className={`group flex min-h-11 w-full items-center rounded-xl py-2 text-left text-[13px] font-semibold transition focus-visible:ring-2 focus-visible:ring-naki-secondary ${collapsed ? "justify-center px-1" : "gap-3 px-3"} ${
                   isActive
                     ? mobile
                       ? "bg-naki-primary text-white shadow-naki-card"
@@ -107,7 +120,9 @@ function AdminNavigation({
                 >
                   <Icon size={16} />
                 </span>
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {!collapsed && (
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                )}
                 {isActive && mobile ? (
                   <span className="size-1.5 rounded-full bg-naki-secondary" />
                 ) : null}
@@ -123,13 +138,21 @@ function AdminNavigation({
 function AdminProfile({
   adminUsername,
   onLogout,
-}: Pick<AdminSidebarProps, "adminUsername" | "onLogout">) {
+  collapsed = false,
+}: Pick<AdminSidebarProps, "adminUsername" | "onLogout"> & {
+  collapsed?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-naki-frost/60 px-2.5 py-2.5">
-      <div className="grid size-9 shrink-0 place-items-center rounded-full bg-naki-primary text-xs font-semibold text-white shadow-sm">
+    <div
+      className={`flex items-center rounded-xl bg-naki-frost/60 py-2.5 ${collapsed ? "flex-col gap-2 px-1" : "gap-3 px-2.5"}`}
+    >
+      <div
+        title={collapsed ? adminUsername : undefined}
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-naki-primary text-xs font-semibold text-white shadow-sm"
+      >
         {adminUsername.charAt(0).toUpperCase()}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className={collapsed ? "sr-only" : "min-w-0 flex-1"}>
         <p className="truncate text-[13px] font-semibold text-naki-primary">
           {adminUsername}
         </p>
@@ -137,7 +160,7 @@ function AdminProfile({
       </div>
       <button
         onClick={onLogout}
-        className="grid size-10 shrink-0 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500 focus-visible:ring-2 focus-visible:ring-red-400"
+        className="grid size-11 shrink-0 place-items-center rounded-lg text-naki-smoke transition hover:bg-red-50 hover:text-red-500 focus-visible:ring-2 focus-visible:ring-red-400"
         title="Logout"
         aria-label="Logout admin"
         type="button"
@@ -153,17 +176,60 @@ export function AdminSidebar({
   onNavigate,
   adminUsername,
   onLogout,
-}: AdminSidebarProps) {
+  collapsed,
+  onToggle,
+}: AdminDesktopSidebarProps) {
+  const toggleLabel = collapsed ? "Perluas sidebar" : "Ciutkan sidebar";
   return (
-    <aside className="fixed left-0 top-[73px] z-40 hidden h-[calc(100dvh-73px)] w-56 flex-col border-r border-naki-steel bg-white lg:flex xl:w-60">
+    <aside
+      aria-label="Navigasi admin"
+      id="admin-desktop-navigation"
+      className={`fixed left-0 top-[73px] z-40 hidden h-[calc(100dvh-73px)] flex-col border-r border-naki-steel bg-white transition-[width] duration-200 motion-reduce:transition-none lg:flex ${collapsed ? "w-20" : "w-56 xl:w-60"}`}
+    >
+      <div
+        className={`flex shrink-0 items-center border-b border-naki-steel p-2.5 ${collapsed ? "justify-center" : "justify-between gap-2"}`}
+      >
+        {!collapsed && (
+          <p className="pl-2 text-xs font-semibold text-naki-smoke">
+            Menu admin
+          </p>
+        )}
+        <button
+          aria-controls="admin-desktop-navigation"
+          aria-expanded={!collapsed}
+          aria-label={toggleLabel}
+          title={toggleLabel}
+          className="grid size-11 shrink-0 place-items-center rounded-xl border border-naki-steel text-naki-primary transition hover:bg-naki-frost focus-visible:ring-2 focus-visible:ring-naki-secondary"
+          onClick={onToggle}
+          type="button"
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={19} aria-hidden="true" />
+          ) : (
+            <PanelLeftClose size={19} aria-hidden="true" />
+          )}
+        </button>
+      </div>
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-4 xl:px-3">
-        <AdminNavigation activeView={activeView} onNavigate={onNavigate} />
+      <nav
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 ${collapsed ? "px-2" : "px-2.5 xl:px-3"}`}
+      >
+        <AdminNavigation
+          activeView={activeView}
+          onNavigate={onNavigate}
+          collapsed={collapsed}
+        />
       </nav>
 
       {/* User Profile */}
-      <div className="border-t border-naki-steel p-2.5 xl:p-3">
-        <AdminProfile adminUsername={adminUsername} onLogout={onLogout} />
+      <div
+        className={`shrink-0 border-t border-naki-steel ${collapsed ? "p-2" : "p-2.5 xl:p-3"}`}
+      >
+        <AdminProfile
+          adminUsername={adminUsername}
+          onLogout={onLogout}
+          collapsed={collapsed}
+        />
       </div>
     </aside>
   );
