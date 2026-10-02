@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-02 - Pindahkan peta Client Outreach ke kanan daftar dan di atas detail; aktifkan zoom scroll dan sinkronisasi pilihan dua arah dengan fly-to serta popup otomatis, termasuk pilihan ulang dan keyboard marker. Validasi: sembilan pengujian outreach terfokus, lint, build/SEO, serta browser desktop/mobile 320px - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/OutreachLeafletMap.tsx, frontend/src/pages/admin/__tests__/OutreachLeafletMap.test.tsx, frontend/src/i18n/additional-messages.ts, docs/PROJECT_SUMMARY.md
+
 - [x] 2026-10-02 - Tambahkan peta Leaflet pada Client Outreach dengan marker mengikuti filter, popup nama/kota dan tautan Google Maps, pemuatan terpisah, serta state tanpa koordinat dan kegagalan tile. Koordinat diambil dari URL tempat resmi tanpa memakai posisi kamera - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/OutreachLeafletMap.tsx, frontend/src/pages/admin/outreach-map.css, frontend/src/utils/outreach-map.ts, frontend/src/i18n/additional-messages.ts, frontend/package.json, package-lock.json, docs/PROJECT_SUMMARY.md
 
   Validasi: 21 pengujian terfokus lulus (parser URL, keamanan popup, cleanup, kegagalan tile, dan regresi outreach); lint dan build/SEO frontend lulus. Browser lokal dengan data uji memverifikasi loading, popup, filter status/pencarian, tanpa koordinat, kegagalan koneksi, desktop, dan mobile 320px. Tidak ada perubahan data prospek produksi.

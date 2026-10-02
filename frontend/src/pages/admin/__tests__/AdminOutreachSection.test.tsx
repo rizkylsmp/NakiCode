@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiDelete, apiGet, apiPatch } from "../../../services/api-client";
 import { AdminOutreachSection } from "../AdminOutreachSection";
@@ -16,14 +17,15 @@ describe("research-only outreach", () => {
     expect(screen.getByRole("heading", { name: "Bisnis Uji 30" })).toBeInTheDocument();
   });
   it("saves a number without consent fields or sending controls", async () => {
+    const user = userEvent.setup();
     vi.mocked(apiPatch).mockResolvedValue({ lead: { ...lead, whatsapp_number: "6280000000000" } });
     render(<AdminOutreachSection />);
     await screen.findByRole("heading", { name: "Bisnis Uji" });
     expect(screen.queryByText(/Persetujuan WhatsApp|Kredensial Cloud API|dijadwalkan otomatis/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Waktu persetujuan|URL bukti persetujuan/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Buka WhatsApp|Kirim template WhatsApp|Siap kirim/)).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Nomor WhatsApp"), { target: { value: "6280000000000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Simpan perubahan" }));
+    await user.type(screen.getByLabelText("Nomor WhatsApp"), "6280000000000");
+    await user.click(screen.getByRole("button", { name: "Simpan perubahan" }));
     await screen.findByText("Perubahan tersimpan.");
     expect(apiPatch).toHaveBeenCalledWith("/api/admin/outreach/1", { status: "reviewed", draftMessage: lead.draft_message, notes: "", whatsappNumber: "6280000000000" });
   });

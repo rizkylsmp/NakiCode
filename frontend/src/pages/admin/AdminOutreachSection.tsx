@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost, getApiErrorMessage } from "../../services/api-client";
 import { getOutreachMapPoints } from "../../utils/outreach-map";
 const OutreachLeafletMap = lazy(() => import("./OutreachLeafletMap"));
@@ -52,6 +52,7 @@ const inputClass = "min-h-11 w-full rounded-xl border border-naki-steel bg-white
 export function AdminOutreachSection() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectionVersion, setSelectionVersion] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -69,6 +70,11 @@ export function AdminOutreachSection() {
     return (filter === "all" || lead.status === filter) && (!q || [lead.business_name, lead.category, lead.city].join(" ").toLowerCase().includes(q));
   }), [leads, search, filter]);
   const mapPoints = useMemo(() => getOutreachMapPoints(visible), [visible]);
+  const selectLead = useCallback((id: number) => {
+    if (busy) return;
+    setSelectedId(id);
+    setSelectionVersion((version) => version + 1);
+  }, [busy]);
 
   async function load() {
     setLoading(true);
@@ -135,16 +141,17 @@ export function AdminOutreachSection() {
       <label className="text-xs font-semibold text-naki-primary">Skor 0–5<input className={`${inputClass} mt-1`} max={5} min={0} type="number" value={newLead.score} onChange={(event) => setNewLead((current) => ({ ...current, score: Number(event.target.value) }))} /></label>
       <div className="self-end"><button className="min-h-11 rounded-xl bg-naki-primary px-5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} type="submit">Simpan prospek</button></div>
     </form>}
-    <section aria-label="Peta prospek" className="min-w-0 rounded-2xl border border-naki-steel bg-white p-3 sm:p-4">
-      <h2 className="mb-2 text-lg font-semibold text-naki-primary">Peta prospek</h2>
-      {loading ? <p role="status" className="py-6 text-sm text-naki-smoke">Memuat lokasi prospek...</p> : mapPoints.length ? <Suspense fallback={<p role="status" className="py-6 text-sm text-naki-smoke">Memuat peta...</p>}><OutreachLeafletMap points={mapPoints} /></Suspense> : <p className="py-6 text-sm text-naki-smoke">Belum ada lokasi dengan koordinat Google Maps pada prospek yang ditampilkan.</p>}
-      {!loading && <p className="mt-3 text-xs text-naki-smoke"><span data-no-translate>{mapPoints.length} / {visible.length}</span> <span>prospek ditampilkan di peta. Klik marker untuk membuka tautan Google Maps.</span></p>}
-    </section>
     <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-naki-steel bg-white p-3 lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)] lg:self-start" aria-label="Daftar prospek">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><input aria-label="Cari prospek" className={inputClass} onChange={(event) => setSearch(event.target.value)} placeholder="Cari bisnis, kota, kategori" value={search} /><select aria-label="Filter status" className={inputClass} onChange={(event) => setFilter(event.target.value)} value={filter}><option value="all">Semua</option>{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-        <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => setSelectedId(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · {statuses.find((item) => item.value === lead.status)?.label ?? "Ditinjau"} · Skor {lead.score}/5</span></button>)}</div>
+        <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => selectLead(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · {statuses.find((item) => item.value === lead.status)?.label ?? "Ditinjau"} · Skor {lead.score}/5</span></button>)}</div>
       </section>
+      <div className="min-w-0 space-y-4">
+        <section aria-label="Peta prospek" className="min-w-0 rounded-2xl border border-naki-steel bg-white p-3 sm:p-4">
+          <h2 className="mb-2 text-lg font-semibold text-naki-primary">Peta prospek</h2>
+          {loading ? <p role="status" className="py-6 text-sm text-naki-smoke">Memuat lokasi prospek...</p> : mapPoints.length ? <Suspense fallback={<p role="status" className="py-6 text-sm text-naki-smoke">Memuat peta...</p>}><OutreachLeafletMap points={mapPoints} selectedId={selectedId} selectionVersion={selectionVersion} onSelect={selectLead} /></Suspense> : <p className="py-6 text-sm text-naki-smoke">Belum ada lokasi dengan koordinat Google Maps pada prospek yang ditampilkan.</p>}
+          {!loading && <p className="mt-3 text-xs text-naki-smoke"><span data-no-translate>{mapPoints.length} / {visible.length}</span> <span>prospek ditampilkan di peta. Pilih prospek atau marker untuk melihat lokasi dan detailnya.</span></p>}
+        </section>
       <section className="min-w-0 rounded-2xl border border-naki-steel bg-white p-4 sm:p-5" aria-label="Detail prospek">{!selected ? <p className="text-sm text-naki-smoke">Pilih prospek untuk melihat detailnya.</p> : <div className="space-y-5">
         <div><h2 className="text-xl font-bold text-naki-primary">{selected.business_name}</h2><p className="text-sm text-naki-smoke">{selected.category} · {selected.city} · Skor {selected.score}/5</p></div>
         <div className="flex flex-wrap gap-3 text-sm font-semibold text-naki-secondary">{([ [selected.source_url, "Sumber"], [selected.evidence_url, "Bukti"], [selected.contact_url, "Kontak bisnis"] ] as const).map(([href, label]) => <a href={href} key={label} rel="noopener noreferrer" target="_blank" className="underline underline-offset-2">{label}</a>)}</div>
@@ -158,6 +165,7 @@ export function AdminOutreachSection() {
           <button className="min-h-11 rounded-xl border border-red-200 px-5 text-sm font-semibold text-red-700 disabled:opacity-50" disabled={busy || loading} onClick={() => void remove()} type="button">Hapus prospek</button>
         </div>
       </div>}</section>
+      </div>
     </div>
   </div>;
 }

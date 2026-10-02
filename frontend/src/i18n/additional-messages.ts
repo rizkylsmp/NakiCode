@@ -1,4 +1,5 @@
 export const additionalEnglish: Record<string, string> = {
+  "prospek ditampilkan di peta. Pilih prospek atau marker untuk melihat lokasi dan detailnya.": "leads shown on the map. Select a lead or marker to view its location and details.",
   "Peta prospek": "Lead map",
   "Peta lokasi prospek": "Lead location map",
   "Memuat lokasi prospek...": "Loading lead locations...",
