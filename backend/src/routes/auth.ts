@@ -32,6 +32,7 @@ import {
   verifyUserEmailOtp,
   updateUserPassword,
   updateUserProfileName,
+  unbindUserConnections,
   type UserAccount,
 } from "../models/user.model";
 import { parseBody } from "../validation";
@@ -114,7 +115,8 @@ const updateProfileBodySchema = z.object({
 
 const deleteAccountBodySchema = z.object({
   currentPassword: z.string().min(1).max(200),
-  confirmEmail: z.email().trim().toLowerCase().max(160),
+  confirmEmail: z.email().trim().toLowerCase().max(160).optional(),
+  confirmUsername: z.string().trim().min(1).max(80).optional(),
 });
 
 const verifyEmailBodySchema = z.object({
@@ -304,7 +306,7 @@ authRouter.post("/user/login", async (request, response) => {
       return;
     }
 
-    if (!user.emailVerifiedAt) {
+    if (user.email && !user.emailVerifiedAt) {
       response.status(403).json({
         message: "Email belum diverifikasi",
         verificationEmail: user.email,
@@ -365,6 +367,10 @@ authRouter.post("/user/google", async (request, response) => {
       }
 
       if (existingUser) {
+        if (existingUser.googleLoginDisabled) {
+          response.status(403).json({ message: "Koneksi Google telah dilepas. Masuk menggunakan username dan password." });
+          return;
+        }
         if (existingUser.googleSub && existingUser.googleSub !== profile.sub) {
           response.status(409).json({
             message: "Email ini sudah terhubung dengan akun Google lain",
@@ -410,6 +416,11 @@ authRouter.post("/user/google", async (request, response) => {
 
     if (!user) {
       response.status(500).json({ message: "Gagal menyiapkan akun Google" });
+      return;
+    }
+
+    if (user.googleLoginDisabled) {
+      response.status(403).json({ message: "Koneksi Google telah dilepas. Masuk menggunakan username dan password." });
       return;
     }
 
@@ -492,6 +503,11 @@ authRouter.post("/user/google/link", async (request, response) => {
       response.status(403).json({
         message: "Akun admin harus masuk menggunakan password",
       });
+      return;
+    }
+
+    if (existingUser.googleLoginDisabled) {
+      response.status(403).json({ message: "Koneksi Google telah dilepas. Masuk menggunakan username dan password." });
       return;
     }
 
@@ -675,8 +691,39 @@ authRouter.get("/user/me", async (request, response) => {
       role: user.role,
       emailVerifiedAt: user.emailVerifiedAt,
       emailVerificationSentAt: user.emailVerificationSentAt,
+      googleLinked: Boolean(user.googleSub),
     },
   });
+});
+
+authRouter.post("/user/me/unbind", async (request, response) => {
+  const token = request.header("authorization")?.replace(/^Bearer\s+/i, "");
+  const payload = token ? verifyUserToken(token) : null;
+  if (!payload) { response.status(401).json({ message: "Token user tidak valid" }); return; }
+  const body = parseBody(z.object({ target: z.enum(["google", "email"]), currentPassword: z.string().min(1).max(200), acknowledge: z.literal(true) }), request, response);
+  if (!body) return;
+  response.setHeader("Cache-Control", "no-store");
+  try {
+    const user = await findUserById(payload.userId);
+    if (!user) { response.status(404).json({ message: "Akun user tidak ditemukan" }); return; }
+    if (!(await verifyPassword(body.currentPassword, user.passwordHash))) {
+      response.status(400).json({ message: "Password aktif salah. Akun Google-only perlu membuat password melalui reset password terlebih dahulu." }); return;
+    }
+    if (!(await unbindUserConnections(user, body.target))) {
+      response.status(409).json({ message: "Akun berubah. Muat ulang profil sebelum melanjutkan." }); return;
+    }
+    const updatedUser = await findUserById(user.id);
+    if (!updatedUser) { response.status(404).json({ message: "Akun user tidak ditemukan" }); return; }
+    response.json({ message: "Koneksi akun berhasil dilepas.", user: {
+      id: updatedUser.id, username: updatedUser.username, email: updatedUser.email,
+      role: updatedUser.role, emailVerifiedAt: updatedUser.emailVerifiedAt,
+      emailVerificationSentAt: updatedUser.emailVerificationSentAt,
+      googleLinked: Boolean(updatedUser.googleSub),
+    } });
+  } catch (error) {
+    Sentry.captureException(error);
+    response.status(500).json({ message: "Gagal melepas koneksi akun." });
+  }
 });
 
 authRouter.patch("/user/me", async (request, response) => {
@@ -753,6 +800,7 @@ authRouter.patch("/user/me", async (request, response) => {
             role: updatedUser.role,
             emailVerifiedAt: updatedUser.emailVerifiedAt,
             emailVerificationSentAt: updatedUser.emailVerificationSentAt,
+            googleLinked: Boolean(updatedUser.googleSub),
           }
         : {
             id: user.id,
@@ -761,6 +809,7 @@ authRouter.patch("/user/me", async (request, response) => {
             role: user.role,
             emailVerifiedAt: user.emailVerifiedAt,
             emailVerificationSentAt: user.emailVerificationSentAt,
+            googleLinked: Boolean(user.googleSub),
           },
     });
   } catch (error) {
@@ -791,7 +840,7 @@ authRouter.delete("/user/me", async (request, response) => {
       return;
     }
 
-    if (body.confirmEmail !== user.email.toLowerCase()) {
+    if (user.email ? body.confirmEmail !== user.email.toLowerCase() : body.confirmUsername?.toLowerCase() !== user.username.toLowerCase()) {
       response.status(400).json({
         message: "Konfirmasi email tidak sesuai akun aktif",
       });

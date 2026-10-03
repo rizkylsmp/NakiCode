@@ -4,6 +4,7 @@ type NicheRule = { name: string; keywords: RegExp };
 // mention other industries and are not evidence of the prospect's services.
 const rules: NicheRule[] = [
   { name: "Laundry", keywords: /\b(laundry|binatu|dry cleaning)\b/i },
+  { name: "Ekspedisi (Courier/Shipping)", keywords: /\b(ekspedisi|expedisi|courier|shipping|cargo|kargo|logistik|logistics|kurir|freight|pengiriman barang|jasa pengiriman)\b/i },
   { name: "Interior & Arsitektur", keywords: /\b(interior|furniture|furnitur|arsitektur|arsitek|architecture)\b/i },
   { name: "Training & Pendidikan", keywords: /\b(training|pelatihan|coaching|pendidikan|sekolah|kursus|bimbel|academy|education|learning)\b/i },
   { name: "Otomotif", keywords: /\b(otomotif|automotive|bengkel|pencucian mobil|cuci mobil|car wash|detailing|pencucian motor|cuci motor)\b/i },
@@ -31,6 +32,7 @@ export function matchRegisteredNiche(label: string | null, niches: Array<{ name:
   if (exact) return exact.name;
   const aliases: Record<string, string[]> = {
     Laundry: ["Binatu"],
+    "Ekspedisi (Courier/Shipping)": ["Ekspedisi", "Courier/Shipping", "Courier & Shipping", "Shipping", "Logistik"],
     "Interior & Arsitektur": ["Interior", "Arsitektur"],
     "Training & Pendidikan": ["Training", "Pelatihan", "Pendidikan"],
     Otomotif: ["Automotive"],

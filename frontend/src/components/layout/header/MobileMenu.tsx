@@ -112,11 +112,14 @@ function AuthenticatedMobileMenu({
 
 function AdminMobileLinks({ onClose }: { onClose: () => void }) {
   return (
-    <MobileMenuLink
-      label="Dashboard admin"
-      to="/admin/dashboard"
-      onClose={onClose}
-    />
+    <>
+      <MobileMenuLink label="Profil saya" to="/akun-saya" onClose={onClose} />
+      <MobileMenuLink
+        label="Dashboard admin"
+        to="/admin/dashboard"
+        onClose={onClose}
+      />
+    </>
   );
 }
 

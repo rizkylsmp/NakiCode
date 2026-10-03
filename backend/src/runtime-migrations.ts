@@ -862,6 +862,15 @@ const runtimeMigrations: Migration[] = [
       }
     },
   },
+  {
+    id: "030_account_unbind",
+    async up(connection) {
+      await connection.query("ALTER TABLE users MODIFY COLUMN email VARCHAR(160) NULL");
+      if (!(await hasColumn(connection, "users", "google_login_disabled"))) {
+        await connection.query("ALTER TABLE users ADD COLUMN google_login_disabled BOOLEAN NOT NULL DEFAULT FALSE AFTER google_sub");
+      }
+    },
+  },
 ];
 
 export async function runRuntimeMigrations(connection: Connection) {

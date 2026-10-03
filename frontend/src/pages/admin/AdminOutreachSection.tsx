@@ -58,6 +58,7 @@ export function AdminOutreachSection() {
   const [selectionVersion, setSelectionVersion] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [nicheFilter, setNicheFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -67,12 +68,24 @@ export function AdminOutreachSection() {
   const [draft, setDraft] = useState("");
   const [notes, setNotes] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
-  const selected = leads.find((lead) => lead.id === selectedId) ?? null;
+  const nicheOptions = useMemo(() => {
+    const choices = new Map<string, string>();
+    for (const niche of niches) {
+      const inferred = getOutreachNiche(niche.name);
+      if (inferred) choices.set(inferred, matchRegisteredNiche(inferred, niches) ?? inferred);
+    }
+    for (const lead of leads) {
+      const inferred = getOutreachNiche(lead.category);
+      if (inferred) choices.set(inferred, matchRegisteredNiche(inferred, niches) ?? inferred);
+    }
+    return [...choices].sort((a, b) => a[1].localeCompare(b[1], "id"));
+  }, [leads, niches]);
   const visible = useMemo(() => leads.filter((lead) => {
     const q = search.trim().toLowerCase();
     const inferred = getOutreachNiche(lead.category);
-    return (filter === "all" || lead.status === filter) && (!q || [lead.business_name, lead.category, lead.city, inferred, matchRegisteredNiche(inferred, niches)].join(" ").toLowerCase().includes(q));
-  }), [leads, search, filter, niches]);
+    return (filter === "all" || lead.status === filter) && (nicheFilter === "all" || (inferred ?? "unclassified") === nicheFilter) && (!q || [lead.business_name, lead.category, lead.city, inferred, matchRegisteredNiche(inferred, niches)].join(" ").toLowerCase().includes(q));
+  }), [leads, search, filter, niches, nicheFilter]);
+  const selected = visible.find((lead) => lead.id === selectedId) ?? null;
   function nicheLabel(lead: Lead) {
     const inferred = getOutreachNiche(lead.category);
     const registered = matchRegisteredNiche(inferred, niches);
@@ -159,6 +172,7 @@ export function AdminOutreachSection() {
     </form>}
     <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-naki-steel bg-white p-3 lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)] lg:self-start" aria-label="Daftar prospek">
+        <label className="mb-2 grid gap-1 text-xs font-semibold text-naki-primary">Niche<select aria-label="Filter niche" className={inputClass} value={nicheFilter} onChange={event => setNicheFilter(event.target.value)}><option value="all">Semua niche</option>{nicheOptions.map(([value, label]) => <option key={value} value={value} data-no-translate>{label}</option>)}<option value="unclassified">Belum diklasifikasikan</option></select></label>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><input aria-label="Cari prospek" className={inputClass} onChange={(event) => setSearch(event.target.value)} placeholder="Cari bisnis, kota, kategori" value={search} /><select aria-label="Filter status" className={inputClass} onChange={(event) => setFilter(event.target.value)} value={filter}><option value="all">Semua</option>{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
         <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => selectLead(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · {statuses.find((item) => item.value === lead.status)?.label ?? "Ditinjau"} · Skor {lead.score}/5</span>{nicheLabel(lead)}</button>)}</div>
       </section>

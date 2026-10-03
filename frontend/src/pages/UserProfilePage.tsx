@@ -17,10 +17,16 @@ import {
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { apiDelete, apiGet, apiPatch, getApiErrorMessage } from "../services/api-client";
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  getApiErrorMessage,
+} from "../services/api-client";
 import { Footer } from "../components/layout/Footer";
 import { Header } from "../components/layout/Header";
 import { ProfileSkeleton } from "../components/ui/skeletons/ProfileSkeleton";
+import { AccountConnections } from "../components/account/AccountConnections";
 import {
   userRoleKey,
   userSessionEvent,
@@ -35,6 +41,7 @@ type UserProfile = {
   role?: "user" | "admin";
   emailVerifiedAt: string | null;
   emailVerificationSentAt: string | null;
+  googleLinked?: boolean;
 };
 
 type UserProfileResponse = {
@@ -227,9 +234,11 @@ export function UserProfilePage() {
 
     if (
       deleteAccountForm.confirmEmail.trim().toLowerCase() !==
-      profile.email.toLowerCase()
+      (profile.email || profile.username).toLowerCase()
     ) {
-      setStatus("Konfirmasi email harus sama dengan email akun aktif.");
+      setStatus(
+        "Konfirmasi identitas harus sama dengan email atau username akun aktif.",
+      );
       return;
     }
 
@@ -269,7 +278,9 @@ export function UserProfilePage() {
       await apiDelete<DeleteAccountResponse>("/api/auth/user/me", {
         data: {
           currentPassword: deleteAccountForm.currentPassword,
-          confirmEmail: deleteAccountForm.confirmEmail,
+          ...(profile.email
+            ? { confirmEmail: deleteAccountForm.confirmEmail }
+            : { confirmUsername: deleteAccountForm.confirmEmail }),
         },
       });
 
@@ -405,12 +416,13 @@ export function UserProfilePage() {
                           {profile.username}
                         </h1>
                         <p className="mt-2 break-words text-sm font-medium text-naki-frost/75">
-                          {profile.email}
+                          {profile.email || "Tanpa email"}
                         </p>
                       </div>
                     </div>
                     <StatusBadge
                       isVerified={Boolean(profile.emailVerifiedAt)}
+                      withoutEmail={!profile.email}
                     />
                   </div>
 
@@ -418,9 +430,22 @@ export function UserProfilePage() {
                     <ProfileInfo label="Role" value={profile.role ?? "user"} />
                     <ProfileInfo
                       label="Verifikasi"
-                      value={profile.emailVerifiedAt ? "Aktif" : "Pending"}
+                      value={
+                        !profile.email
+                          ? "Tanpa email"
+                          : profile.emailVerifiedAt
+                            ? "Aktif"
+                            : "Pending"
+                      }
                     />
-                    <ProfileInfo label="Login" value="Email / username" />
+                    <ProfileInfo
+                      label="Login"
+                      value={
+                        profile.email
+                          ? "Email / username"
+                          : "Username / password"
+                      }
+                    />
                   </div>
                 </div>
 
@@ -431,9 +456,11 @@ export function UserProfilePage() {
                     Email verification
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
-                    {profile.emailVerifiedAt
-                      ? `Terverifikasi pada ${formatDate(profile.emailVerifiedAt)}.`
-                      : "Akun ini belum diverifikasi."}
+                    {!profile.email
+                      ? "Email telah dilepas dari akun ini."
+                      : profile.emailVerifiedAt
+                        ? `Terverifikasi pada ${formatDate(profile.emailVerifiedAt)}.`
+                        : "Akun ini belum diverifikasi."}
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-naki-smoke">
                     {profile.emailVerificationSentAt
@@ -450,22 +477,30 @@ export function UserProfilePage() {
                     <Mail size={19} />
                   </span>
                   <div>
-                    <h2 className="text-xl font-bold leading-tight">Account bind</h2>
+                    <h2 className="text-xl font-bold leading-tight">
+                      Account bind
+                    </h2>
                     <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
-                      Akun ini terikat ke email dan username untuk order,
-                      rating, dan akses profil.
+                      {profile.email
+                        ? "Akun ini terikat ke email dan username untuk order, rating, dan akses profil."
+                        : "Akun ini menggunakan username dan password. Data pesanan tetap terikat ke akun yang sama."}
                     </p>
                   </div>
                 </div>
                 <div className="mt-5 grid gap-3">
                   <AccountRow label="Username" value={profile.username} />
-                  <AccountRow label="Email" value={profile.email} />
+                  <AccountRow
+                    label="Email"
+                    value={profile.email || "Tidak terhubung"}
+                  />
                   <AccountRow
                     label="Status"
                     value={
-                      profile.emailVerifiedAt
-                        ? "Sudah terverifikasi"
-                        : "Belum terverifikasi"
+                      !profile.email
+                        ? "Tanpa email"
+                        : profile.emailVerifiedAt
+                          ? "Sudah terverifikasi"
+                          : "Belum terverifikasi"
                     }
                   />
                 </div>
@@ -511,7 +546,9 @@ export function UserProfilePage() {
               >
                 <form className="grid gap-4" onSubmit={submitProfile}>
                   <label className="grid gap-1.5">
-                    <span className="text-xs font-medium text-naki-smoke">Nama user</span>
+                    <span className="text-xs font-medium text-naki-smoke">
+                      Nama user
+                    </span>
                     <input
                       className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none transition focus:border-blue-400"
                       value={profileForm.username}
@@ -523,10 +560,13 @@ export function UserProfilePage() {
                     />
                   </label>
                   <label className="grid gap-1.5">
-                    <span className="text-xs font-medium text-naki-smoke">Email terdaftar</span>
+                    <span className="text-xs font-medium text-naki-smoke">
+                      Email terdaftar
+                    </span>
                     <input
                       className="h-11 w-full rounded-lg border border-naki-steel bg-naki-frost px-3 text-sm text-naki-smoke outline-none cursor-default"
                       value={profile.email}
+                      placeholder="Tidak terhubung"
                       readOnly
                       type="email"
                     />
@@ -551,7 +591,9 @@ export function UserProfilePage() {
                 <form className="grid gap-4" onSubmit={submitPassword}>
                   <div className="grid gap-4 md:grid-cols-3">
                     <label className="grid gap-1.5">
-                      <span className="text-xs font-medium text-naki-smoke">Password saat ini</span>
+                      <span className="text-xs font-medium text-naki-smoke">
+                        Password saat ini
+                      </span>
                       <input
                         className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none transition focus:border-blue-400"
                         value={passwordForm.currentPassword}
@@ -566,7 +608,9 @@ export function UserProfilePage() {
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="text-xs font-medium text-naki-smoke">Password baru</span>
+                      <span className="text-xs font-medium text-naki-smoke">
+                        Password baru
+                      </span>
                       <input
                         className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none transition focus:border-blue-400"
                         value={passwordForm.newPassword}
@@ -582,7 +626,9 @@ export function UserProfilePage() {
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="text-xs font-medium text-naki-smoke">Konfirmasi password</span>
+                      <span className="text-xs font-medium text-naki-smoke">
+                        Konfirmasi password
+                      </span>
                       <input
                         className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none transition focus:border-blue-400"
                         value={passwordForm.confirmPassword}
@@ -609,6 +655,8 @@ export function UserProfilePage() {
                 </form>
               </FormPanel>
 
+              <AccountConnections profile={profile} onUpdate={setProfile} />
+
               {/* Delete account */}
               <FormPanel
                 description="Akun akan dihapus permanen. Data order dan rating tetap disimpan sebagai riwayat transaksi tanpa bind akun."
@@ -624,7 +672,9 @@ export function UserProfilePage() {
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="grid gap-1.5">
-                      <span className="text-xs font-medium text-naki-smoke">Password aktif</span>
+                      <span className="text-xs font-medium text-naki-smoke">
+                        Password aktif
+                      </span>
                       <input
                         className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none transition focus:border-blue-400"
                         autoComplete="new-password"
@@ -641,12 +691,16 @@ export function UserProfilePage() {
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="text-xs font-medium text-naki-smoke">Ketik email akun</span>
+                      <span className="text-xs font-medium text-naki-smoke">
+                        {profile.email
+                          ? "Ketik email akun"
+                          : "Ketik username akun"}
+                      </span>
                       <input
                         className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm outline-none transition focus:border-blue-400"
                         autoComplete="off"
                         name="delete-account-confirm-email"
-                        placeholder={profile.email}
+                        placeholder={profile.email || profile.username}
                         value={deleteAccountForm.confirmEmail}
                         onChange={(event) =>
                           setDeleteAccountForm((current) => ({
@@ -655,7 +709,7 @@ export function UserProfilePage() {
                           }))
                         }
                         required
-                        type="email"
+                        type={profile.email ? "email" : "text"}
                       />
                     </label>
                   </div>
@@ -680,7 +734,7 @@ export function UserProfilePage() {
 
       {profile && isDeleteDialogOpen ? (
         <DeleteAccountDialog
-          email={profile.email}
+          email={profile.email || profile.username}
           confirmationText={deleteDialogConfirmation}
           isDeleting={isDeletingAccount}
           onCancel={closeDeleteDialog}
@@ -701,13 +755,14 @@ type ProfileInfoProps = {
 
 type StatusBadgeProps = {
   isVerified: boolean;
+  withoutEmail?: boolean;
 };
 
-function StatusBadge({ isVerified }: StatusBadgeProps) {
+function StatusBadge({ isVerified, withoutEmail }: StatusBadgeProps) {
   return (
     <span className="inline-flex h-10 w-fit items-center gap-2 rounded-xl bg-naki-frost/20 px-3 text-xs font-medium uppercase text-naki-frost">
       <BadgeCheck size={15} />
-      {isVerified ? "Verified" : "Pending"}
+      {withoutEmail ? "Tanpa email" : isVerified ? "Verified" : "Pending"}
     </span>
   );
 }
@@ -781,8 +836,7 @@ function DeleteAccountDialog({
                 Yakin hapus akun permanen?
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-naki-smoke">
-                Akun dengan email {email} akan dihapus dan sesi login akan
-                berakhir.
+                Akun {email} akan dihapus dan sesi login akan berakhir.
               </p>
             </div>
           </div>
@@ -804,7 +858,7 @@ function DeleteAccountDialog({
             </p>
             <ul className="mt-3 grid gap-2 text-sm leading-relaxed text-naki-smoke">
               <li>Password aktif sudah benar.</li>
-              <li>Email konfirmasi sudah sama dengan email akun.</li>
+              <li>Identitas konfirmasi sudah sama dengan akun.</li>
               <li>
                 Ketik kalimat konfirmasi persis sebelum tombol hapus aktif.
               </li>
@@ -864,8 +918,7 @@ function FormPanel({
     tone === "danger"
       ? "bg-red-100 text-red-500"
       : "bg-naki-frost text-naki-secondary";
-  const borderClass =
-    tone === "danger" ? "border-red-200" : "";
+  const borderClass = tone === "danger" ? "border-red-200" : "";
 
   return (
     <section

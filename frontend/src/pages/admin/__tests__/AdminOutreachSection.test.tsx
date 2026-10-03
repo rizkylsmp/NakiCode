@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiDelete, apiGet, apiPatch } from "../../../services/api-client";
@@ -7,6 +7,37 @@ vi.mock("../../../services/api-client", () => ({ apiGet: vi.fn(), apiPatch: vi.f
 const lead = { id: 1, business_name: "Bisnis Uji", category: "Jasa", city: "Kota Uji", external_key: "fixture.example", source_url: "https://fixture.example", evidence_url: "https://fixture.example/services", contact_url: "https://fixture.example/contact", observation: "Informasi layanan bisnis uji.", opportunity: "Halaman layanan dengan design yang jelas.", score: 3, draft_message: "Halo, boleh berdiskusi tentang design website? https://nakicode.xyz/", status: "reviewed", whatsapp_number: null, notes: null, checked_at: null, updated_at: "2026-01-01T01:00:00.000Z" };
 beforeEach(() => { vi.restoreAllMocks(); vi.mocked(apiGet).mockResolvedValue({ leads: [lead] }); vi.mocked(apiDelete).mockResolvedValue({}); });
 describe("research-only outreach", () => {
+  it("offers registered niches with no prospects and hides filtered detail", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [{ name: "Laundry" }, { name: "Shipping" }] } : { leads: [{ ...lead, category: "Jasa laundry" }] });
+    render(<AdminOutreachSection />);
+    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    expect(screen.getByRole("option", { name: "Shipping" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter niche" }), { target: { value: "Ekspedisi (Courier/Shipping)" } });
+    expect(screen.queryByRole("heading", { name: "Bisnis Uji" })).not.toBeInTheDocument();
+    expect(screen.getByText("Belum ada prospek yang cocok dengan filter.")).toBeInTheDocument();
+  });
+  it("keeps niche controls available while loading and after a load error", async () => {
+    let rejectLoad!: (error: Error) => void;
+    vi.mocked(apiGet).mockImplementation(path => path === "/api/categories/niches" ? Promise.resolve({ niches: [{ name: "Laundry" }] }) : new Promise((_resolve, reject) => { rejectLoad = reject; }));
+    render(<AdminOutreachSection />);
+    expect(screen.getByText("Memuat prospek...")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Filter niche" })).toBeInTheDocument();
+    await act(async () => rejectLoad(new Error("fixture")));
+    expect(screen.getByText("Gagal memuat prospek.")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Laundry" })).toBeInTheDocument();
+  });
+  it("combines niche and status filters and supports unclassified prospects", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: [{ ...lead, category: "Jasa laundry" }, { ...lead, id: 2, business_name: "Cargo Uji", category: "Ekspedisi cargo", status: "new" }, { ...lead, id: 3, business_name: "Umum Uji" }] });
+    render(<AdminOutreachSection />);
+    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter niche" }), { target: { value: "Ekspedisi (Courier/Shipping)" } });
+    expect(screen.getByRole("button", { name: /Cargo Uji/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Bisnis Uji/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter status" }), { target: { value: "reviewed" } });
+    expect(screen.getByText("Belum ada prospek yang cocok dengan filter.")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter niche" }), { target: { value: "unclassified" } });
+    expect(screen.getByRole("button", { name: /Umum Uji/ })).toBeInTheDocument();
+  });
   it("labels prospects from their category and searches by the registered niche", async () => {
     vi.mocked(apiGet).mockImplementation(async (path) => path === "/api/categories/niches" ? { niches: [{ name: "Laundry" }] } : { leads: [{ ...lead, category: "Jasa laundry" }] });
     render(<AdminOutreachSection />);

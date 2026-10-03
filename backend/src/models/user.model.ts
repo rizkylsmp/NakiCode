@@ -7,8 +7,9 @@ import { pool } from "../db";
 type UserRow = RowDataPacket & {
   id: number;
   username: string;
-  email: string;
+  email: string | null;
   google_sub?: string | null;
+  google_login_disabled?: number | boolean;
   password_hash: string;
   role?: UserRole | null;
   created_at?: string | null;
@@ -29,6 +30,7 @@ export type UserAccount = {
   username: string;
   email: string;
   googleSub: string | null;
+  googleLoginDisabled?: boolean;
   passwordHash: string;
   role: UserRole;
   createdAt: string | null;
@@ -46,7 +48,7 @@ export type UserAccount = {
 
 export async function findUserById(id: number) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, google_login_disabled, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE id = ?
     LIMIT 1`,
@@ -58,7 +60,7 @@ export async function findUserById(id: number) {
 
 export async function findUserByUsername(username: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, google_login_disabled, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE username = ?
     LIMIT 1`,
@@ -70,7 +72,7 @@ export async function findUserByUsername(username: string) {
 
 export async function findUserByEmail(email: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, google_login_disabled, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE email = ?
     LIMIT 1`,
@@ -82,7 +84,7 @@ export async function findUserByEmail(email: string) {
 
 export async function findUserByUsernameOrEmail(identifier: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, google_login_disabled, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE username = ? OR email = ?
     LIMIT 1`,
@@ -94,7 +96,7 @@ export async function findUserByUsernameOrEmail(identifier: string) {
 
 export async function findUserByGoogleSub(googleSub: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, google_login_disabled, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE google_sub = ?
     LIMIT 1`,
@@ -106,7 +108,7 @@ export async function findUserByGoogleSub(googleSub: string) {
 
 export async function findUserByVerificationToken(token: string) {
   const [rows] = await pool.query<UserRow[]>(
-    `SELECT id, username, email, google_sub, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
+    `SELECT id, username, email, google_sub, google_login_disabled, password_hash, role, created_at, updated_at, email_verified_at, email_verification_token, email_verification_sent_at, email_verification_otp_hash, email_verification_otp_expires_at, email_verification_otp_sent_at, password_reset_otp_hash, password_reset_otp_expires_at, password_reset_otp_sent_at
     FROM users
     WHERE email_verification_token = ?
     LIMIT 1`,
@@ -345,8 +347,9 @@ export async function linkGoogleIdentity(userId: number, googleSub: string) {
     const [result] = await pool.query<ResultSetHeader>(
       `UPDATE users
       SET google_sub = ?,
+        google_login_disabled = FALSE,
         email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP)
-      WHERE id = ? AND google_sub IS NULL`,
+      WHERE id = ? AND google_sub IS NULL AND google_login_disabled = FALSE`,
       [googleSub, userId],
     );
 
@@ -355,7 +358,7 @@ export async function linkGoogleIdentity(userId: number, googleSub: string) {
     }
 
     const currentUser = await findUserById(userId);
-    return currentUser?.googleSub === googleSub;
+    return !currentUser?.googleLoginDisabled && currentUser?.googleSub === googleSub;
   } catch (error) {
     const databaseError = error as { code?: string };
 
@@ -365,6 +368,22 @@ export async function linkGoogleIdentity(userId: number, googleSub: string) {
 
     throw error;
   }
+}
+
+export async function unbindUserConnections(user: UserAccount, target: "google" | "email") {
+  // Email removal also detaches Google. Guard the snapshot against concurrent
+  // password/identity changes between password verification and this update.
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE users SET google_sub = NULL, google_login_disabled = TRUE
+      ${target === "email" ? `, email = NULL, email_verified_at = NULL,
+        email_verification_token = NULL, email_verification_sent_at = NULL,
+        email_verification_otp_hash = NULL, email_verification_otp_expires_at = NULL,
+        email_verification_otp_sent_at = NULL, password_reset_otp_hash = NULL,
+        password_reset_otp_expires_at = NULL, password_reset_otp_sent_at = NULL` : ""}
+      WHERE id = ? AND password_hash = ? AND email <=> ? AND google_sub <=> ?`,
+    [user.id, user.passwordHash, user.email || null, user.googleSub],
+  );
+  return result.affectedRows > 0;
 }
 
 export async function ensureDefaultAdminUser() {
@@ -380,35 +399,15 @@ export async function ensureDefaultAdminUser() {
 
   const existingByUsername = await findUserByUsername(username);
 
-  if (existingByUsername) {
-    if (existingByUsername.role !== "admin") {
-      await pool.query<ResultSetHeader>(
-        `UPDATE users
-        SET role = 'admin',
-          email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP)
-        WHERE id = ?`,
-        [existingByUsername.id],
-      );
-    }
+  if (existingByUsername?.role === "admin") return existingByUsername;
 
-    return existingByUsername;
-  }
-
+  // An administrator may rename their account or detach their email. Never
+  // promote a new owner of the old bootstrap email after those changes.
+  const [admins] = await pool.query<RowDataPacket[]>("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1");
+  if (admins[0]) return findUserById(Number(admins[0].id));
+  if (existingByUsername) throw new Error("Bootstrap admin username is already used by another account");
   const existingByEmail = await findUserByEmail(email);
-
-  if (existingByEmail) {
-    if (existingByEmail.role !== "admin") {
-      await pool.query<ResultSetHeader>(
-        `UPDATE users
-        SET role = 'admin',
-          email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP)
-        WHERE id = ?`,
-        [existingByEmail.id],
-      );
-    }
-
-    return existingByEmail;
-  }
+  if (existingByEmail) throw new Error("Bootstrap admin email is already used by another account");
 
   const hashedPassword = await hashPassword(password);
   const [result] = await pool.query<ResultSetHeader>(
@@ -440,8 +439,9 @@ function normalizeUserRow(row: UserRow): UserAccount {
   return {
     id: row.id,
     username: row.username,
-    email: row.email,
+    email: row.email ?? "",
     googleSub: row.google_sub ?? null,
+    googleLoginDisabled: Boolean(row.google_login_disabled),
     passwordHash: row.password_hash,
     role: row.role === "admin" ? "admin" : "user",
     createdAt: row.created_at ?? null,

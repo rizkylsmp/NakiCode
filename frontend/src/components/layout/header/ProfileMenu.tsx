@@ -107,6 +107,12 @@ function AdminProfileLinks({ onClose }: { onClose: () => void }) {
   return (
     <>
       <ProfileMenuLink
+        icon={<UserRound size={16} />}
+        label="Profil saya"
+        to="/akun-saya"
+        onClose={onClose}
+      />
+      <ProfileMenuLink
         icon={<LayoutDashboard size={16} />}
         label="Dashboard admin"
         to="/admin/dashboard"

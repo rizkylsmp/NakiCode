@@ -181,6 +181,9 @@ describe("Header Component", () => {
       screen.getByRole("menuitem", { name: /dashboard admin/i }),
     ).toHaveAttribute("href", "/admin/dashboard");
     expect(
+      screen.getByRole("menuitem", { name: "Profil saya" }),
+    ).toHaveAttribute("href", "/akun-saya");
+    expect(
       screen.queryByRole("menuitem", { name: /kelola design/i }),
     ).not.toBeInTheDocument();
     expect(
@@ -191,7 +194,7 @@ describe("Header Component", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows only Dashboard admin in the mobile admin account menu", () => {
+  it("shows profile and Dashboard admin in the mobile admin account menu", () => {
     renderHeader({
       token: "fake-admin-token",
       username: "admin",
@@ -203,6 +206,9 @@ describe("Header Component", () => {
     expect(
       screen.getByRole("menuitem", { name: "Dashboard admin" }),
     ).toHaveAttribute("href", "/admin/dashboard");
+    expect(
+      screen.getByRole("menuitem", { name: "Profil saya" }),
+    ).toHaveAttribute("href", "/akun-saya");
     expect(screen.queryByText("Kelola design")).not.toBeInTheDocument();
     expect(screen.queryByText("Order masuk")).not.toBeInTheDocument();
   });
