@@ -62,6 +62,13 @@ describe("DesignDetailPage", () => {
       "https://demo.example.com",
     );
     expect(screen.getByText("Rp. 5.000.000,-")).toBeInTheDocument();
+    const contactUrl = new URL(
+      screen
+        .getByRole("link", { name: /konsultasi pembuatan website/i })
+        .getAttribute("href")!,
+    );
+    expect(contactUrl.pathname).toBe("/6285159734244");
+    expect(contactUrl.searchParams.get("text")).toContain(design.title);
   });
   it("menampilkan video di galeri preview dan membuka detail dari paling atas", () => {
     const scrollTo = vi.fn();

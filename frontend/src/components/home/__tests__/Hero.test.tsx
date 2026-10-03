@@ -20,6 +20,13 @@ describe("Hero", () => {
       "sm:justify-center",
       "md:justify-start",
     );
+    expect(
+      new URL(
+        screen
+          .getByRole("link", { name: /konsultasi gratis/i })
+          .getAttribute("href")!,
+      ).pathname,
+    ).toBe("/6285159734244");
 
     expect(
       screen.getByAltText(/karakter naki code sebagai visual hero/i),

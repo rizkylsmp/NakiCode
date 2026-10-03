@@ -17,6 +17,9 @@ describe("CTASection", () => {
 
     expect(primaryAction).toHaveClass("h-11", "sm:h-12");
     expect(consultationAction).toHaveClass("h-11", "sm:h-12");
+    expect(new URL(consultationAction.getAttribute("href")!).pathname).toBe(
+      "/6285159734244",
+    );
     expect(
       primaryAction.compareDocumentPosition(illustration) &
         Node.DOCUMENT_POSITION_FOLLOWING,

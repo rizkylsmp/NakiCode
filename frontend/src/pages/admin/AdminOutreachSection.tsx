@@ -48,6 +48,23 @@ const statuses: Array<{ value: LeadStatus; label: string }> = [
   { value: "lost", label: "Tidak lanjut" },
   { value: "do_not_contact", label: "Jangan hubungi" },
 ];
+const statusBadges: Record<LeadStatus, { label: string; color: string }> = {
+  new: { label: "Baru", color: "bg-blue-100 text-blue-900 border-blue-300" },
+  reviewed: { label: "Ditinjau", color: "bg-amber-100 text-amber-900 border-amber-300" },
+  ready: { label: "Siap", color: "bg-indigo-100 text-indigo-900 border-indigo-300" },
+  sending: { label: "Dalam proses", color: "bg-orange-100 text-orange-900 border-orange-300" },
+  sent: { label: "Dihubungi", color: "bg-violet-100 text-violet-900 border-violet-300" },
+  replied: { label: "Membalas", color: "bg-cyan-100 text-cyan-900 border-cyan-300" },
+  qualified: { label: "Layak", color: "bg-teal-100 text-teal-900 border-teal-300" },
+  won: { label: "Deal", color: "bg-green-100 text-green-900 border-green-300" },
+  lost: { label: "Tidak lanjut", color: "bg-slate-100 text-slate-900 border-slate-300" },
+  failed: { label: "Gagal", color: "bg-red-100 text-red-900 border-red-300" },
+  do_not_contact: { label: "Jangan hubungi", color: "bg-rose-100 text-rose-900 border-rose-300" },
+};
+function StatusBadge({ status }: { status: LeadStatus }) {
+  const badge = statusBadges[status];
+  return <span className={`naki-outreach-status inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-xs font-semibold ${badge.color}`}>{badge.label}</span>;
+}
 const inputClass = "min-h-11 w-full rounded-xl border border-naki-steel bg-white px-3 py-2 text-sm text-naki-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary";
 
 export function AdminOutreachSection() {
@@ -174,7 +191,7 @@ export function AdminOutreachSection() {
       <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-naki-steel bg-white p-3 lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)] lg:self-start" aria-label="Daftar prospek">
         <label className="mb-2 grid gap-1 text-xs font-semibold text-naki-primary">Niche<select aria-label="Filter niche" className={inputClass} value={nicheFilter} onChange={event => setNicheFilter(event.target.value)}><option value="all">Semua niche</option>{nicheOptions.map(([value, label]) => <option key={value} value={value} data-no-translate>{label}</option>)}<option value="unclassified">Belum diklasifikasikan</option></select></label>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><input aria-label="Cari prospek" className={inputClass} onChange={(event) => setSearch(event.target.value)} placeholder="Cari bisnis, kota, kategori" value={search} /><select aria-label="Filter status" className={inputClass} onChange={(event) => setFilter(event.target.value)} value={filter}><option value="all">Semua</option>{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-        <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => selectLead(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · {statuses.find((item) => item.value === lead.status)?.label ?? "Ditinjau"} · Skor {lead.score}/5</span>{nicheLabel(lead)}</button>)}</div>
+        <div aria-label="Daftar prospek yang dapat digulir" tabIndex={0} className="mt-3 min-h-0 max-h-[65dvh] flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-naki-secondary lg:max-h-none">{loading ? <p className="p-4 text-sm text-naki-smoke">Memuat prospek...</p> : visible.length === 0 ? <p className="p-4 text-sm text-naki-smoke">Belum ada prospek yang cocok dengan filter.</p> : visible.map((lead) => <button aria-pressed={selectedId === lead.id} className={`w-full rounded-xl p-3 text-left transition ${selectedId === lead.id ? "bg-naki-frost text-naki-primary" : "text-naki-primary hover:bg-naki-frost/60"}`} key={lead.id} disabled={busy} onClick={() => selectLead(lead.id)} type="button"><span className="block font-semibold">{lead.business_name}</span><span className="mt-1 block text-xs text-naki-smoke">{lead.city || "Kota belum dicatat"} · Skor {lead.score}/5</span><span className="mt-2 flex flex-wrap items-center gap-2"><StatusBadge status={lead.status} /></span>{nicheLabel(lead)}</button>)}</div>
       </section>
       <div className="min-w-0 space-y-4">
         <section aria-label="Peta prospek" className="min-w-0 rounded-2xl border border-naki-steel bg-white p-3 sm:p-4">
@@ -183,7 +200,7 @@ export function AdminOutreachSection() {
           {!loading && <p className="mt-3 text-xs text-naki-smoke"><span data-no-translate>{mapPoints.length} / {visible.length}</span> <span>prospek ditampilkan di peta. Pilih prospek atau marker untuk melihat lokasi dan detailnya.</span></p>}
         </section>
       <section className="min-w-0 rounded-2xl border border-naki-steel bg-white p-4 sm:p-5" aria-label="Detail prospek">{!selected ? <p className="text-sm text-naki-smoke">Pilih prospek untuk melihat detailnya.</p> : <div className="space-y-5">
-        <div><h2 className="text-xl font-bold text-naki-primary">{selected.business_name}</h2><p className="text-sm text-naki-smoke">{selected.category} · {selected.city} · Skor {selected.score}/5</p>{nicheLabel(selected)}<p className="mt-2 text-xs text-naki-smoke">Label otomatis berdasarkan kategori usaha hasil riset. Usulan niche dapat ditambahkan melalui Admin → Kategori.</p>{nicheRegistryFailed && <p role="status" className="mt-1 text-xs text-naki-smoke">Daftar niche belum dapat dimuat; label sementara ditampilkan sebagai usulan.</p>}</div>
+        <div><h2 className="text-xl font-bold text-naki-primary">{selected.business_name}</h2><p className="text-sm text-naki-smoke">{selected.category} · {selected.city} · Skor {selected.score}/5</p><div className="mt-2"><StatusBadge status={selected.status} /></div>{nicheLabel(selected)}<p className="mt-2 text-xs text-naki-smoke">Label otomatis berdasarkan kategori usaha hasil riset. Usulan niche dapat ditambahkan melalui Admin → Kategori.</p>{nicheRegistryFailed && <p role="status" className="mt-1 text-xs text-naki-smoke">Daftar niche belum dapat dimuat; label sementara ditampilkan sebagai usulan.</p>}</div>
         <div className="flex flex-wrap gap-3 text-sm font-semibold text-naki-secondary">{([ [selected.source_url, "Sumber"], [selected.evidence_url, "Bukti"], [selected.contact_url, "Kontak bisnis"] ] as const).map(([href, label]) => <a href={href} key={label} rel="noopener noreferrer" target="_blank" className="underline underline-offset-2">{label}</a>)}</div>
         <div className="grid gap-3 sm:grid-cols-2"><div><h3 className="text-xs font-semibold uppercase text-naki-smoke">Observasi</h3><p className="mt-1 text-sm text-naki-primary">{selected.observation}</p></div><div><h3 className="text-xs font-semibold uppercase text-naki-smoke">Peluang</h3><p className="mt-1 text-sm text-naki-primary">{selected.opportunity}</p></div></div>
         <label className="block text-sm font-semibold text-naki-primary">Status<select className={`${inputClass} mt-1`} disabled={selected.status === "do_not_contact"} onChange={(event) => setStatus(event.target.value as LeadStatus)} value={status}>{statuses.filter((item) => item.value !== "sending").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>

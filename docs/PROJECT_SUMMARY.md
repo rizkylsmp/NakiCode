@@ -136,6 +136,7 @@ Optional:
 
 Frontend optional:
 
+- `VITE_WHATSAPP_NUMBER=6285159734244` untuk semua tautan kontak WhatsApp NAKI CODE (hero, CTA, kategori, detail design, dan ikon mengambang). Helper `utils/whatsapp.ts` menormalisasi nomor ke digit internasional tanpa `+`, meng-encode pesan sekali, dan memakai nomor ini sebagai fallback bila env kosong/tidak valid. Nomor dapat diubah melalui `frontend/.env` atau environment project frontend di Vercel, lalu restart dev/rebuild/redeploy karena Vite membaca env saat build. `STOREFRONT_WHATSAPP_NUMBER` backend diselaraskan di env lokal/contoh; bukan konfigurasi WhatsApp Cloud API dan tidak mengubah nomor pelanggan/prospek atau tombol share WhatsApp tanpa penerima.
 - `VITE_GOOGLE_CLIENT_ID` untuk menampilkan tombol Google Identity Services di halaman login
 - `VITE_SITE_URL` untuk origin canonical metadata SEO (default production `https://nakicode.com`)
 - `SITE_URL` untuk origin URL yang dihasilkan oleh script sitemap

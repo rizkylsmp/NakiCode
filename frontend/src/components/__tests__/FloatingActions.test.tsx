@@ -11,6 +11,9 @@ describe("FloatingActions", () => {
       name: /hubungi naki code melalui whatsapp/i,
     });
     expect(whatsappLink).toBeInTheDocument();
+    expect(new URL(whatsappLink.getAttribute("href")!).pathname).toBe(
+      "/6285159734244",
+    );
     expect(whatsappLink.querySelector("img")).toHaveAttribute(
       "src",
       "/images/brand/whatsapp.png",

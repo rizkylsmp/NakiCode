@@ -2,10 +2,11 @@ import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { WhatsAppBrandIcon } from "../ui/BrandIcons";
+import { getWhatsAppUrl } from "../../utils/whatsapp";
 
-const whatsappUrl = `https://wa.me/6285794801890?text=${encodeURIComponent(
+const whatsappUrl = getWhatsAppUrl(
   "Halo Naki Code, saya ingin konsultasi pembuatan website.",
-)}`;
+);
 
 export function FloatingActions() {
   const [showScrollTop, setShowScrollTop] = useState(false);

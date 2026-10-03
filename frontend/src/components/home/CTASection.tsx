@@ -1,7 +1,6 @@
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { WhatsAppBrandIcon } from "../ui/BrandIcons";
-
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
+import { getWhatsAppUrl } from "../../utils/whatsapp";
 
 export function CTASection() {
   return (
@@ -52,11 +51,9 @@ export function CTASection() {
                   </a>
                   <a
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/10 sm:h-12 sm:px-6"
-                    href={
-                      WHATSAPP_NUMBER
-                        ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo Naki Code, saya ingin konsultasi pembuatan website dari design yang tersedia.")}`
-                        : "#template"
-                    }
+                    href={getWhatsAppUrl(
+                      "Halo Naki Code, saya ingin konsultasi pembuatan website dari design yang tersedia.",
+                    )}
                     rel="noreferrer"
                     target="_blank"
                   >

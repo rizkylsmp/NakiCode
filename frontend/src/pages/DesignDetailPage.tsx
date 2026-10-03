@@ -48,6 +48,7 @@ import { budgetOptions } from "../domain/budget-options";
 import { formatRupiahText, parseRupiahAmount } from "../utils/currency";
 import { getSafeDemoUrl, getTemplateCategoryPath } from "../utils/design-url";
 import { absoluteSiteUrl } from "../utils/seo";
+import { getWhatsAppUrl } from "../utils/whatsapp";
 import { useFavoriteTemplates } from "../hooks/useFavorites";
 import { TechStackBadge } from "../components/ui/TechStackBadge";
 import { WhatsAppBrandIcon } from "../components/ui/BrandIcons";
@@ -308,9 +309,7 @@ export function DesignDetailPage({
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
-  const whatsappMessage = encodeURIComponent(
-    `Halo Naki Code, saya tertarik membuat website menggunakan design ${selectedTemplate.title} sebagai referensi.`,
-  );
+  const whatsappMessage = `Halo Naki Code, saya tertarik membuat website menggunakan design ${selectedTemplate.title} sebagai referensi.`;
   const shareUrl = absoluteSiteUrl(`/design/${selectedTemplate.slug}`);
   const shareText = encodeURIComponent(
     `${selectedTemplate.title} dari Naki Code`,
@@ -1070,7 +1069,7 @@ export function DesignDetailPage({
                 </p>
                 <a
                   className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
-                  href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}?text=${whatsappMessage}`}
+                  href={getWhatsAppUrl(whatsappMessage)}
                   rel="noreferrer"
                   target="_blank"
                 >

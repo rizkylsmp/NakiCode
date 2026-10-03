@@ -1,5 +1,6 @@
 import { ArrowRight, Check, Code2, Sparkles } from "lucide-react";
 import { WhatsAppBrandIcon } from "../ui/BrandIcons";
+import { getWhatsAppUrl } from "../../utils/whatsapp";
 
 type HeroProps = {
   totalTemplates: number;
@@ -7,8 +8,6 @@ type HeroProps = {
   totalTransactions: number;
   averageRating: number;
 };
-
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
 function HeroAbstractShape() {
   return (
@@ -79,13 +78,11 @@ export function Hero({
               </a>
               <a
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-naki-steel bg-white px-6 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
-                href={
-                  WHATSAPP_NUMBER
-                    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo Naki Code, saya ingin konsultasi pembuatan website.")}`
-                    : "#cara-kerja"
-                }
-                rel={WHATSAPP_NUMBER ? "noreferrer" : undefined}
-                target={WHATSAPP_NUMBER ? "_blank" : undefined}
+                href={getWhatsAppUrl(
+                  "Halo Naki Code, saya ingin konsultasi pembuatan website.",
+                )}
+                rel="noreferrer"
+                target="_blank"
               >
                 <WhatsAppBrandIcon className="size-[18px]" />
                 Konsultasi Gratis

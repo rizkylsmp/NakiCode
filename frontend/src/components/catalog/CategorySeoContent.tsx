@@ -2,6 +2,7 @@ import { BadgeCheck } from "lucide-react";
 import { WhatsAppBrandIcon } from "../ui/BrandIcons";
 import categorySeoItems from "../../domain/category-seo.json";
 import { slugifyTemplateCategory } from "../../utils/design-url";
+import { getWhatsAppUrl } from "../../utils/whatsapp";
 
 type CategorySeoItem = (typeof categorySeoItems)[number];
 
@@ -14,10 +15,7 @@ export function CategorySeoContent({ category }: { category: string }) {
   const content = getCategorySeo(category);
   if (!content) return null;
 
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER;
-  const message = encodeURIComponent(
-    `Halo Naki Code, saya ingin konsultasi pembuatan ${content.name}.`,
-  );
+  const message = `Halo Naki Code, saya ingin konsultasi pembuatan ${content.name}.`;
 
   return (
     <section className="border-t border-naki-steel/60 bg-white px-5 py-14 md:px-8 xl:px-12 2xl:px-16">
@@ -64,13 +62,9 @@ export function CategorySeoContent({ category }: { category: string }) {
           </p>
           <a
             className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-naki-primary transition hover:bg-naki-frost"
-            href={
-              whatsappNumber
-                ? `https://wa.me/${whatsappNumber}?text=${message}`
-                : "/#cara-kerja"
-            }
-            rel={whatsappNumber ? "noreferrer" : undefined}
-            target={whatsappNumber ? "_blank" : undefined}
+            href={getWhatsAppUrl(message)}
+            rel="noreferrer"
+            target="_blank"
           >
             <WhatsAppBrandIcon className="size-[18px]" />
             Konsultasikan kebutuhan
