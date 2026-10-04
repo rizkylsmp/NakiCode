@@ -2,6 +2,8 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-04 - Verifikasi prospek berstatus Tidak lanjut (`lost`) tetap dapat diedit dan disimpan tanpa mengubah status. Tambahkan tes regresi form edit dan API untuk mempertahankan catatan, draf, serta nomor. Alur aplikasi existing sudah mendukungnya sehingga tidak diperlukan perubahan UI/API. Validasi 19 tes frontend dan 6 tes backend lulus - files: frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, backend/src/__tests__/outreach.test.ts
+
 - [x] 2026-10-04 - Siapkan seluruh perubahan Website untuk commit/push: tech stack portofolio beserta migrasi, perbaikan Client Outreach, dan scrollbar bertema. Validasi 34 tes terkait, lint, build frontend/backend, TypeScript, SEO dan diff check lulus. Dua tes frontend awal timeout saat build berjalan paralel; pengulangan terpisah dengan batas waktu 30 detik lulus seluruhnya. Env aktual, cache TypeScript dan screenshot QA tidak disertakan - files: backend/src/models/project.model.ts, backend/src/runtime-migrations.ts, frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/styles.css
 
 - [x] 2026-10-04 - Sesuaikan lebar tiap kolom Client Outreach, lebarkan Kota menjadi 240px dan WhatsApp untuk ikon/nomor, perkecil tombol/dropdown pagination menjadi 32px, serta samakan tinggi baris dengan isi tertinggi pada halaman aktif melalui ResizeObserver. Tinggi menyesuaikan filter/pagination dan perubahan ukuran konten. Tambahkan ikon brand WhatsApp pada tautan nomor - files: frontend/src/pages/admin/AdminOutreachSection.tsx

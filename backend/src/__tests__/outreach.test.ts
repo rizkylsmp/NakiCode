@@ -13,6 +13,13 @@ app.use(express.json(), outreachRouter);
 const token = createUserToken({ id: 1, username: 'fixture', role: 'admin' });
 beforeEach(() => { vi.clearAllMocks(); });
 describe('outreach API', () => {
+  it('allows editing a lost prospect while retaining its status', async () => {
+    vi.mocked(findOutreachLead).mockResolvedValue({ status: 'lost', whatsapp_number: '6280000000000', opt_in_at: null, opt_in_source: null } as never);
+    vi.mocked(updateOutreachLead).mockResolvedValue(true);
+    const response = await request(app).patch('/1').set('Authorization', `Bearer ${token}`).send({ status: 'lost', draftMessage: 'Draf penawaran website terbaru.', notes: 'Catatan diperbarui' });
+    expect(response.status).toBe(200);
+    expect(updateOutreachLead).toHaveBeenCalledWith(1, expect.objectContaining({ status: 'lost', draftMessage: 'Draf penawaran website terbaru.', notes: 'Catatan diperbarui', whatsappNumber: '6280000000000' }));
+  });
   it('requires admin authorization to delete', async () => {
     expect((await request(app).delete('/1')).status).toBe(401);
     const user = createUserToken({ id: 2, username: 'fixture-user', role: 'user' });
