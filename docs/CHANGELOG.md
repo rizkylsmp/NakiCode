@@ -2,6 +2,14 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-04 - Rapikan draf Client Outreach dengan baris kosong sebelum blok tautan demo/design/info NAKI dan setelahnya, sementara setiap tautan berada pada satu baris. Terapkan format pada CSV/generator dan impor prospek baru; sediakan formatter database dengan pemeriksaan isi pesan tetap sama serta compare-and-set untuk menjaga edit admin bersamaan - files: backend/src/utils/outreach-draft.ts, backend/src/scripts/outreach-format-drafts.ts, backend/src/scripts/outreach-cycle.ts, backend/package.json, ../MARKETING/CLIENT_OUTREACH/LEADS.csv, ../MARKETING/CLIENT_OUTREACH/README.md
+
+  Validasi: CSV valid 51 baris, 36 draf diperbarui di CSV; database memeriksa 41 prospek non-deleted dan memperbarui 36 draf, tanpa konflik edit bersamaan dan tanpa sisa format yang perlu diperbarui. Isi non-whitespace tetap sama; build backend lulus. Format data Admin sudah diterapkan, perubahan source belum dipush/deploy.
+
+- [x] 2026-10-04 - Izinkan admin mengedit prospek Jangan hubungi: status dapat diubah dari tabel atau overlay, draf/catatan/nomor tetap dapat disimpan, dan nomor tidak dikosongkan otomatis saat menyimpan status tersebut. Tambahkan tes regresi frontend/API - files: frontend/src/pages/admin/AdminOutreachSection.tsx, backend/src/routes/outreach.ts, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, backend/src/__tests__/outreach.test.ts
+
+  Validasi: 21 tes frontend dan 8 tes API, lint frontend, build backend, serta diff check lulus. Tes frontend diulang dengan timeout 30 detik setelah timeout pada beban Windows; pemeriksaan browser desktop/mobile dan deployment belum dilakukan.
+
 - [x] 2026-10-04 - Verifikasi prospek berstatus Tidak lanjut (`lost`) tetap dapat diedit dan disimpan tanpa mengubah status. Tambahkan tes regresi form edit dan API untuk mempertahankan catatan, draf, serta nomor. Alur aplikasi existing sudah mendukungnya sehingga tidak diperlukan perubahan UI/API. Validasi 19 tes frontend dan 6 tes backend lulus - files: frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, backend/src/__tests__/outreach.test.ts
 
 - [x] 2026-10-04 - Siapkan seluruh perubahan Website untuk commit/push: tech stack portofolio beserta migrasi, perbaikan Client Outreach, dan scrollbar bertema. Validasi 34 tes terkait, lint, build frontend/backend, TypeScript, SEO dan diff check lulus. Dua tes frontend awal timeout saat build berjalan paralel; pengulangan terpisah dengan batas waktu 30 detik lulus seluruhnya. Env aktual, cache TypeScript dan screenshot QA tidak disertakan - files: backend/src/models/project.model.ts, backend/src/runtime-migrations.ts, frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/styles.css

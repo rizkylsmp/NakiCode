@@ -7,19 +7,31 @@ vi.mock("../../../services/api-client", () => ({ apiGet: vi.fn(), apiPatch: vi.f
 const lead = { id: 1, business_name: "Bisnis Uji", category: "Jasa", city: "Kota Uji", external_key: "fixture.example", source_url: "https://fixture.example", evidence_url: "https://fixture.example/services", contact_url: "https://fixture.example/contact", observation: "Informasi layanan bisnis uji.", opportunity: "Halaman layanan dengan design yang jelas.", score: 3, draft_message: "Halo, boleh berdiskusi tentang design website? https://nakicode.xyz/", status: "reviewed", whatsapp_number: null, notes: null, checked_at: null, updated_at: "2026-01-01T01:00:00.000Z" };
 beforeEach(() => { vi.restoreAllMocks(); vi.mocked(apiGet).mockResolvedValue({ leads: [lead] }); vi.mocked(apiDelete).mockResolvedValue({}); });
 describe("research-only outreach", () => {
-  it("edits a lost prospect without changing its status", async () => {
-    const lost = { ...lead, status: "lost", notes: "Catatan sebelumnya" };
+  it.each(["lost", "do_not_contact"])("edits a %s prospect without changing its status", async originalStatus => {
+    const lost = { ...lead, status: originalStatus, notes: "Catatan sebelumnya" };
     vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: [lost] });
     vi.mocked(apiPatch).mockResolvedValue({ lead: { ...lost, notes: "Catatan diperbarui" } });
     render(<AdminOutreachSection />);
     fireEvent.click(await screen.findByRole("button", { name: "Edit Bisnis Uji" }));
     expect(screen.getByRole("combobox", { name: "Status", exact: true })).toBeEnabled();
-    expect(screen.getByRole("combobox", { name: "Status", exact: true })).toHaveValue("lost");
+    expect(screen.getByRole("combobox", { name: "Status", exact: true })).toHaveValue(originalStatus);
     fireEvent.change(screen.getByRole("textbox", { name: "Catatan" }), { target: { value: "Catatan diperbarui" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Nomor WhatsApp" }), { target: { value: "6280000000000" } });
     fireEvent.click(screen.getByRole("button", { name: "Simpan perubahan" }));
     await screen.findByText("Perubahan tersimpan.");
-    expect(apiPatch).toHaveBeenCalledWith("/api/admin/outreach/1", expect.objectContaining({ status: "lost", notes: "Catatan diperbarui" }));
-    expect(screen.getByRole("combobox", { name: "Status Bisnis Uji" })).toHaveValue("lost");
+    expect(apiPatch).toHaveBeenCalledWith("/api/admin/outreach/1", expect.objectContaining({ status: originalStatus, notes: "Catatan diperbarui", whatsappNumber: "6280000000000" }));
+    expect(screen.getByRole("combobox", { name: "Status Bisnis Uji" })).toHaveValue(originalStatus);
+  });
+  it("changes do-not-contact status directly from the table", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: [{ ...lead, status: "do_not_contact" }] });
+    vi.mocked(apiPatch).mockResolvedValue({ lead: { ...lead, status: "reviewed" } });
+    render(<AdminOutreachSection />);
+    const status = await screen.findByRole("combobox", { name: "Status Bisnis Uji" });
+    expect(status).toBeEnabled();
+    fireEvent.change(status, { target: { value: "reviewed" } });
+    await screen.findByText("Status diperbarui.");
+    expect(apiPatch).toHaveBeenCalledWith("/api/admin/outreach/1", { status: "reviewed" });
+    expect(screen.getByRole("combobox", { name: "Status Bisnis Uji" })).toHaveValue("reviewed");
   });
   it("sorts numeric scores in both directions, resets pagination, and preserves ordering through filtering", async () => {
     vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: Array.from({ length: 12 }, (_, index) => ({ ...lead, id: index + 1, business_name: `Client ${index + 1}`, score: index % 6 })) });

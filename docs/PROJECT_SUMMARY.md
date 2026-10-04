@@ -231,6 +231,8 @@ Admin:
 - `GET /api/admin/stats`
 - `GET|POST /api/admin/outreach`, `PATCH|DELETE /api/admin/outreach/:id` - pengelolaan prospek admin. DELETE menyimpan identitas penghapusan agar sinkronisasi tidak mengembalikan prospek; endpoint lama `POST /api/admin/outreach/:id/send` mengembalikan HTTP 410 tanpa mengirim pesan.
 - Webhook WhatsApp tidak dipasang pada server; fitur outreach tidak membutuhkan koneksi Meta.
+- Draf outreach memakai baris kosong sebelum/sesudah blok URL berlabel demo, detail design, dan info NAKI, dengan satu tautan per baris. Impor CSV baru merapikan format melalui `formatOutreachDraft`; `outreach:format-drafts` merapikan draf database existing dengan pemeriksaan hanya whitespace yang berubah dan compare-and-set agar edit admin bersamaan tidak tertimpa. Status dan kontak tetap dipertahankan.
+- Prospek berstatus `do_not_contact` (Jangan hubungi) tetap dapat diedit oleh admin: draf, catatan, nomor, serta status dari tabel/overlay. Penyimpanan tidak otomatis menghapus nomor. Perubahan status harus dipilih eksplisit oleh admin; sinkronisasi riset tetap mempertahankan status admin dan tidak menambahkan kembali identitas `do_not_contact` atau `deleted`.
 - `POST /api/uploads/images` (admin)
 - `POST /api/uploads/video` (admin, satu video MP4/WebM/MOV maksimal 50 MB)
 - `POST /api/uploads/source` (admin, satu arsip ZIP/RAR valid maksimal 100 MB)

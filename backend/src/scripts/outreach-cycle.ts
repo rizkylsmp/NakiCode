@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { closeDatabasePool, pingDatabase, pool } from '../db';
 import { insertOutreachLead, listOutreachIdentities } from '../models/outreach.model';
+import { formatOutreachDraft } from '../utils/outreach-draft';
 
 function parseCsv(source: string) {
   const rows: string[][] = [];
@@ -48,7 +49,7 @@ async function sync() {
       observation: row.observation,
       opportunity: row.opportunity,
       score: Math.max(0, Math.min(5, Number(row.score) || 0)),
-      draftMessage: row.draft_message,
+      draftMessage: formatOutreachDraft(row.draft_message),
       checkedAt: row.checked_at || null,
       notes: row.notes || null,
     });

@@ -16,6 +16,7 @@
     "outreach:dispatch": "tsx src/scripts/outreach-cycle.ts dispatch",
     "outreach:check": "tsx src/scripts/outreach-cycle.ts dry-run",
     "outreach:status": "tsx src/scripts/outreach-cycle.ts status",
+    "outreach:format-drafts": "tsx src/scripts/outreach-format-drafts.ts",
     "email:retry-orders": "tsx src/scripts/retry-order-emails.ts",
     "payment:webhook:sandbox": "tsx src/scripts/midtrans-webhook-sandbox.ts",
     "migrate": "npm run migrate:sql",

@@ -60,9 +60,8 @@ outreachRouter.patch('/:id', async (req, res) => {
   try {
     const current = await findOutreachLead(id);
     if (!current) return res.status(404).json({ message: 'Prospek tidak ditemukan.' });
-    if (current.status === 'do_not_contact' && parsed.data.status !== 'do_not_contact') return res.status(409).json({ message: 'Prospek ini menolak kontak.' });
     const optedOut = parsed.data.status === 'do_not_contact';
-    const whatsappNumber = optedOut ? null : parsed.data.whatsappNumber !== undefined ? parsed.data.whatsappNumber : current.whatsapp_number;
+    const whatsappNumber = parsed.data.whatsappNumber !== undefined ? parsed.data.whatsappNumber : current.whatsapp_number;
     if (['ready', 'sending', 'failed'].includes(parsed.data.status)) return res.status(400).json({ message: 'Status pengiriman otomatis tidak lagi digunakan.' });
     const updated = await updateOutreachLead(id, { ...parsed.data, whatsappNumber,
       optInAt: optedOut ? null : current.opt_in_at?.toISOString() ?? null,

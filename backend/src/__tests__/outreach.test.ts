@@ -13,6 +13,18 @@ app.use(express.json(), outreachRouter);
 const token = createUserToken({ id: 1, username: 'fixture', role: 'admin' });
 beforeEach(() => { vi.clearAllMocks(); });
 describe('outreach API', () => {
+  it('edits a do-not-contact prospect and preserves its contact when omitted', async () => {
+    vi.mocked(findOutreachLead).mockResolvedValue({ status: 'do_not_contact', whatsapp_number: '6280000000000', opt_in_at: null, opt_in_source: null } as never);
+    vi.mocked(updateOutreachLead).mockResolvedValue(true);
+    expect((await request(app).patch('/1').set('Authorization', `Bearer ${token}`).send({ status: 'do_not_contact', notes: 'Catatan diperbarui', draftMessage: 'Draf website yang diperbarui.' })).status).toBe(200);
+    expect(updateOutreachLead).toHaveBeenCalledWith(1, expect.objectContaining({ status: 'do_not_contact', whatsappNumber: '6280000000000', notes: 'Catatan diperbarui', optInAt: null, optInSource: null }));
+  });
+  it('allows an admin to change a do-not-contact status and number explicitly', async () => {
+    vi.mocked(findOutreachLead).mockResolvedValue({ status: 'do_not_contact', whatsapp_number: null, opt_in_at: null, opt_in_source: null } as never);
+    vi.mocked(updateOutreachLead).mockResolvedValue(true);
+    expect((await request(app).patch('/1').set('Authorization', `Bearer ${token}`).send({ status: 'reviewed', whatsappNumber: '6280000000000' })).status).toBe(200);
+    expect(updateOutreachLead).toHaveBeenCalledWith(1, expect.objectContaining({ status: 'reviewed', whatsappNumber: '6280000000000' }));
+  });
   it('allows editing a lost prospect while retaining its status', async () => {
     vi.mocked(findOutreachLead).mockResolvedValue({ status: 'lost', whatsapp_number: '6280000000000', opt_in_at: null, opt_in_source: null } as never);
     vi.mocked(updateOutreachLead).mockResolvedValue(true);
