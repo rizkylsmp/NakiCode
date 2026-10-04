@@ -13,6 +13,8 @@ import { createPortal } from "react-dom";
 import {
   Field,
   ImageUploadDropZone,
+  portfolioTechStackOptions,
+  TagSelector,
   TextArea,
   normalizeCoverIndex,
   type PortfolioFormState,
@@ -103,10 +105,7 @@ export function PortfolioFormModal({
   const hasLegacyCategory =
     Boolean(currentCategory) && !registeredCategories.includes(currentCategory);
 
-  function updatePortfolioImages(
-    imageUrls: string[],
-    nextIndex = 0,
-  ) {
+  function updatePortfolioImages(imageUrls: string[], nextIndex = 0) {
     const nextCoverIndex = normalizeCoverIndex(nextIndex, imageUrls);
 
     onUpdateField("imageUrls", imageUrls);
@@ -216,7 +215,9 @@ export function PortfolioFormModal({
                 <select
                   aria-label="Kategori"
                   className="h-11 w-full rounded-lg border border-naki-steel bg-naki-page-bg px-3 text-sm text-naki-primary outline-none transition focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={registeredCategories.length === 0 && !hasLegacyCategory}
+                  disabled={
+                    registeredCategories.length === 0 && !hasLegacyCategory
+                  }
                   onChange={(event) =>
                     onUpdateField("category", event.target.value)
                   }
@@ -262,6 +263,21 @@ export function PortfolioFormModal({
               onChange={(value) => onUpdateField("description", value)}
               rows={4}
               required
+            />
+
+            <TagSelector
+              label="Tech stack"
+              options={portfolioTechStackOptions}
+              value={form.techStack.join(", ")}
+              onChange={(value) =>
+                onUpdateField(
+                  "techStack",
+                  value
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                )
+              }
             />
 
             <ImageUploadDropZone

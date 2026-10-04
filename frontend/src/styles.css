@@ -25,6 +25,13 @@
 }
 
 :root {
+  --naki-scrollbar-track: var(--color-naki-frost);
+  --naki-scrollbar-thumb: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 65%,
+    var(--color-naki-smoke)
+  );
+  --naki-scrollbar-hover: var(--color-naki-secondary);
   font-family:
     Inter,
     ui-sans-serif,
@@ -41,7 +48,77 @@ html[data-theme="dark"] {
   --color-naki-frost: #182235;
   --color-naki-steel: #334155;
   --color-naki-smoke: #94a3b8;
+  --naki-scrollbar-track: var(--color-naki-page-bg);
+  --naki-scrollbar-thumb: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 70%,
+    var(--color-naki-smoke)
+  );
+  --naki-scrollbar-hover: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 65%,
+    white
+  );
   color-scheme: dark;
+}
+
+/* Native scrolling, themed consistently for pages and nested admin panels. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--naki-scrollbar-thumb) var(--naki-scrollbar-track);
+  }
+
+  /* Standard non-auto colors override WebKit pseudo-elements in Chromium. */
+  @supports selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+
+    ::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--naki-scrollbar-track);
+      border-radius: 999px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      min-height: 40px;
+      min-width: 40px;
+      border: 3px solid var(--naki-scrollbar-track);
+      border-radius: 999px;
+      background: var(--naki-scrollbar-thumb);
+      background-clip: padding-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover,
+    ::-webkit-scrollbar-thumb:active {
+      background-color: var(--naki-scrollbar-hover);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: var(--naki-scrollbar-track);
+    }
+  }
+
+  /* Respect the user's system high-contrast scrollbar. */
+  @media (forced-colors: active) {
+    * {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+
+    ::-webkit-scrollbar,
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-thumb,
+    ::-webkit-scrollbar-corner {
+      all: revert;
+    }
+  }
 }
 
 html {
@@ -51,7 +128,7 @@ html {
 }
 
 body {
-  min-width: 320px;
+  min-width: min(320px, 100%);
   margin: 0;
   background: var(--color-naki-page-bg);
   overflow-x: clip;
@@ -76,6 +153,19 @@ iframe {
 input,
 select,
 textarea,
+.naki-outreach :is(input, select, textarea),
+.naki-outreach-dialog :is(input, select, textarea) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.naki-outreach :is(button, input, select, textarea, a, [tabindex]):focus-visible,
+.naki-outreach-dialog :is(button, input, select, textarea, a, [tabindex]):focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--color-naki-smoke) !important;
+}
+
 button {
   min-width: 0;
 }
@@ -382,7 +472,7 @@ html[data-theme="dark"] :is(input, textarea, select, option) {
 }
 
 /* Native selects share one branded, accessible treatment across the app. */
-select:not([multiple]) {
+select:not([multiple]):not(.naki-outreach-status) {
   appearance: none;
   cursor: pointer;
   border-color: var(--color-naki-steel);
@@ -401,7 +491,7 @@ select:not([multiple]) {
     box-shadow 160ms ease;
 }
 
-select:not([multiple]):hover:not(:disabled) {
+select:not([multiple]):not(.naki-outreach-status):hover:not(:disabled) {
   border-color: color-mix(
     in srgb,
     var(--color-naki-secondary) 55%,
@@ -409,14 +499,14 @@ select:not([multiple]):hover:not(:disabled) {
   );
 }
 
-select:not([multiple]):focus-visible {
+select:not([multiple]):not(.naki-outreach-status):focus-visible {
   border-color: var(--color-naki-secondary);
   outline: none;
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--color-naki-secondary) 22%, transparent);
 }
 
-select:not([multiple]):disabled {
+select:not([multiple]):not(.naki-outreach-status):disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -426,7 +516,7 @@ select option {
   color: var(--color-naki-primary);
 }
 
-html[data-theme="dark"] select:not([multiple]) {
+html[data-theme="dark"] select:not([multiple]):not(.naki-outreach-status) {
   border-color: var(--color-naki-steel) !important;
   background-color: var(--color-naki-frost) !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2393c5fd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -434,7 +524,7 @@ html[data-theme="dark"] select:not([multiple]) {
   box-shadow: 0 1px 2px rgb(2 6 23 / 0.35);
 }
 
-html[data-theme="dark"] select:not([multiple]):hover:not(:disabled) {
+html[data-theme="dark"] select:not([multiple]):not(.naki-outreach-status):hover:not(:disabled) {
   border-color: var(--color-naki-secondary) !important;
   background-color: color-mix(
     in srgb,
@@ -443,7 +533,7 @@ html[data-theme="dark"] select:not([multiple]):hover:not(:disabled) {
   ) !important;
 }
 
-html[data-theme="dark"] select:not([multiple]):focus-visible {
+html[data-theme="dark"] select:not([multiple]):not(.naki-outreach-status):focus-visible {
   border-color: #60a5fa !important;
   box-shadow: 0 0 0 3px rgb(59 130 246 / 0.3);
 }

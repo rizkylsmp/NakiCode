@@ -70,9 +70,9 @@ describe("PortfolioAdminPanel", () => {
 
     render(<PortfolioPanelHarness projects={projects} />);
 
-    expect(screen.getByRole("navigation", { name: "Pagination" })).toHaveTextContent(
-      "Halaman 1 dari 2",
-    );
+    expect(
+      screen.getByRole("navigation", { name: "Pagination" }),
+    ).toHaveTextContent("Halaman 1 dari 2");
     expect(screen.getByText("Project 1")).toBeInTheDocument();
     expect(screen.queryByText("Project 11")).not.toBeInTheDocument();
 
@@ -98,12 +98,17 @@ describe("PortfolioAdminPanel", () => {
 
     render(<PortfolioPanelHarness />);
 
-    await user.click(screen.getByRole("button", { name: "Hapus Naki Showcase" }));
+    await user.click(
+      screen.getByRole("button", { name: "Hapus Naki Showcase" }),
+    );
 
     expect(
-      screen.getByText('Portofolio "Naki Showcase" akan dihapus dari website.', {
-        exact: false,
-      }),
+      screen.getByText(
+        'Portofolio "Naki Showcase" akan dihapus dari website.',
+        {
+          exact: false,
+        },
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ya, hapus portofolio" }),
@@ -130,6 +135,17 @@ describe("PortfolioAdminPanel", () => {
     await user.selectOptions(categorySelect, "Toko Online");
 
     expect(categorySelect).toHaveValue("Toko Online");
+  });
+
+  it("shows selectable tech stack choices in the portfolio form", async () => {
+    const user = userEvent.setup();
+
+    render(<PortfolioPanelHarness isModalOpen />);
+
+    const reactButton = screen.getByRole("button", { name: "React" });
+    expect(reactButton).toBeInTheDocument();
+    await user.click(reactButton);
+    expect(reactButton).toHaveClass("bg-naki-secondary");
   });
 
   it("shows photos vertically and makes the first dragged photo the cover", () => {

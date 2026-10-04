@@ -1,8 +1,8 @@
-import express from 'express';
-import request from 'supertest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createUserToken } from '../auth';
-import { projectsRouter } from '../routes/projects';
+import express from "express";
+import request from "supertest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createUserToken } from "../auth";
+import { projectsRouter } from "../routes/projects";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
@@ -14,14 +14,14 @@ const mocks = vi.hoisted(() => ({
   audit: vi.fn(),
 }));
 
-vi.mock('../models/audit-log.model', () => ({
+vi.mock("../models/audit-log.model", () => ({
   createAdminAuditLog: mocks.audit,
 }));
 
-vi.mock('../models/project.model', async () => {
-  const actual = await vi.importActual<typeof import('../models/project.model')>(
-    '../models/project.model',
-  );
+vi.mock("../models/project.model", async () => {
+  const actual = await vi.importActual<
+    typeof import("../models/project.model")
+  >("../models/project.model");
 
   return {
     ...actual,
@@ -36,15 +36,15 @@ vi.mock('../models/project.model', async () => {
 
 const project = {
   id: 7,
-  title: 'Naki Showcase',
-  category: 'Company Profile',
-  description: 'Website portfolio untuk brand digital.',
-  result: 'Conversion naik',
-  websiteUrl: 'https://example.com',
-  imageUrl: '/uploads/cover.webp',
-  imageUrls: ['/uploads/cover.webp', 'https://cdn.example.com/detail.webp'],
+  title: "Naki Showcase",
+  category: "Company Profile",
+  description: "Website portfolio untuk brand digital.",
+  result: "Conversion naik",
+  websiteUrl: "https://example.com",
+  imageUrl: "/uploads/cover.webp",
+  imageUrls: ["/uploads/cover.webp", "https://cdn.example.com/detail.webp"],
   coverIndex: 0,
-  createdAt: '2026-09-09T00:00:00.000Z',
+  createdAt: "2026-09-09T00:00:00.000Z",
 };
 
 const validPayload = {
@@ -52,6 +52,7 @@ const validPayload = {
   category: project.category,
   description: project.description,
   result: project.result,
+  techStack: ["React", "Tailwind CSS"],
   websiteUrl: project.websiteUrl,
   imageUrl: project.imageUrl,
   imageUrls: project.imageUrls,
@@ -60,15 +61,15 @@ const validPayload = {
 
 const adminToken = createUserToken({
   id: 1,
-  username: 'admin-test',
-  role: 'admin',
+  username: "admin-test",
+  role: "admin",
 });
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
-app.use('/api/projects', projectsRouter);
+app.use(express.json({ limit: "1mb" }));
+app.use("/api/projects", projectsRouter);
 
-describe('Portfolio CRUD API', () => {
+describe("Portfolio CRUD API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.create.mockResolvedValue(project);
@@ -86,9 +87,11 @@ describe('Portfolio CRUD API', () => {
     mocks.audit.mockResolvedValue(1);
   });
 
-  it('reads the public list with and without pagination', async () => {
-    const listResponse = await request(app).get('/api/projects');
-    const pageResponse = await request(app).get('/api/projects?page=1&pageSize=9');
+  it("reads the public list with and without pagination", async () => {
+    const listResponse = await request(app).get("/api/projects");
+    const pageResponse = await request(app).get(
+      "/api/projects?page=1&pageSize=9",
+    );
 
     expect(listResponse.status).toBe(200);
     expect(listResponse.body.projects).toEqual([project]);
@@ -97,13 +100,13 @@ describe('Portfolio CRUD API', () => {
     expect(mocks.findPage).toHaveBeenCalledWith(1, 9);
   });
 
-  it('protects mutations and creates a normalized portfolio for an admin', async () => {
+  it("protects mutations and creates a normalized portfolio for an admin", async () => {
     const unauthenticatedResponse = await request(app)
-      .post('/api/projects')
+      .post("/api/projects")
       .send(validPayload);
     const response = await request(app)
-      .post('/api/projects')
-      .set('Authorization', `Bearer ${adminToken}`)
+      .post("/api/projects")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send(validPayload);
 
     expect(unauthenticatedResponse.status).toBe(401);
@@ -113,34 +116,39 @@ describe('Portfolio CRUD API', () => {
       expect.objectContaining({
         title: project.title,
         imageUrls: project.imageUrls,
+        techStack: validPayload.techStack,
         coverIndex: 0,
       }),
     );
   });
 
-  it('keeps a legacy single image when the gallery array is empty', async () => {
+  it("keeps a legacy single image when the gallery array is empty", async () => {
     await request(app)
-      .post('/api/projects')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ ...validPayload, imageUrls: [], imageUrl: '/uploads/legacy.webp' });
+      .post("/api/projects")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        ...validPayload,
+        imageUrls: [],
+        imageUrl: "/uploads/legacy.webp",
+      });
 
     expect(mocks.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        imageUrl: '/uploads/legacy.webp',
-        imageUrls: ['/uploads/legacy.webp'],
+        imageUrl: "/uploads/legacy.webp",
+        imageUrls: ["/uploads/legacy.webp"],
         coverIndex: 0,
       }),
     );
   });
 
-  it('rejects unsafe URLs and an out-of-range cover index', async () => {
+  it("rejects unsafe URLs and an out-of-range cover index", async () => {
     const unsafeUrlResponse = await request(app)
-      .post('/api/projects')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ ...validPayload, websiteUrl: 'javascript:alert(1)' });
+      .post("/api/projects")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ ...validPayload, websiteUrl: "javascript:alert(1)" });
     const invalidCoverResponse = await request(app)
-      .post('/api/projects')
-      .set('Authorization', `Bearer ${adminToken}`)
+      .post("/api/projects")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send({ ...validPayload, coverIndex: validPayload.imageUrls.length });
 
     expect(unsafeUrlResponse.status).toBe(400);
@@ -148,10 +156,10 @@ describe('Portfolio CRUD API', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
-  it('updates the selected portfolio and preserves its gallery', async () => {
+  it("updates the selected portfolio and preserves its gallery", async () => {
     const response = await request(app)
       .put(`/api/projects/${project.id}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+      .set("Authorization", `Bearer ${adminToken}`)
       .send(validPayload);
 
     expect(response.status).toBe(200);
@@ -161,29 +169,29 @@ describe('Portfolio CRUD API', () => {
     );
   });
 
-  it('soft-deletes the selected portfolio even if audit logging is unavailable', async () => {
-    mocks.audit.mockRejectedValueOnce(new Error('audit unavailable'));
+  it("soft-deletes the selected portfolio even if audit logging is unavailable", async () => {
+    mocks.audit.mockRejectedValueOnce(new Error("audit unavailable"));
 
     const response = await request(app)
       .delete(`/api/projects/${project.id}`)
-      .set('Authorization', `Bearer ${adminToken}`);
+      .set("Authorization", `Bearer ${adminToken}`);
 
     expect(response.status).toBe(204);
     expect(mocks.remove).toHaveBeenCalledWith(project.id);
   });
 
-  it('returns 404 when update or delete targets a missing portfolio', async () => {
+  it("returns 404 when update or delete targets a missing portfolio", async () => {
     mocks.update.mockResolvedValueOnce(null);
     const updateResponse = await request(app)
-      .put('/api/projects/404')
-      .set('Authorization', `Bearer ${adminToken}`)
+      .put("/api/projects/404")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send(validPayload);
 
     mocks.findById.mockResolvedValueOnce(null);
     mocks.remove.mockResolvedValueOnce(false);
     const deleteResponse = await request(app)
-      .delete('/api/projects/404')
-      .set('Authorization', `Bearer ${adminToken}`);
+      .delete("/api/projects/404")
+      .set("Authorization", `Bearer ${adminToken}`);
 
     expect(updateResponse.status).toBe(404);
     expect(deleteResponse.status).toBe(404);

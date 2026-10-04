@@ -13,7 +13,10 @@ type PortfolioSectionProps = {
   isLoading?: boolean;
 };
 
-export function PortfolioSection({ items, isLoading = false }: PortfolioSectionProps) {
+export function PortfolioSection({
+  items,
+  isLoading = false,
+}: PortfolioSectionProps) {
   return (
     <section className="w-full">
       <div className="px-5 py-16 md:px-8 xl:px-12 2xl:px-16">
@@ -27,7 +30,8 @@ export function PortfolioSection({ items, isLoading = false }: PortfolioSectionP
                 Website yang sudah kami kerjakan
               </h2>
               <p className="mt-2 max-w-xl text-sm text-naki-smoke">
-                Contoh website yang kami kerjakan dari design referensi maupun brief custom.
+                Contoh website yang kami kerjakan dari design referensi maupun
+                brief custom.
               </p>
             </div>
             <Link
@@ -159,12 +163,35 @@ function PortfolioCard({
       </div>
 
       <div className="flex flex-col p-4">
-        <h3 translate="no" className="line-clamp-1 text-sm font-semibold text-naki-primary">
+        <h3
+          translate="no"
+          className="line-clamp-1 text-sm font-semibold text-naki-primary"
+        >
           {item.title}
         </h3>
-        <p translate="no" className="mt-1 line-clamp-1 text-xs leading-relaxed text-naki-smoke">
+        <p
+          translate="no"
+          className="mt-1 line-clamp-1 text-xs leading-relaxed text-naki-smoke"
+        >
           {item.description}
         </p>
+        {item.techStack && item.techStack.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Tech stack">
+            {item.techStack.slice(0, 4).map((tech) => (
+              <span
+                key={tech}
+                className="rounded-md bg-naki-frost px-2 py-1 text-[10px] font-medium text-naki-smoke"
+              >
+                {tech}
+              </span>
+            ))}
+            {item.techStack.length > 4 ? (
+              <span className="rounded-md bg-naki-frost px-2 py-1 text-[10px] font-medium text-naki-smoke">
+                +{item.techStack.length - 4}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="mt-3 flex items-center justify-between">
           <span className="text-xs font-medium text-blue-500">
             {item.result}
@@ -300,7 +327,10 @@ function PortfolioPreviewModal({
               <MasonryPhotoAlbum
                 photos={albumPhotos}
                 onClick={({ photo }) => {
-                  setFullscreenImage({ src: photo.src, alt: photo.alt ?? item.title });
+                  setFullscreenImage({
+                    src: photo.src,
+                    alt: photo.alt ?? item.title,
+                  });
                 }}
                 columns={(containerWidth) => {
                   if (containerWidth < 640) return 1;

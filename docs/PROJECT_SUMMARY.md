@@ -372,6 +372,7 @@ Mode:
 - Admin memakai sidebar tetap mulai breakpoint `lg`, dengan tombol collapse/expand menjadi navigasi ikon selebar 80px, tooltip nama menu, dan area konten yang mengikuti lebarnya. Preferensi disimpan lokal pada `naki-admin-sidebar-collapsed`; kegagalan storage tidak menghalangi navigasi. Pada layar lebih kecil navigasi tetap memakai tombol sticky yang membuka drawer ber-overlay dengan label lengkap, indikator menu aktif, profil admin, dan dukungan Escape. Modal form besar berubah menjadi surface full-screen pada mobile lalu kembali menjadi dialog pada `sm` ke atas.
 - Layout full width, jangan max-width sempit kecuali konten spesifik butuh.
 - Palette warna tinggal di `frontend/src/styles.css` lewat `@theme`.
+- Scrollbar memakai CSS global native dengan thumb biru membulat dan track sesuai tema, termasuk area scroll internal admin. Chromium/WebKit memakai pseudo-element, Firefox memakai `scrollbar-color`/`scrollbar-width`, dan mode kontras tinggi kembali ke scrollbar sistem. Jangan mengganti dengan scroll JavaScript atau menghilangkan scrollbar yang dibutuhkan pengguna.
 - Jangan hardcode hex color di `className`.
 - Gunakan token:
   - `bg-naki-primary`
@@ -434,6 +435,7 @@ Admin:
 - CRUD design
 - CRUD categories dengan jumlah design aktif per kategori dan tooltip judul design saat indikator jumlah diarahkan atau difokuskan; kategori yang masih dipakai tidak dapat dihapus sampai seluruh design dipindahkan ke kategori lain
 - CRUD projects/portfolio dengan multi-foto, pengurutan foto vertikal melalui drag and drop (foto teratas otomatis menjadi cover), preview asset, dan dropdown kategori yang bersumber dari kategori terdaftar
+- Portofolio memiliki pilihan tech stack dari daftar stack Design yang sama; tersimpan pada `projects.tech_stack` sebagai JSON, dapat diedit, dan ditampilkan sebagai chip ringkas pada kartu publik. Portofolio lama tanpa nilai tetap valid.
 - Blog/tutorial management API
 - Order management tab
 - Filter, pencarian server-side, update individual, dan bulk workflow order
@@ -515,6 +517,8 @@ Improvement backlog:
 ---
 
 ## Niche Design dan Order
+
+Client Outreach (2026-10-04) memakai tabel dengan pagination default 10 baris, pilihan 10/25/50/100 data per halaman, ikon previous/next dengan nomor halaman di tengah, filter di dalam panel tabel dan peta di atas. Informasi observasi/peluang, draf, catatan, nomor bisnis, sumber/kontak dan aksi tersedia dari tabel. Draf dan catatan hanya memakai ikon mata untuk dialog teks lengkap. Tautan sumber/kontak memakai ikon; kolom Diperiksa tidak ditampilkan. Kolom Aksi tetap terlihat di kanan saat scroll horizontal. Klik sel noninteraktif memilih dan menyorot prospek serta mengarahkan peta ke marker terkait. Warna status dipertahankan pada dropdown native di kedua tema. Tambah manual dan edit draf/catatan/nomor memakai overlay dengan Escape, fokus keyboard dan mobile layar penuh. Dropdown status berwarna menyimpan PATCH hanya `status`, menjaga field lain; kegagalan mempertahankan status sebelumnya. Pilihan marker menyorot baris dan memindahkan halaman tabel. Panel detail permanen sudah diganti dialog edit. Urutan kolom: Bisnis, Niche, Status, WhatsApp, Draf pesan, Informasi, Catatan, Tautan, Kota, Skor, Aksi. Sort naik/turun tersedia pada Bisnis/Niche/Status/WhatsApp/Kota/Skor; diterapkan sebelum pagination dan tetap berlaku saat memfilter. Ikon informasi/draf/catatan dipusatkan. Nomor WhatsApp yang valid membuka wa.me dengan draf, tanpa pengiriman otomatis dan tanpa fallback nomor NAKI. Label niche tidak memakai prefix. Field filter/overlay tidak memakai ring/outline/shadow. Route /admin/outreach menyembunyikan tombol mengambang kembali ke atas.
 
 Client Outreach menampilkan label niche otomatis pada daftar dan detail prospek berdasarkan `category` hasil riset, menggunakan aturan `frontend/src/utils/outreach-niche.ts`. Nama dicocokkan ke niche terdaftar dengan padanan eksplisit; jika belum terdaftar/tidak dapat dimuat atau ada beberapa padanan, tampil sebagai **Usulan niche**. Kategori generik atau lintas bidang yang ambigu tampil **Belum diklasifikasikan**. Pencarian mencakup label niche. Filter Niche menyediakan Semua niche, kategori yang dikenali dari master/prospek, dan Belum diklasifikasikan; digabung dengan pencarian dan status untuk daftar, marker, dan detail. Ekspedisi/Courier/Shipping dipadankan dengan master Shipping bila terdaftar. Label dihitung saat ditampilkan, bukan relasi niche tersimpan pada prospek; tidak mengubah database/CSV, kategori asli, atau daftar niche. Kategori hasil riset baru perlu tetap spesifik agar label relevan. Fokus riset 2026-10-03 adalah Laundry dan Shipping mengikuti referensi design tersedia; otomasi tetap PAUSED sampai pengguna melanjutkannya.
 

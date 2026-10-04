@@ -291,6 +291,7 @@ CREATE TABLE IF NOT EXISTS projects (
   category VARCHAR(80) NOT NULL DEFAULT 'Website',
   description TEXT NOT NULL,
   result VARCHAR(160) NOT NULL DEFAULT 'Project selesai',
+  tech_stack JSON NULL,
   website_url VARCHAR(500) NOT NULL DEFAULT '#',
   image_url VARCHAR(500) NULL,
   image_urls JSON NULL,

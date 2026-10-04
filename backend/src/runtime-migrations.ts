@@ -794,18 +794,12 @@ const runtimeMigrations: Migration[] = [
         ["delivery_demo_url", "VARCHAR(500) NULL AFTER payment_stage"],
         ["delivery_source_url", "VARCHAR(500) NULL AFTER delivery_demo_url"],
         ["delivery_notes", "TEXT NULL AFTER delivery_source_url"],
-        [
-          "delivery_review_status",
-          "VARCHAR(30) NULL AFTER delivery_notes",
-        ],
+        ["delivery_review_status", "VARCHAR(30) NULL AFTER delivery_notes"],
         [
           "delivery_submitted_at",
           "TIMESTAMP NULL AFTER delivery_review_status",
         ],
-        [
-          "delivery_reviewed_at",
-          "TIMESTAMP NULL AFTER delivery_submitted_at",
-        ],
+        ["delivery_reviewed_at", "TIMESTAMP NULL AFTER delivery_submitted_at"],
         ["revision_notes", "TEXT NULL AFTER delivery_reviewed_at"],
         ["revision_files", "JSON NULL AFTER revision_notes"],
       ];
@@ -822,13 +816,21 @@ const runtimeMigrations: Migration[] = [
     id: "027_stage_invoices_and_order_email_deliveries",
     async up(connection) {
       if (!(await hasColumn(connection, "invoices", "stage"))) {
-        await connection.query("ALTER TABLE invoices ADD COLUMN stage VARCHAR(20) NOT NULL DEFAULT 'order' AFTER order_id");
+        await connection.query(
+          "ALTER TABLE invoices ADD COLUMN stage VARCHAR(20) NOT NULL DEFAULT 'order' AFTER order_id",
+        );
       }
-      if (!(await hasIndex(connection, "invoices", "uniq_invoice_order_stage"))) {
-        await connection.query("ALTER TABLE invoices ADD UNIQUE KEY uniq_invoice_order_stage (order_id, stage)");
+      if (
+        !(await hasIndex(connection, "invoices", "uniq_invoice_order_stage"))
+      ) {
+        await connection.query(
+          "ALTER TABLE invoices ADD UNIQUE KEY uniq_invoice_order_stage (order_id, stage)",
+        );
       }
       if (await hasIndex(connection, "invoices", "uniq_invoice_order")) {
-        await connection.query("ALTER TABLE invoices DROP INDEX uniq_invoice_order");
+        await connection.query(
+          "ALTER TABLE invoices DROP INDEX uniq_invoice_order",
+        );
       }
       await connection.query(`CREATE TABLE IF NOT EXISTS order_email_deliveries (
         id INT AUTO_INCREMENT PRIMARY KEY, order_id INT NOT NULL, invoice_id INT NULL,
@@ -850,24 +852,48 @@ const runtimeMigrations: Migration[] = [
   {
     id: "029_design_niche",
     async up(connection) {
-      await connection.query("CREATE TABLE IF NOT EXISTS niches (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120) NOT NULL UNIQUE)");
+      await connection.query(
+        "CREATE TABLE IF NOT EXISTS niches (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120) NOT NULL UNIQUE)",
+      );
       if (!(await hasColumn(connection, "designs", "niche_id"))) {
-        await connection.query("ALTER TABLE designs ADD COLUMN niche_id INT NULL AFTER category_id");
+        await connection.query(
+          "ALTER TABLE designs ADD COLUMN niche_id INT NULL AFTER category_id",
+        );
       }
-      if (!(await hasForeignKey(connection, "designs", "fk_designs_niche_id"))) {
-        await connection.query("ALTER TABLE designs ADD CONSTRAINT fk_designs_niche_id FOREIGN KEY (niche_id) REFERENCES niches(id) ON DELETE RESTRICT");
+      if (
+        !(await hasForeignKey(connection, "designs", "fk_designs_niche_id"))
+      ) {
+        await connection.query(
+          "ALTER TABLE designs ADD CONSTRAINT fk_designs_niche_id FOREIGN KEY (niche_id) REFERENCES niches(id) ON DELETE RESTRICT",
+        );
       }
       if (!(await hasColumn(connection, "orders", "niche"))) {
-        await connection.query("ALTER TABLE orders ADD COLUMN niche VARCHAR(120) NOT NULL DEFAULT '' AFTER project_type");
+        await connection.query(
+          "ALTER TABLE orders ADD COLUMN niche VARCHAR(120) NOT NULL DEFAULT '' AFTER project_type",
+        );
       }
     },
   },
   {
     id: "030_account_unbind",
     async up(connection) {
-      await connection.query("ALTER TABLE users MODIFY COLUMN email VARCHAR(160) NULL");
+      await connection.query(
+        "ALTER TABLE users MODIFY COLUMN email VARCHAR(160) NULL",
+      );
       if (!(await hasColumn(connection, "users", "google_login_disabled"))) {
-        await connection.query("ALTER TABLE users ADD COLUMN google_login_disabled BOOLEAN NOT NULL DEFAULT FALSE AFTER google_sub");
+        await connection.query(
+          "ALTER TABLE users ADD COLUMN google_login_disabled BOOLEAN NOT NULL DEFAULT FALSE AFTER google_sub",
+        );
+      }
+    },
+  },
+  {
+    id: "031_portfolio_tech_stack",
+    async up(connection) {
+      if (!(await hasColumn(connection, "projects", "tech_stack"))) {
+        await connection.query(
+          "ALTER TABLE projects ADD COLUMN tech_stack JSON NULL AFTER result",
+        );
       }
     },
   },

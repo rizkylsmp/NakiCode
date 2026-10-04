@@ -7,6 +7,7 @@ type ProjectRow = RowDataPacket & {
   category: string;
   description: string;
   result: string;
+  tech_stack: string | string[] | null;
   website_url: string;
   image_url: string | null;
   image_urls: string | string[] | null;
@@ -23,6 +24,7 @@ export type ProjectPayload = {
   category: string;
   description: string;
   result: string;
+  techStack: string[];
   websiteUrl: string;
   imageUrl: string | null;
   imageUrls: string[];
@@ -40,6 +42,7 @@ const projectSelect = `SELECT
   category,
   description,
   result,
+  tech_stack,
   website_url,
   image_url,
   image_urls,
@@ -102,16 +105,18 @@ export async function createProject(payload: ProjectPayload) {
       category,
       description,
       result,
+      tech_stack,
       website_url,
       image_url,
       image_urls,
       cover_index
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.title,
       payload.category,
       payload.description,
       payload.result,
+      JSON.stringify(payload.techStack),
       payload.websiteUrl,
       payload.imageUrl,
       JSON.stringify(payload.imageUrls),
@@ -129,6 +134,7 @@ export async function updateProject(id: number, payload: ProjectPayload) {
       category = ?,
       description = ?,
       result = ?,
+      tech_stack = ?,
       website_url = ?,
       image_url = ?,
       image_urls = ?,
@@ -139,6 +145,7 @@ export async function updateProject(id: number, payload: ProjectPayload) {
       payload.category,
       payload.description,
       payload.result,
+      JSON.stringify(payload.techStack),
       payload.websiteUrl,
       payload.imageUrl,
       JSON.stringify(payload.imageUrls),
@@ -179,11 +186,13 @@ export function normalizeProjectPayload(
     category: String(body.category ?? "Website").trim(),
     description: String(body.description ?? "").trim(),
     result: String(body.result ?? "Website selesai").trim(),
+    techStack: normalizeProjectTechStack(body.techStack ?? body.tech_stack),
     websiteUrl:
       String(body.websiteUrl ?? body.website_url ?? "#").trim() || "#",
     imageUrl:
-      String(imageUrls[coverIndex] ?? body.imageUrl ?? body.image_url ?? "").trim() ||
-      null,
+      String(
+        imageUrls[coverIndex] ?? body.imageUrl ?? body.image_url ?? "",
+      ).trim() || null,
     imageUrls,
     coverIndex,
   };
@@ -200,12 +209,36 @@ function normalizeProjectRow(row: ProjectRow): ProjectItem {
     category: row.category,
     description: row.description,
     result: row.result,
+    techStack: normalizeProjectTechStack(row.tech_stack),
     websiteUrl: row.website_url,
     imageUrl,
     imageUrls: imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [],
     coverIndex,
     createdAt: row.created_at ?? new Date().toISOString(),
   };
+}
+
+function normalizeProjectTechStack(value: unknown): string[] {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? parseJsonArray(value)
+      : [];
+
+  return raw
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .filter((item, index, items) => items.indexOf(item) === index)
+    .slice(0, 30);
+}
+
+function parseJsonArray(value: string): unknown[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return value.split(",");
+  }
 }
 
 function normalizeProjectCoverIndex(value: unknown, imageUrls: string[]) {
@@ -234,7 +267,9 @@ function normalizeProjectImages(source: Record<string, unknown>): string[] {
       return normalizedImages;
     }
 
-    const legacyImageUrl = String(source.imageUrl ?? source.image_url ?? "").trim();
+    const legacyImageUrl = String(
+      source.imageUrl ?? source.image_url ?? "",
+    ).trim();
     return legacyImageUrl ? [legacyImageUrl] : [];
   }
 
@@ -253,7 +288,9 @@ function normalizeProjectImages(source: Record<string, unknown>): string[] {
           return parsed
             .map((imageUrl) => String(imageUrl).trim())
             .filter(Boolean)
-            .filter((imageUrl, index, images) => images.indexOf(imageUrl) === index)
+            .filter(
+              (imageUrl, index, images) => images.indexOf(imageUrl) === index,
+            )
             .slice(0, 12);
         }
       } catch {

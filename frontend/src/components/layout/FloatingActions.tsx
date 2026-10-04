@@ -12,6 +12,7 @@ export function FloatingActions() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const { pathname } = useLocation();
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isOutreachPage = /^\/admin\/outreach\/?$/.test(pathname);
 
   useEffect(() => {
     const updateVisibility = () => setShowScrollTop(window.scrollY > 320);
@@ -21,6 +22,8 @@ export function FloatingActions() {
 
     return () => window.removeEventListener("scroll", updateVisibility);
   }, []);
+
+  if (isOutreachPage) return null;
 
   return (
     <div className="fixed bottom-5 right-4 z-[90] flex flex-col items-center gap-3 sm:bottom-6 sm:right-6">

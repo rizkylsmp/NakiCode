@@ -64,6 +64,7 @@ export type PortfolioItem = {
   category: string;
   description: string;
   result: string;
+  techStack?: string[];
   websiteUrl?: string;
   imageUrl?: string | null;
   imageUrls?: string[];

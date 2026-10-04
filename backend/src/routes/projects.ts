@@ -45,30 +45,32 @@ const imageUrlSchema = z
     "URL gambar harus berupa URL HTTP(S) atau path upload lokal",
   );
 
-const projectBodySchema = z.object({
-  title: z.string().trim().min(1).max(160),
-  category: z.string().trim().min(1).max(80),
-  description: z.string().trim().min(1).max(5000),
-  result: z.string().trim().min(1).max(160),
-  websiteUrl: optionalWebsiteUrlSchema,
-  imageUrl: imageUrlSchema.optional(),
-  imageUrls: z.array(imageUrlSchema).max(12).optional(),
-  coverIndex: z.number().int().min(0).optional(),
-})
-.superRefine((data, ctx) => {
-  if (
-    typeof data.coverIndex === 'number' &&
-    Array.isArray(data.imageUrls) &&
-    data.imageUrls.length > 0 &&
-    data.coverIndex >= data.imageUrls.length
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'coverIndex harus lebih kecil dari jumlah gambar',
-      path: ['coverIndex'],
-    });
-  }
-});
+const projectBodySchema = z
+  .object({
+    title: z.string().trim().min(1).max(160),
+    category: z.string().trim().min(1).max(80),
+    description: z.string().trim().min(1).max(5000),
+    result: z.string().trim().min(1).max(160),
+    techStack: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+    websiteUrl: optionalWebsiteUrlSchema,
+    imageUrl: imageUrlSchema.optional(),
+    imageUrls: z.array(imageUrlSchema).max(12).optional(),
+    coverIndex: z.number().int().min(0).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      typeof data.coverIndex === "number" &&
+      Array.isArray(data.imageUrls) &&
+      data.imageUrls.length > 0 &&
+      data.coverIndex >= data.imageUrls.length
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "coverIndex harus lebih kecil dari jumlah gambar",
+        path: ["coverIndex"],
+      });
+    }
+  });
 
 async function createProjectAuditLog(
   payload: Parameters<typeof createAdminAuditLog>[0],
@@ -81,7 +83,6 @@ async function createProjectAuditLog(
     Sentry.captureException(error);
   }
 }
-
 
 projectsRouter.get("/", async (request, response) => {
   try {

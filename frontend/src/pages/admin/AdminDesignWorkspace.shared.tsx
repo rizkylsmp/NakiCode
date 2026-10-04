@@ -126,6 +126,7 @@ export type PortfolioFormState = {
   category: string;
   description: string;
   result: string;
+  techStack: string[];
   websiteUrl: string;
   imageUrl: string;
   imageUrls: string[];
@@ -137,6 +138,7 @@ export const defaultPortfolioFormState: PortfolioFormState = {
   category: "Company profile",
   description: "",
   result: "Website selesai",
+  techStack: [],
   websiteUrl: "#",
   imageUrl: "",
   imageUrls: [],
@@ -404,6 +406,13 @@ export const databaseStackOptions = [
   "Neon",
   "Vercel Postgres",
 ];
+export const portfolioTechStackOptions = Array.from(
+  new Set([
+    ...frontendStackOptions,
+    ...backendStackOptions,
+    ...databaseStackOptions,
+  ]),
+);
 export const licenseOptions = [
   "Boleh dipakai untuk satu personal/client project. Source code tidak boleh dijual ulang tanpa izin.",
   "Boleh dipakai untuk satu brand atau satu client project.",

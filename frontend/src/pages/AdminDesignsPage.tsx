@@ -421,7 +421,13 @@ export function AdminDesignsPage({
         template.category === templateCategoryFilter;
       const matchesSearch =
         !normalizedSearch ||
-        [template.title, template.slug, template.category, template.niche ?? "", template.price]
+        [
+          template.title,
+          template.slug,
+          template.category,
+          template.niche ?? "",
+          template.price,
+        ]
           .join(" ")
           .toLowerCase()
           .includes(normalizedSearch);
@@ -472,6 +478,7 @@ export function AdminDesignsPage({
       category: project.category,
       description: project.description,
       result: project.result,
+      techStack: project.techStack ?? [],
       websiteUrl: project.websiteUrl ?? "#",
       imageUrl: imageUrls[coverIndex] ?? "",
       imageUrls,
@@ -1037,6 +1044,11 @@ export function AdminDesignsPage({
       category: portfolioForm.category.trim(),
       description: portfolioForm.description.trim(),
       result: portfolioForm.result.trim(),
+      techStack: Array.from(
+        new Set(
+          portfolioForm.techStack.map((item) => item.trim()).filter(Boolean),
+        ),
+      ),
       websiteUrl: portfolioForm.websiteUrl.trim() || "#",
       imageUrl:
         portfolioForm.imageUrls[coverIndex] ||

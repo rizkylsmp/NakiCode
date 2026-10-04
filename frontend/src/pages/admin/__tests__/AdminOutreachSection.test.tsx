@@ -7,10 +7,82 @@ vi.mock("../../../services/api-client", () => ({ apiGet: vi.fn(), apiPatch: vi.f
 const lead = { id: 1, business_name: "Bisnis Uji", category: "Jasa", city: "Kota Uji", external_key: "fixture.example", source_url: "https://fixture.example", evidence_url: "https://fixture.example/services", contact_url: "https://fixture.example/contact", observation: "Informasi layanan bisnis uji.", opportunity: "Halaman layanan dengan design yang jelas.", score: 3, draft_message: "Halo, boleh berdiskusi tentang design website? https://nakicode.xyz/", status: "reviewed", whatsapp_number: null, notes: null, checked_at: null, updated_at: "2026-01-01T01:00:00.000Z" };
 beforeEach(() => { vi.restoreAllMocks(); vi.mocked(apiGet).mockResolvedValue({ leads: [lead] }); vi.mocked(apiDelete).mockResolvedValue({}); });
 describe("research-only outreach", () => {
+  it("sorts numeric scores in both directions, resets pagination, and preserves ordering through filtering", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: Array.from({ length: 12 }, (_, index) => ({ ...lead, id: index + 1, business_name: `Client ${index + 1}`, score: index % 6 })) });
+    render(<AdminOutreachSection />);
+    await screen.findByRole("button", { name: "Client 1" });
+    fireEvent.click(screen.getByRole("button", { name: "Halaman berikutnya" }));
+    fireEvent.click(screen.getByRole("button", { name: "Urutkan Skor" }));
+    const table = screen.getByRole("table");
+    expect(table.querySelector("tbody tr")?.textContent).toContain("Client 1");
+    expect(screen.getByLabelText("Halaman saat ini")).toHaveTextContent("1 / 2");
+    expect(screen.getByRole("button", { name: "Urutkan Skor" }).closest("th")).toHaveAttribute("aria-sort", "ascending");
+    fireEvent.click(screen.getByRole("button", { name: "Urutkan Skor" }));
+    expect(table.querySelector("tbody tr")?.textContent).toContain("Client 6");
+    expect(screen.getByRole("button", { name: "Urutkan Skor" }).closest("th")).toHaveAttribute("aria-sort", "descending");
+    fireEvent.change(screen.getByRole("textbox", { name: "Cari prospek" }), { target: { value: "Client 1" } });
+    expect(table.querySelector("tbody tr")?.textContent).toContain("Client 12");
+  });
+  it("links a prospect number to WhatsApp with its draft and leaves invalid numbers unlinked", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: [{ ...lead, whatsapp_number: "0812 3456 7890" }, { ...lead, id: 2, business_name: "Nomor Invalid", whatsapp_number: "invalid" }] });
+    render(<AdminOutreachSection />);
+    const link = await screen.findByRole("link", { name: "Chat WhatsApp Bisnis Uji" });
+    expect(link).toHaveAttribute("href", `https://wa.me/6281234567890?text=${encodeURIComponent(lead.draft_message)}`);
+    expect(screen.queryByRole("link", { name: "Chat WhatsApp Nomor Invalid" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Muat ulang" })).toHaveTextContent("");
+    expect(screen.getAllByRole("columnheader").map(header => header.textContent)).toEqual(["Bisnis", "Niche", "Status", "WhatsApp", "Draf pesan", "Informasi", "Catatan", "Tautan", "Kota", "Skor", "Aksi"]);
+  });
+  it("saves only the status directly from the table", async () => {
+    vi.mocked(apiPatch).mockResolvedValue({ lead: { ...lead, status: "replied" } });
+    render(<AdminOutreachSection />);
+    const status = await screen.findByRole("combobox", { name: "Status Bisnis Uji" });
+    fireEvent.change(status, { target: { value: "replied" } });
+    await screen.findByText("Status diperbarui.");
+    expect(apiPatch).toHaveBeenCalledWith("/api/admin/outreach/1", { status: "replied" });
+    expect(screen.getByRole("combobox", { name: "Status Bisnis Uji" })).toHaveValue("replied");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("retains the original status when saving fails", async () => {
+    vi.mocked(apiPatch).mockRejectedValue(new Error("fixture"));
+    render(<AdminOutreachSection />);
+    const status = await screen.findByRole("combobox", { name: "Status Bisnis Uji" });
+    fireEvent.change(status, { target: { value: "replied" } });
+    await screen.findByText("Gagal memperbarui status.");
+    expect(status).toHaveValue("reviewed");
+  });
+  it("selects and highlights a row from its data cells without selecting when viewing a draft", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: [lead, { ...lead, id: 2, business_name: "Bisnis Kedua", city: "Kota Kedua" }] });
+    render(<AdminOutreachSection />);
+    const city = await screen.findByText("Kota Kedua");
+    const row = city.closest("tr")!;
+    expect(row).toHaveAttribute("aria-selected", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Lihat draf pesan Bisnis Kedua" }));
+    expect(row).toHaveAttribute("aria-selected", "false");
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    fireEvent.click(city);
+    expect(row).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: "Bisnis Kedua" })).toHaveAttribute("aria-pressed", "true");
+  });
+  it("shows full draft in a dialog and restores focus on Escape", async () => {
+    render(<AdminOutreachSection />);
+    const trigger = await screen.findByRole("button", { name: "Lihat draf pesan Bisnis Uji" });
+    expect(screen.queryByText(lead.draft_message)).not.toBeInTheDocument();
+    trigger.focus(); fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: /Draf pesan/ });
+    expect(dialog).toHaveTextContent(lead.draft_message);
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+  it("opens manual creation as an overlay", () => {
+    render(<AdminOutreachSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Tambah manual" }));
+    expect(screen.getByRole("dialog", { name: "Tambah prospek" })).toBeInTheDocument();
+  });
   it("offers registered niches with no prospects and hides filtered detail", async () => {
     vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [{ name: "Laundry" }, { name: "Shipping" }] } : { leads: [{ ...lead, category: "Jasa laundry" }] });
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    await screen.findByRole("button", { name: "Bisnis Uji" });
     expect(screen.getByRole("option", { name: "Shipping" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Filter niche" }), { target: { value: "Ekspedisi (Courier/Shipping)" } });
     expect(screen.queryByRole("heading", { name: "Bisnis Uji" })).not.toBeInTheDocument();
@@ -29,42 +101,68 @@ describe("research-only outreach", () => {
   it("combines niche and status filters and supports unclassified prospects", async () => {
     vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: [{ ...lead, category: "Jasa laundry" }, { ...lead, id: 2, business_name: "Cargo Uji", category: "Ekspedisi cargo", status: "new" }, { ...lead, id: 3, business_name: "Umum Uji" }] });
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    await screen.findByRole("button", { name: "Bisnis Uji" });
     fireEvent.change(screen.getByRole("combobox", { name: "Filter niche" }), { target: { value: "Ekspedisi (Courier/Shipping)" } });
-    expect(screen.getByRole("button", { name: /Cargo Uji/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Bisnis Uji/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Cargo Uji$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Bisnis Uji$/ })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Filter status" }), { target: { value: "reviewed" } });
     expect(screen.getByText("Belum ada prospek yang cocok dengan filter.")).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Filter niche" }), { target: { value: "unclassified" } });
-    expect(screen.getByRole("button", { name: /Umum Uji/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Umum Uji$/ })).toBeInTheDocument();
   });
   it("labels prospects from their category and searches by the registered niche", async () => {
     vi.mocked(apiGet).mockImplementation(async (path) => path === "/api/categories/niches" ? { niches: [{ name: "Laundry" }] } : { leads: [{ ...lead, category: "Jasa laundry" }] });
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    await screen.findByRole("button", { name: "Bisnis Uji" });
     const list = screen.getByRole("region", { name: "Daftar prospek" });
     expect(list).toHaveTextContent("Laundry");
-    expect(screen.getByRole("region", { name: "Detail prospek" })).toHaveTextContent("Niche:");
+    expect(list).not.toHaveTextContent("Niche:");
     fireEvent.change(screen.getByRole("textbox", { name: "Cari prospek" }), { target: { value: "Laundry" } });
-    expect(screen.getByRole("button", { name: /Bisnis Uji/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Bisnis Uji$/ })).toBeInTheDocument();
   });
-  it("keeps the bounded scroll panel and final prospect selectable", async () => {
+  it("renders a paginated prospect table and keeps the final prospect selectable", async () => {
     vi.mocked(apiGet).mockResolvedValue({ leads: Array.from({ length: 30 }, (_, index) => ({ ...lead, id: index + 1, business_name: `Bisnis Uji ${index + 1}` })) });
     render(<AdminOutreachSection />);
-    const last = await screen.findByRole("button", { name: /Bisnis Uji 30/ });
-    expect(screen.getByRole("region", { name: "Daftar prospek" })).toHaveClass("lg:h-[calc(100dvh-7rem)]", "lg:self-start", "flex-col");
-    expect(last.parentElement).toHaveClass("min-h-0", "flex-1", "overflow-y-auto", "lg:max-h-none");
+    await screen.findByRole("button", { name: /^Bisnis Uji 1$/ });
+    expect(screen.getByRole("table", { name: "Daftar prospek client outreach" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Pagination prospek" })).toHaveTextContent("Menampilkan");
+    expect(screen.getByRole("navigation", { name: "Pagination prospek" })).toHaveTextContent("30");
+    const next = screen.getByRole("button", { name: "Halaman berikutnya" });
+    fireEvent.click(next);
+    fireEvent.click(next);
+    const last = await screen.findByRole("button", { name: /^Bisnis Uji 30$/ });
     fireEvent.click(last);
-    expect(screen.getByRole("heading", { name: "Bisnis Uji 30" })).toBeInTheDocument();
+    expect(last).toHaveAttribute("aria-pressed", "true");
+  });
+  it("changes page size, resets to page one, and paginates the remaining results", async () => {
+    vi.mocked(apiGet).mockImplementation(async path => path === "/api/categories/niches" ? { niches: [] } : { leads: Array.from({ length: 31 }, (_, index) => ({ ...lead, id: index + 1, business_name: `Prospek ${index + 1}` })) });
+    render(<AdminOutreachSection />);
+    await screen.findByRole("button", { name: "Prospek 1" });
+    fireEvent.click(screen.getByRole("button", { name: "Halaman berikutnya" }));
+    expect(screen.queryByRole("button", { name: "Prospek 1" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Data per halaman" }), { target: { value: "25" } });
+    expect(screen.getByRole("button", { name: "Prospek 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Prospek 25" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Prospek 26" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Halaman sebelumnya" })).toBeDisabled();
+    expect(screen.getByLabelText("Halaman saat ini")).toHaveTextContent("1 / 2");
+    fireEvent.click(screen.getByRole("button", { name: "Halaman berikutnya" }));
+    expect(screen.getByRole("button", { name: "Prospek 31" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Halaman berikutnya" })).toBeDisabled();
+    fireEvent.change(screen.getByRole("combobox", { name: "Data per halaman" }), { target: { value: "50" } });
+    expect(screen.getByRole("button", { name: "Prospek 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Prospek 31" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Halaman berikutnya" })).toBeDisabled();
   });
   it("saves a number without consent fields or sending controls", async () => {
     const user = userEvent.setup();
     vi.mocked(apiPatch).mockResolvedValue({ lead: { ...lead, whatsapp_number: "6280000000000" } });
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
+    await screen.findByRole("button", { name: "Bisnis Uji" });
     expect(screen.queryByText(/Persetujuan WhatsApp|Kredensial Cloud API|dijadwalkan otomatis/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Waktu persetujuan|URL bukti persetujuan/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Buka WhatsApp|Kirim template WhatsApp|Siap kirim/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit Bisnis Uji" }));
     await user.type(screen.getByLabelText("Nomor WhatsApp"), "6280000000000");
     await user.click(screen.getByRole("button", { name: "Simpan perubahan" }));
     await screen.findByText("Perubahan tersimpan.");
@@ -73,35 +171,35 @@ describe("research-only outreach", () => {
   it("cancels deletion without an API call", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
-    fireEvent.click(screen.getByRole("button", { name: "Hapus prospek" }));
+    await screen.findByRole("button", { name: "Bisnis Uji" });
+    fireEvent.click(screen.getByRole("button", { name: "Hapus Bisnis Uji" }));
     expect(apiDelete).not.toHaveBeenCalled();
   });
   it("deletes the selected prospect and selects the next", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(apiGet).mockResolvedValue({ leads: [lead, { ...lead, id: 2, business_name: "Bisnis Kedua" }] });
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
-    fireEvent.click(screen.getByRole("button", { name: "Hapus prospek" }));
-    await screen.findByRole("heading", { name: "Bisnis Kedua" });
+    await screen.findByRole("button", { name: "Bisnis Uji" });
+    fireEvent.click(screen.getByRole("button", { name: "Hapus Bisnis Uji" }));
+    await screen.findByRole("button", { name: "Bisnis Kedua" });
     expect(apiDelete).toHaveBeenCalledWith("/api/admin/outreach/1");
-    expect(screen.queryByRole("button", { name: /Bisnis Uji/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Bisnis Uji$/ })).not.toBeInTheDocument();
   });
   it("shows the empty state after deleting the last prospect", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
-    fireEvent.click(screen.getByRole("button", { name: "Hapus prospek" }));
-    await screen.findByText("Pilih prospek untuk melihat detailnya.");
+    await screen.findByRole("button", { name: "Bisnis Uji" });
+    fireEvent.click(screen.getByRole("button", { name: "Hapus Bisnis Uji" }));
+    await screen.findByText("Prospek dihapus dari daftar.");
     expect(screen.getByText("Belum ada prospek yang cocok dengan filter.")).toBeInTheDocument();
   });
   it("retains the prospect if deletion fails", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(apiDelete).mockRejectedValue(new Error("fixture"));
     render(<AdminOutreachSection />);
-    await screen.findByRole("heading", { name: "Bisnis Uji" });
-    fireEvent.click(screen.getByRole("button", { name: "Hapus prospek" }));
+    await screen.findByRole("button", { name: "Bisnis Uji" });
+    fireEvent.click(screen.getByRole("button", { name: "Hapus Bisnis Uji" }));
     await screen.findByText("Gagal menghapus prospek.");
-    expect(screen.getByRole("heading", { name: "Bisnis Uji" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bisnis Uji" })).toBeInTheDocument();
   });
 });

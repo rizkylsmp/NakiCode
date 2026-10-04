@@ -2,6 +2,42 @@
 
 Dokumentasi perubahan dan task yang telah diselesaikan di proyek Naki Code.
 
+- [x] 2026-10-04 - Siapkan seluruh perubahan Website untuk commit/push: tech stack portofolio beserta migrasi, perbaikan Client Outreach, dan scrollbar bertema. Validasi 34 tes terkait, lint, build frontend/backend, TypeScript, SEO dan diff check lulus. Dua tes frontend awal timeout saat build berjalan paralel; pengulangan terpisah dengan batas waktu 30 detik lulus seluruhnya. Env aktual, cache TypeScript dan screenshot QA tidak disertakan - files: backend/src/models/project.model.ts, backend/src/runtime-migrations.ts, frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/styles.css
+
+- [x] 2026-10-04 - Sesuaikan lebar tiap kolom Client Outreach, lebarkan Kota menjadi 240px dan WhatsApp untuk ikon/nomor, perkecil tombol/dropdown pagination menjadi 32px, serta samakan tinggi baris dengan isi tertinggi pada halaman aktif melalui ResizeObserver. Tinggi menyesuaikan filter/pagination dan perubahan ukuran konten. Tambahkan ikon brand WhatsApp pada tautan nomor - files: frontend/src/pages/admin/AdminOutreachSection.tsx
+
+  Validasi: build frontend/TypeScript/SEO dan lint lulus; browser data contoh memeriksa tinggi tiga baris seragam 77px, Kota 240px, pagination 32px, ikon WhatsApp, serta filter/mobile 320px tanpa overflow halaman. Belum dipush/deploy.
+
+- [x] 2026-10-04 - Client Outreach: pusatkan ikon Draf pesan/Informasi/Catatan, tambahkan sort naik/turun pada Bisnis/Niche/Status/WhatsApp/Kota/Skor dengan pagination dan filter tetap konsisten, urutkan kolom sesuai permintaan, hilangkan ring/outline/shadow field filter dan overlay, serta sembunyikan tombol mengambang kembali ke atas pada route outreach - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/OutreachDialog.tsx, frontend/src/components/layout/FloatingActions.tsx, frontend/src/styles.css, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx
+
+  Validasi: tes terfokus, lint dan build frontend; browser data contoh memeriksa urutan kolom, sort, pusat ikon, field tanpa ring/shadow, dan overlay mobile 320px tanpa overflow halaman. Belum dipush/deploy.
+
+- [x] 2026-10-04 - Client Outreach: Muat ulang memakai ikon, Tambah manual memakai ikon plus, hilangkan ring/outline biru dan aksen biru seleksi tabel, tampilkan label niche tanpa prefix, pindahkan Kota sebelum Aksi, dan jadikan nomor prospek yang valid tautan WhatsApp dengan draf pesan terisi. Nomor tidak valid tidak memakai fallback nomor NAKI; pengiriman tetap dilakukan pengguna di WhatsApp - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/styles.css
+
+  Validasi: 17 tes terfokus, lint, build frontend/TypeScript/SEO dan diff check lulus; preview desktop/mobile 320px tanpa page overflow serta pemeriksaan URL chat dan fokus keyboard. Tidak mengirim pesan atau mengubah data produksi. Belum dipush/deploy.
+
+- [x] 2026-10-04 - Rapikan Client Outreach: filter menyatu dengan panel tabel, pagination ikon previous/next dengan nomor di tengah dan pilihan 10/25/50/100 data. Draf/catatan memakai ikon lihat saja, sumber/kontak memakai ikon, kolom Diperiksa dan tautan bukti disembunyikan, serta Aksi dibekukan di kanan. Klik sel data menyorot prospek dan menyinkronkan marker/popup peta. Perbaiki close overlay, warna dropdown status pada kedua tema, ruang judul kolom, serta kontrol mobile - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/OutreachDialog.tsx, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx, frontend/src/styles.css, docs/PROJECT_SUMMARY.md
+
+  Validasi: 16 tes terfokus, lint dan build frontend/TypeScript/SEO lulus. Browser data contoh memverifikasi pagination, perubahan jumlah data, highlight/popup peta, dialog, tema terang/gelap, dan mobile 320px tanpa overflow halaman. Tidak mengubah data produksi; belum dipush/deploy.
+
+- [x] 2026-10-04 - Lebarkan tabel Client Outreach menjadi minimum 2.208px dengan ukuran tiap kolom yang tetap, padding lebih lega, dan cuplikan draf/catatan mengikuti ruang kolom. Pertahankan scroll horizontal di dalam tabel serta dukungan fokus keyboard - files: frontend/src/pages/admin/AdminOutreachSection.tsx
+
+  Validasi: lint dan build frontend/TypeScript/SEO lulus. Browser data contoh memverifikasi desktop dan mobile 320px tanpa page overflow, serta scroll horizontal melalui keyboard. Belum dipush/deploy.
+
+- [x] 2026-10-04 - Sesuaikan scrollbar global dengan tema NAKI CODE: thumb biru membulat, track terang/gelap, hover, fallback standar Firefox, dan scrollbar sistem pada mode kontras tinggi. Pertahankan scroll native serta cegah gutter scrollbar menambah overflow di viewport mobile 320px - files: frontend/src/styles.css, docs/PROJECT_SUMMARY.md
+
+  Validasi: lint, build frontend/TypeScript/SEO dan diff check lulus. Browser memverifikasi tema terang/gelap desktop, mobile 320px tanpa overflow horizontal, serta galeri dengan scroll internal yang tetap berfungsi. Panel admin mengikuti CSS global; belum diverifikasi melalui sesi admin, Firefox, perangkat mobile nyata, atau mode kontras tinggi. Belum dipush/deploy.
+
+- [x] 2026-10-04 - Satukan informasi Client Outreach di tabel, tambahkan aksi edit/hapus per baris, overlay tambah/edit, dropdown status berwarna yang menyimpan langsung, dan cuplikan draf/catatan dua baris dengan ikon mata untuk dialog teks lengkap. Dialog mendukung Escape, fokus keyboard, pengembalian fokus, dan mobile layar penuh - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/OutreachDialog.tsx, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx
+
+  Validasi: 14 tes terfokus, lint dan build/TypeScript/SEO lulus. Browser data contoh memverifikasi status tersimpan, dialog draf/catatan, tambah/edit mobile 320px tanpa page overflow dan tema gelap. Tidak mengubah data produksi; belum dipush/deploy.
+
+- [x] 2026-10-03 - Ubah daftar Client Outreach menjadi tabel penuh dengan filter di atas, pagination 10 prospek per halaman, seleksi baris yang tetap membuka detail dan menyinkronkan peta, serta tampilan tabel yang dapat digulir secara horizontal pada layar kecil - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/pages/admin/__tests__/AdminOutreachSection.test.tsx
+
+  Validasi: 10 tes Client Outreach, lint, build/TypeScript dan SEO lulus. Preview browser dengan data contoh memverifikasi tabel desktop, status berwarna, pagination, filter, dan pemilihan prospek. Belum diterbitkan ke deployment.
+
+- [x] 2026-10-03 - Tambahkan field pilihan Tech stack pada form portofolio menggunakan daftar stack Design yang sama, simpan ke `projects.tech_stack`, tampilkan chip pada kartu publik, dan tambahkan migrasi runtime aman untuk database lama - files: frontend/src/pages/admin/PortfolioFormModal.tsx, frontend/src/pages/admin/AdminDesignWorkspace.shared.tsx, frontend/src/pages/AdminDesignsPage.tsx, frontend/src/components/home/PortfolioSection.tsx, backend/src/models/project.model.ts, backend/src/routes/projects.ts, backend/src/runtime-migrations.ts, backend/database/schema.sql
+
 - [x] 2026-10-03 - Siapkan seluruh perubahan Website untuk commit/push: kontak WhatsApp terpusat, label status Client Outreach, dan panduan Cloudflare. Validasi 28 tes frontend terkait, lint, build frontend/backend, TypeScript, serta SEO lulus. File env aktual dan screenshot QA lokal tidak disertakan; environment Vercel perlu memakai VITE_WHATSAPP_NUMBER=6285159734244 dan redeploy, aktivasi Cloudflare tetap menunggu konfigurasi akun/domain - files: frontend/src/utils/whatsapp.ts, frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/styles.css, docs/CLOUDFLARE_SETUP.md, docs/CHANGELOG.md
 
 - [x] 2026-10-03 - Tambahkan label status berwarna pada daftar dan detail Client Outreach, dengan warna berbeda untuk setiap status termasuk status lama. Pertahankan keterbacaan pada tema terang/gelap - files: frontend/src/pages/admin/AdminOutreachSection.tsx, frontend/src/styles.css
