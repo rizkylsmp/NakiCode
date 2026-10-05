@@ -119,6 +119,7 @@ function AdminMobileLinks({ onClose }: { onClose: () => void }) {
         to="/admin/dashboard"
         onClose={onClose}
       />
+      <MobileMenuLink label="Kantor Digital" to="/admin/digital-office" onClose={onClose} />
     </>
   );
 }

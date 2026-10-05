@@ -13,8 +13,8 @@ describe("research-only outreach", () => {
     vi.mocked(apiPatch).mockResolvedValue({ lead: { ...lost, notes: "Catatan diperbarui" } });
     render(<AdminOutreachSection />);
     fireEvent.click(await screen.findByRole("button", { name: "Edit Bisnis Uji" }));
-    expect(screen.getByRole("combobox", { name: "Status", exact: true })).toBeEnabled();
-    expect(screen.getByRole("combobox", { name: "Status", exact: true })).toHaveValue(originalStatus);
+    expect(screen.getByRole("combobox", { name: /^Status$/ })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: /^Status$/ })).toHaveValue(originalStatus);
     fireEvent.change(screen.getByRole("textbox", { name: "Catatan" }), { target: { value: "Catatan diperbarui" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Nomor WhatsApp" }), { target: { value: "6280000000000" } });
     fireEvent.click(screen.getByRole("button", { name: "Simpan perubahan" }));

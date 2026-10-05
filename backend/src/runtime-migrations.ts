@@ -1,5 +1,6 @@
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { clientInvitationSchema } from "./client-invitation-schema";
+import { digitalOfficeSchema } from "./digital-office-schema";
 
 // Runtime migrations run automatically during API/database initialization.
 // Keep these idempotent because serverless cold starts can invoke them again.
@@ -9,6 +10,7 @@ type Migration = {
 };
 
 const runtimeMigrations: Migration[] = [
+  { id: "032_digital_office_codex", async up(connection) { for (const statement of digitalOfficeSchema) await connection.query(statement); } },
   {
     id: "001_order_payment_url_500",
     async up(connection) {

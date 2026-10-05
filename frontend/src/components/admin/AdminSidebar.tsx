@@ -13,7 +13,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  Building2,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { type DashboardView } from "../../pages/admin/AdminDesignWorkspace.shared";
 
 type AdminSidebarProps = {
@@ -81,58 +83,75 @@ function AdminNavigation({
   mobile = false,
   collapsed = false,
 }: AdminNavigationProps) {
-  return NAV_SECTIONS.map((section) => (
-    <div key={section.label} className="mb-5 last:mb-0">
-      <p
-        className={`${collapsed ? "sr-only" : "mb-1.5 px-3"} text-[10px] font-semibold uppercase tracking-[0.16em] text-naki-smoke`}
-      >
-        {section.label}
-      </p>
-      <ul className="space-y-1">
-        {section.items.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeView === item.key;
+  return (
+    <>
+      {NAV_SECTIONS.map((section) => (
+        <div key={section.label} className="mb-5 last:mb-0">
+          <p
+            className={`${collapsed ? "sr-only" : "mb-1.5 px-3"} text-[10px] font-semibold uppercase tracking-[0.16em] text-naki-smoke`}
+          >
+            {section.label}
+          </p>
+          <ul className="space-y-1">
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeView === item.key;
 
-          return (
-            <li key={item.key}>
-              <button
-                aria-label={item.label}
-                aria-current={isActive ? "page" : undefined}
-                title={collapsed ? item.label : undefined}
-                onClick={() => onNavigate(item.key)}
-                type="button"
-                className={`group flex min-h-11 w-full items-center rounded-xl py-2 text-left text-[13px] font-semibold transition focus-visible:ring-2 focus-visible:ring-naki-secondary ${collapsed ? "justify-center px-1" : "gap-3 px-3"} ${
-                  isActive
-                    ? mobile
-                      ? "bg-naki-primary text-white shadow-naki-card"
-                      : "bg-naki-frost text-naki-primary"
-                    : "text-naki-smoke hover:bg-naki-frost/60 hover:text-naki-primary"
-                }`}
-              >
-                <span
-                  className={`grid size-8 shrink-0 place-items-center rounded-lg transition ${
-                    isActive && mobile
-                      ? "bg-white/15 text-white"
-                      : isActive
-                        ? "bg-white text-naki-primary shadow-sm"
-                        : "bg-naki-frost text-naki-smoke group-hover:text-naki-primary"
-                  }`}
-                >
-                  <Icon size={16} />
-                </span>
-                {!collapsed && (
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                )}
-                {isActive && mobile ? (
-                  <span className="size-1.5 rounded-full bg-naki-secondary" />
-                ) : null}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  ));
+              return (
+                <li key={item.key}>
+                  <button
+                    aria-label={item.label}
+                    aria-current={isActive ? "page" : undefined}
+                    title={collapsed ? item.label : undefined}
+                    onClick={() => onNavigate(item.key)}
+                    type="button"
+                    className={`group flex min-h-11 w-full items-center rounded-xl py-2 text-left text-[13px] font-semibold transition focus-visible:ring-2 focus-visible:ring-naki-secondary ${collapsed ? "justify-center px-1" : "gap-3 px-3"} ${
+                      isActive
+                        ? mobile
+                          ? "bg-naki-primary text-white shadow-naki-card"
+                          : "bg-naki-frost text-naki-primary"
+                        : "text-naki-smoke hover:bg-naki-frost/60 hover:text-naki-primary"
+                    }`}
+                  >
+                    <span
+                      className={`grid size-8 shrink-0 place-items-center rounded-lg transition ${
+                        isActive && mobile
+                          ? "bg-white/15 text-white"
+                          : isActive
+                            ? "bg-white text-naki-primary shadow-sm"
+                            : "bg-naki-frost text-naki-smoke group-hover:text-naki-primary"
+                      }`}
+                    >
+                      <Icon size={16} />
+                    </span>
+                    {!collapsed && (
+                      <span className="min-w-0 flex-1 truncate">
+                        {item.label}
+                      </span>
+                    )}
+                    {isActive && mobile ? (
+                      <span className="size-1.5 rounded-full bg-naki-secondary" />
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+      <Link
+        to="/admin/digital-office"
+        aria-label="Kantor Digital"
+        title={collapsed ? "Kantor Digital" : undefined}
+        className={`flex min-h-11 items-center rounded-xl py-2 text-[13px] font-semibold text-naki-primary hover:bg-naki-frost focus-visible:ring-2 focus-visible:ring-naki-secondary ${collapsed ? "justify-center px-1" : "gap-3 px-3"}`}
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-naki-frost">
+          <Building2 size={16} aria-hidden="true" />
+        </span>
+        {!collapsed && <span>Kantor Digital</span>}
+      </Link>
+    </>
+  );
 }
 
 function AdminProfile({

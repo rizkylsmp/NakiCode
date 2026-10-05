@@ -23,7 +23,7 @@ export function FloatingActions() {
     return () => window.removeEventListener("scroll", updateVisibility);
   }, []);
 
-  if (isOutreachPage) return null;
+  if (isOutreachPage || /^\/admin\/digital-office\/?$/.test(pathname)) return null;
 
   return (
     <div className="fixed bottom-5 right-4 z-[90] flex flex-col items-center gap-3 sm:bottom-6 sm:right-6">

@@ -24,7 +24,12 @@
     "migrate:create": "npm run migrate:sql:create --",
     "migrate:sql": "tsx src/scripts/migrate.ts",
     "migrate:sql:status": "tsx src/scripts/migrate.ts status",
-    "migrate:sql:create": "tsx src/scripts/migrate.ts create"
+    "migrate:sql:create": "tsx src/scripts/migrate.ts create",
+    "office:worker": "tsx src/scripts/digital-office-worker.ts",
+    "office:telegram": "tsx src/scripts/digital-office-telegram.ts",
+    "office:telegram:setup": "powershell -NoProfile -File scripts/setup-office-telegram.ps1",
+    "office:hermes": "tsx src/scripts/digital-office-worker.ts --engine hermes",
+    "office:hermes:setup": "powershell -NoProfile -File scripts/setup-office-hermes.ps1"
   },
   "dependencies": {
     "@sentry/node": "^10.58.0",

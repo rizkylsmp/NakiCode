@@ -20,6 +20,7 @@ import { healthRouter } from './routes/health';
 import { notificationsRouter } from './routes/notifications';
 import { ordersRouter } from './routes/orders';
 import { outreachRouter } from './routes/outreach';
+import { digitalOfficeRouter } from './routes/digital-office';
 import { router as ordersStatsRouter } from './routes/orders-stats';
 import { paymentsRouter } from './routes/payments';
 import { projectsRouter } from './routes/projects';
@@ -138,6 +139,7 @@ function mountApiRoutes(prefix: string) {
   app.use(`${prefix}/auth`, authRateLimit, authRouter);
   app.use(`${prefix}/admin/stats`, adminStatsRouter);
   app.use(`${prefix}/admin/outreach`, outreachRouter);
+  app.use(`${prefix}/admin/digital-office`, digitalOfficeRouter);
   app.use(`${prefix}/projects`, projectsRouter);
   app.use(`${prefix}/templates`, templatesRouter);
   app.use(`${prefix}/designs`, templatesRouter);

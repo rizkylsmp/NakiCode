@@ -1,0 +1,796 @@
+.digital-office {
+  --office-ink: var(--color-naki-primary);
+  --office-surface: white;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-naki-page-bg);
+  color: var(--office-ink);
+  overflow: hidden;
+}
+html[data-theme="dark"] .digital-office {
+  --office-ink: var(--color-gray-100);
+  --office-surface: var(--color-naki-frost);
+}
+.digital-office :is(button, a) {
+  min-height: 42px;
+  border: 1px solid var(--color-naki-steel);
+  border-radius: 9px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  background: var(--office-surface);
+  color: var(--office-ink);
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.digital-office :is(button, a):hover {
+  border-color: var(--color-naki-secondary);
+}
+.digital-office button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.digital-office :is(button, a, textarea, select):focus-visible {
+  outline: 3px solid var(--color-naki-secondary) !important;
+  outline-offset: 3px;
+}
+.digital-office button.office-primary {
+  background: var(--color-naki-primary);
+  color: white;
+  border-color: var(--color-naki-primary);
+}
+html[data-theme="dark"] .digital-office button.office-primary {
+  background: var(--color-naki-secondary);
+  border-color: var(--color-naki-secondary);
+}
+.office-toolbar {
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-shrink: 0;
+  background: var(--office-surface);
+  border-bottom: 1px solid var(--color-naki-steel);
+}
+.office-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.office-brand img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.office-brand h1 {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+.office-brand span {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+}
+.office-toolbar nav {
+  display: flex;
+  gap: 8px;
+}
+.office-main {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  position: relative;
+}
+.office-main.has-panel {
+  grid-template-columns: minmax(0, 1fr) 350px;
+}
+.office-world {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--color-naki-page-bg);
+}
+.office-world-heading {
+  padding: 22px 26px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+.office-world-heading strong {
+  font-size: 16px;
+}
+.office-world-heading p {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+  margin: 6px 0 0;
+}
+.office-scene-controls {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.office-scene-controls button[aria-pressed="true"] {
+  border-color: var(--color-naki-secondary);
+}
+.office-scene {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  perspective: 1300px;
+  position: relative;
+}
+.office-webgl {
+  perspective: none;
+}
+.office-scene-loading {
+  text-align: center;
+  padding: 40px;
+}
+.digital-office button.office-station-label {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  white-space: nowrap;
+  padding: 6px 10px;
+  font-size: 11px;
+  background: var(--office-surface);
+  box-shadow: 0 3px 14px #17233418;
+}
+.office-station-label.selected {
+  border-color: #b68142;
+}
+.office-station-label small {
+  font-size: 9px;
+}
+.office-wall-brand {
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  pointer-events: none;
+}
+.office-scene-fallback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 24px;
+}
+.office-scene-fallback p {
+  width: 100%;
+}
+.office-worker-status {
+  padding: 14px;
+  border: 1px solid var(--color-naki-steel);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.office-worker-status strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.office-worker-status > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.office-worker-status a {
+  margin-top: 8px;
+}
+.office-voice {
+  display: grid;
+  gap: 7px;
+  margin: 8px 0;
+}
+.office-voice small {
+  line-height: 1.5;
+}
+.digital-office svg {
+  flex-shrink: 0;
+}
+.office-floor-label {
+  color: #516782;
+  background: #eef1f5dd;
+  padding: 4px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.office-avatar-label {
+  display: block;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: #496588;
+  color: white;
+  font-size: 9px;
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .digital-office button.office-station-label {
+    width: 75px;
+    min-width: 75px;
+    padding: 4px 5px;
+    max-width: 75px;
+    min-height: 40px;
+    white-space: normal;
+    font-size: 9px;
+  }
+  .office-station-label small {
+    font-size: 8px;
+  }
+  .office-floor-label {
+    font-size: 7px;
+  }
+}
+.office-floor {
+  position: absolute;
+  width: 1000px;
+  height: 600px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(var(--office-scale)) rotateX(42deg)
+    rotateZ(-17deg);
+  transform-style: preserve-3d;
+  background: var(--color-naki-frost);
+  border: 2px solid var(--color-naki-steel);
+  border-radius: 6px;
+  box-shadow: 0 18px 0 var(--color-naki-steel);
+  transition: transform 0.3s;
+}
+.office-wall {
+  position: absolute;
+  background: color-mix(
+    in srgb,
+    var(--color-naki-steel) 50%,
+    var(--office-surface)
+  );
+  border: 1px solid var(--color-naki-steel);
+  transform-origin: bottom;
+  pointer-events: none;
+}
+.office-wall.back {
+  top: -95px;
+  left: 0;
+  width: 100%;
+  height: 95px;
+  transform: rotateX(-90deg);
+}
+.office-wall.side {
+  left: -95px;
+  top: 0;
+  width: 95px;
+  height: 600px;
+  transform-origin: right;
+  transform: rotateY(90deg);
+}
+.office-room-sign {
+  position: absolute;
+  left: 45px;
+  top: 28px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-naki-smoke);
+  letter-spacing: 2px;
+}
+.office-rug {
+  position: absolute;
+  inset: 70px 710px 45px 30px;
+  background: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 8%,
+    var(--office-surface)
+  );
+  border: 1px solid var(--color-naki-steel);
+  border-radius: 5px;
+}
+.digital-office button.office-desk {
+  position: absolute;
+  width: 205px;
+  height: 135px;
+  background: var(--office-surface);
+  border: 2px solid var(--color-naki-steel);
+  border-radius: 5px;
+  padding: 0;
+  transform: translateZ(30px);
+  transform-style: preserve-3d;
+  box-shadow: 0 14px 0 var(--color-naki-steel);
+  overflow: visible;
+  display: block;
+  text-align: left;
+}
+.office-desk.is-selected {
+  border-color: var(--color-naki-secondary) !important;
+}
+.office-desk.task-running {
+  outline: 4px solid var(--color-naki-secondary);
+  outline-offset: 7px;
+}
+.office-desk.task-done {
+  background: color-mix(
+    in srgb,
+    var(--color-naki-secondary) 10%,
+    var(--office-surface)
+  ) !important;
+}
+.desk-ceo {
+  top: 120px;
+  left: 50px;
+}
+.desk-manager {
+  top: 365px;
+  left: 50px;
+}
+.desk-strategy {
+  top: 120px;
+  left: 400px;
+}
+.desk-research {
+  top: 120px;
+  left: 710px;
+}
+.desk-creative {
+  top: 365px;
+  left: 400px;
+}
+.desk-operations {
+  top: 365px;
+  left: 710px;
+}
+.office-monitor {
+  position: absolute;
+  top: 8px;
+  left: 65px;
+  width: 75px;
+  height: 55px;
+  background: var(--color-naki-primary);
+  border: 5px solid var(--color-naki-steel);
+  transform-origin: bottom;
+  transform: rotateX(-65deg) translateZ(16px);
+  border-radius: 5px;
+  pointer-events: none;
+}
+.office-monitor i {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 15px;
+  height: 3px;
+  background: var(--color-naki-secondary);
+  box-shadow: 0 8px 0 var(--color-naki-secondary);
+}
+.office-chair {
+  position: absolute;
+  left: 77px;
+  bottom: -52px;
+  width: 55px;
+  height: 46px;
+  background: var(--color-naki-steel);
+  border-radius: 10px;
+  transform: translateZ(-15px);
+  pointer-events: none;
+}
+.office-chair::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 55px;
+  height: 15px;
+  border-radius: 7px;
+  background: var(--color-naki-smoke);
+  transform-origin: bottom;
+  transform: rotateX(-90deg);
+}
+.office-desk-label {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.office-desk-label strong {
+  font-size: 18px;
+  line-height: 1.2;
+}
+.office-desk-label small {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+}
+.is-flat .office-floor {
+  transform: translate(-50%, -50%) scale(var(--office-scale));
+  box-shadow: none;
+}
+.is-flat .office-wall {
+  display: none;
+}
+.is-flat .office-desk {
+  transform: none !important;
+  box-shadow: none !important;
+}
+.is-flat .office-monitor {
+  transform: none;
+  top: 12px;
+  height: 30px;
+}
+.is-flat .office-chair {
+  transform: none;
+}
+.office-world-note {
+  padding: 0 26px 18px;
+  flex-shrink: 0;
+}
+.office-world-note strong {
+  font-size: 12px;
+  color: var(--office-ink);
+}
+.office-world-note p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-naki-smoke);
+  margin: 5px 0 0;
+}
+.office-panel {
+  min-width: 0;
+  min-height: 0;
+  background: var(--office-surface);
+  border-left: 1px solid var(--color-naki-steel);
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+.office-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--color-naki-steel);
+  flex-shrink: 0;
+}
+.office-panel-heading span {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+}
+.office-panel-heading h2 {
+  font-size: 21px;
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+.office-panel-heading button {
+  font-size: 24px;
+  padding: 4px;
+  width: 42px;
+}
+.office-panel-body {
+  padding: 22px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  overscroll-behavior: contain;
+}
+.office-panel-body p {
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 18px;
+  color: var(--color-naki-smoke);
+}
+.office-panel-body label {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  margin: 20px 0 8px;
+}
+.office-panel-body textarea {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--color-naki-page-bg);
+  border: 1px solid var(--color-naki-steel);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  color: var(--office-ink);
+}
+.office-panel-body select {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-naki-steel);
+  margin-bottom: 20px;
+}
+.office-panel-body small {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+  display: block;
+  margin: 8px 0;
+}
+.office-panel-body > button,
+.office-panel-body form > button {
+  width: 100%;
+  margin-top: 10px;
+}
+.office-panel-body .office-fineprint {
+  font-size: 12px;
+  margin-top: 20px;
+}
+.office-mission {
+  padding: 14px;
+  background: var(--color-naki-page-bg);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.office-mission span {
+  font-size: 12px;
+  font-weight: 650;
+}
+.office-mission p {
+  margin: 10px 0 0;
+  color: var(--office-ink);
+}
+.office-task {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-naki-steel);
+}
+.office-task > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.office-task strong {
+  font-size: 14px;
+}
+.office-task span {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+}
+.office-task h3 {
+  font-size: 16px;
+  font-weight: 650;
+  margin: 10px 0;
+}
+.office-task p {
+  font-size: 13px;
+  margin: 8px 0;
+}
+.office-task button {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.office-task ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+.office-task li {
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+.office-empty {
+  padding: 24px 0;
+}
+.office-empty h3 {
+  font-size: 18px;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.office-panel-body pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.8;
+  padding: 16px;
+  border: 1px solid var(--color-naki-steel);
+  background: var(--color-naki-page-bg);
+  border-radius: 8px;
+}
+.office-panel-body .office-history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 14px;
+  gap: 5px;
+  width: 100%;
+}
+.office-history-item strong {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.office-panel-body .office-error {
+  color: var(--color-red-700);
+  margin-top: 16px;
+}
+html[data-theme="dark"] .office-panel-body .office-error {
+  color: var(--color-red-300);
+}
+.office-command-bar {
+  padding: 12px 24px;
+  border-top: 1px solid var(--color-naki-steel);
+  background: var(--office-surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.office-command-bar nav {
+  display: flex;
+  gap: 7px;
+}
+.office-command-bar button[aria-pressed="true"] {
+  border-color: var(--color-naki-secondary);
+  background: var(--color-naki-frost);
+}
+.office-command-bar p {
+  font-size: 12px;
+  color: var(--color-naki-smoke);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 440px;
+}
+.office-access {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  text-align: center;
+}
+.office-access h2 {
+  font-size: 24px;
+  font-weight: 650;
+}
+.office-access p {
+  color: var(--color-naki-smoke);
+}
+@media (max-width: 1000px) {
+  .office-main.has-panel {
+    grid-template-columns: minmax(0, 1fr) 350px;
+  }
+  .office-toolbar {
+    padding: 12px 16px;
+  }
+  .office-command-bar {
+    padding: 10px 16px;
+    gap: 12px;
+  }
+  .office-command-bar p {
+    max-width: 280px;
+  }
+  .office-world-heading {
+    padding: 18px 18px 0;
+  }
+  .office-world-note {
+    padding: 0 18px 16px;
+  }
+}
+@media (max-width: 700px) {
+  .office-toolbar {
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+  }
+  .office-brand h1 {
+    font-size: 16px;
+  }
+  .office-toolbar nav {
+    margin-left: auto;
+  }
+  .office-toolbar nav button,
+  .office-toolbar nav a {
+    font-size: 11px;
+    padding: 8px;
+  }
+  .office-main.has-panel {
+    grid-template-columns: 1fr;
+  }
+  .office-main.has-panel .office-world {
+    position: absolute;
+    inset: 0 0 48%;
+  }
+  .office-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 52%;
+    z-index: 2;
+    border-left: 0;
+    border-top: 1px solid var(--color-naki-steel);
+    box-shadow: var(--shadow-naki-card);
+  }
+  .office-panel-heading {
+    padding: 10px 16px;
+  }
+  .office-panel-heading h2 {
+    font-size: 17px;
+  }
+  .office-panel-body {
+    padding: 16px;
+  }
+  .office-world-heading {
+    padding: 10px 12px 0;
+    gap: 8px;
+  }
+  .office-world-heading strong {
+    font-size: 13px;
+  }
+  .office-world-heading p {
+    font-size: 10px;
+  }
+  .office-world-heading button {
+    min-height: 34px;
+    font-size: 11px;
+    padding: 8px;
+  }
+  .office-world-note {
+    padding: 0 12px 8px;
+  }
+  .has-panel .office-world-note {
+    display: none;
+  }
+  .office-command-bar {
+    padding: 8px 10px;
+    display: block;
+  }
+  .office-command-bar nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .office-command-bar button {
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    padding: 7px 3px;
+  }
+  .office-command-bar p {
+    max-width: none;
+    font-size: 10px;
+    line-height: 1.5;
+    min-height: 30px;
+    margin-top: 6px;
+  }
+  .office-brand span {
+    font-size: 10px;
+  }
+  .office-brand img {
+    width: 28px;
+    height: 28px;
+  }
+  .office-world-note p {
+    font-size: 11px;
+  }
+  .office-panel-body textarea {
+    min-height: 120px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .office-floor {
+    transition: none;
+  }
+}

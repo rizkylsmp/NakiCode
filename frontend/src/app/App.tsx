@@ -98,6 +98,9 @@ const AdminDesignsPage = lazyWithReload(() =>
     default: module.AdminDesignsPage,
   })),
 );
+const DigitalOfficePage = lazyWithReload(() =>
+  import("../pages/DigitalOfficePage").then((module) => ({ default: module.DigitalOfficePage })),
+);
 const CheckoutPage = lazyWithReload(() =>
   import("../pages/CheckoutPage").then((module) => ({
     default: module.CheckoutPage,
@@ -491,6 +494,10 @@ function App() {
               <UserProfilePage />
             </RequireAuth>
           }
+        />
+        <Route
+          path="/admin/digital-office"
+          element={<RequireAdmin><DigitalOfficePage /></RequireAdmin>}
         />
         <Route
           path="/admin/:adminSection"

@@ -6,6 +6,7 @@ import {
   LogOut,
   ShieldCheck,
   UserRound,
+  Building2,
 } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 import { Link } from "react-router-dom";
@@ -116,6 +117,12 @@ function AdminProfileLinks({ onClose }: { onClose: () => void }) {
         icon={<LayoutDashboard size={16} />}
         label="Dashboard admin"
         to="/admin/dashboard"
+        onClose={onClose}
+      />
+      <ProfileMenuLink
+        icon={<Building2 size={16} />}
+        label="Kantor Digital"
+        to="/admin/digital-office"
         onClose={onClose}
       />
     </>
